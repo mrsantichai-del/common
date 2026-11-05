@@ -15,7 +15,7 @@ async function bootstrap() {
     }),
   );
 
-  app.useStaticAssets(join(__dirname, '..', 'public'));
+  app.useStaticAssets(join(process.cwd(), 'public'));
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
