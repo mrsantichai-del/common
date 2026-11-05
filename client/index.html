@@ -85,10 +85,11 @@
         <p class="text-sm text-slate-500 mt-1">ULTRON SOVEREIGN CORE SYSTEM</p>
       </div>
 
-      <!-- Quick 1-Click Identity Selector (Easy for everyone!) -->
-      <div class="mb-6 p-3 bg-blue-50/70 border border-blue-200 rounded-xl">
-        <div class="text-xs font-bold text-blue-900 mb-2 flex items-center space-x-1">
-          <span>⚡ เข้าใช้งานด่วนด้วยบัญชีทดสอบ (คลิกเพื่อเข้าทันที):</span>
+      <!-- Quick 1-Click Identity Selector (Hidden by Default in Production Mode) -->
+      <div id="loginDemoAccountsPanel" class="hidden mb-6 p-3 bg-blue-50/70 border border-blue-200 rounded-xl transition-all">
+        <div class="text-xs font-bold text-blue-900 mb-2 flex items-center justify-between">
+          <span>⚡ เข้าใช้งานด่วนด้วยบัญชีทดสอบ (One-Click Test Login):</span>
+          <span class="text-[10px] bg-blue-200 text-blue-800 px-1.5 py-0.2 rounded font-mono">DEV MODE</span>
         </div>
         <div class="grid grid-cols-2 gap-2 text-xs">
           <button type="button" onclick="quickLoginAs('root_admin')" class="p-2 bg-white hover:bg-blue-600 hover:text-white border border-blue-200 rounded-lg text-left transition-all shadow-xs group">
@@ -116,12 +117,11 @@
             <div class="text-[11px] text-slate-500 group-hover:text-blue-100">hybrid_harry (บันทึกข้อมูล)</div>
           </button>
         </div>
-      </div>
-
-      <div class="relative flex py-2 items-center mb-4">
-        <div class="flex-grow border-t border-slate-200"></div>
-        <span class="flex-shrink mx-3 text-xs text-slate-400 font-medium">หรือเข้าสู่ระบบด้วยบัญชีอื่น</span>
-        <div class="flex-grow border-t border-slate-200"></div>
+        <div class="relative flex py-2 items-center mt-2">
+          <div class="flex-grow border-t border-blue-200"></div>
+          <span class="flex-shrink mx-2 text-[10px] text-blue-500 font-medium">หรือกรอกบัญชีด้วยตนเองด้านล่าง</span>
+          <div class="flex-grow border-t border-blue-200"></div>
+        </div>
       </div>
 
       <!-- Error Alert Box -->
@@ -175,7 +175,20 @@
 
     </div>
 
-    <div class="mt-4 text-center text-xs text-slate-400">
+    <!-- Toggle Demo Mode Button (Discreet, at bottom of login card) -->
+    <div class="mt-4 text-center">
+      <button 
+        type="button" 
+        onclick="toggleDemoMode()" 
+        id="btnToggleDemoMode" 
+        class="text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center space-x-1.5 py-1 px-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 shadow-xs cursor-pointer"
+        title="สลับระหว่างโหมดใช้งานจริง (Production) กับโหมดทดสอบระบบ (Developer Test Mode)"
+      >
+        <span>🛠️ โหมดทดสอบระบบ (Developer Test Mode):</span> <strong id="demoModeBadge" class="text-slate-500 font-mono">OFF</strong>
+      </button>
+    </div>
+
+    <div class="mt-2 text-center text-xs text-slate-400">
       ระบบความปลอดภัยภายในเครื่อง (Local SQLite) &bull; ข้อมูลไม่รั่วไหลออกนอกระบบ
     </div>
   </div>
@@ -282,6 +295,171 @@
               ดูรายการทั้งหมด &rarr;
             </button>
           </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- ADMIN SETUP JOURNEY (5-STEP GUIDED WORKFLOW FOR SUPER_ADMIN) -->
+        <!-- ============================================================ -->
+        <div id="adminSetupJourneyCard" class="hidden bg-white rounded-2xl border border-indigo-100 shadow-sm overflow-hidden transition-all">
+          
+          <!-- Card Header & Collapse Control -->
+          <div class="p-5 bg-gradient-to-r from-indigo-50/70 via-blue-50/40 to-white border-b border-indigo-100/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl shadow-xs">
+                🧭
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="font-bold text-slate-900 text-base">ขั้นตอนการเริ่มต้นตั้งค่าระบบ (Administrator Setup Journey)</h3>
+                  <span class="text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">5 ขั้นตอนหลัก</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  ระบบแนะนำขั้นตอนทีละสเต็ป สำหรับผู้ดูแลระบบในการวางโครงสร้างสิทธิ์ กลุ่มงาน และผู้ใช้งานโดยไม่ต้องพึ่งพาคู่มือ
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button 
+                type="button" 
+                onclick="toggleAdminJourneyCollapse()" 
+                id="btnToggleAdminJourney"
+                class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-xs font-medium text-slate-600 transition-colors flex items-center space-x-1 shadow-2xs"
+              >
+                <span id="journeyToggleIcon">▾</span>
+                <span id="journeyToggleLabel">ย่อเก็บ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Journey Content (Collapsible) -->
+          <div id="adminJourneyContent" class="p-5 space-y-4">
+            
+            <!-- Overall Progress Bar & Percentage -->
+            <div class="bg-slate-50 border border-slate-100 rounded-xl p-3.5">
+              <div class="flex justify-between items-center text-xs mb-2">
+                <span class="font-semibold text-slate-700 flex items-center space-x-1.5">
+                  <span>ความคืบหน้าการตั้งค่าโครงสร้างระบบ (Setup Progress):</span>
+                  <span id="journeyStatusMessage" class="font-normal text-slate-500">กำลังตรวจสอบสถานะ...</span>
+                </span>
+                <span class="font-bold text-indigo-600 font-mono text-sm" id="journeyPercentText">0%</span>
+              </div>
+              <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                <div id="journeyProgressBar" class="bg-gradient-to-r from-blue-600 to-indigo-600 h-2.5 rounded-full transition-all duration-700" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <!-- 5 Steps Responsive Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              
+              <!-- Step 1: Permissions Taxonomy -->
+              <div class="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-xs transition-all relative">
+                <div>
+                  <div class="flex justify-between items-start mb-2">
+                    <span class="text-xl">🔑</span>
+                    <span id="journeyBadge1" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">กำลังโหลด...</span>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-900 mb-1">1. สิทธิ์ในระบบ</h4>
+                  <p class="text-[11px] text-slate-500 leading-relaxed mb-3">
+                    สิทธิ์ระดับอะตอม 16 รายการ (PBAC) เช่น อ่าน ค้นหา เพิ่ม ลบ ยืนยัน ยกเลิก นำเข้า และส่งออก
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="selectMasterTable('Permission'); switchAppTab('masterTable');" 
+                  class="w-full py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
+                >
+                  <span>🔍 ดูรายการสิทธิ์</span>
+                </button>
+              </div>
+
+              <!-- Step 2: Role Groups -->
+              <div class="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-xs transition-all relative">
+                <div>
+                  <div class="flex justify-between items-start mb-2">
+                    <span class="text-xl">🏢</span>
+                    <span id="journeyBadge2" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">กำลังโหลด...</span>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-900 mb-1">2. กลุ่มบทบาทหน้าที่</h4>
+                  <p class="text-[11px] text-slate-500 leading-relaxed mb-3">
+                    นิยามกลุ่มหน้าที่ตามสายงาน เช่น ผู้ดูแลระบบ, ผู้อนุมัติ, เจ้าหน้าที่บันทึกข้อมูล
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="openMasterCreateModalFor('Group')" 
+                  class="w-full py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
+                >
+                  <span>➕ สร้างกลุ่มใหม่</span>
+                </button>
+              </div>
+
+              <!-- Step 3: Assign Permissions -->
+              <div class="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-xs transition-all relative">
+                <div>
+                  <div class="flex justify-between items-start mb-2">
+                    <span class="text-xl">🛡️</span>
+                    <span id="journeyBadge3" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">กำลังโหลด...</span>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-900 mb-1">3. กำหนดสิทธิ์ให้กลุ่ม</h4>
+                  <p class="text-[11px] text-slate-500 leading-relaxed mb-3">
+                    ผูกสิทธิ์ที่เกี่ยวข้องเข้ากับแต่ละกลุ่มบทบาท เพื่อให้ผู้ใช้งานได้รับสิทธิ์ที่ถูกต้อง
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="switchAppTab('governance')" 
+                  class="w-full py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
+                >
+                  <span>⚙️ ผูกสิทธิ์ให้กลุ่ม</span>
+                </button>
+              </div>
+
+              <!-- Step 4: Create Users with Employee ID -->
+              <div class="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-xs transition-all relative">
+                <div>
+                  <div class="flex justify-between items-start mb-2">
+                    <span class="text-xl">👤</span>
+                    <span id="journeyBadge4" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">กำลังโหลด...</span>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-900 mb-1">4. สร้างผู้ใช้ &amp; รหัสพนักงาน</h4>
+                  <p class="text-[11px] text-slate-500 leading-relaxed mb-3">
+                    เพิ่มบัญชีผู้ใช้งานในระบบ พร้อมระบุ Employee ID เพื่อเชื่อมกับข้อมูลบุคลากรในอนาคต
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="openMasterCreateModalFor('User')" 
+                  class="w-full py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
+                >
+                  <span>➕ เพิ่มผู้ใช้ใหม่</span>
+                </button>
+              </div>
+
+              <!-- Step 5: Delegate Users to Groups -->
+              <div class="bg-white border border-slate-200/80 rounded-xl p-4 flex flex-col justify-between hover:border-indigo-300 hover:shadow-xs transition-all relative">
+                <div>
+                  <div class="flex justify-between items-start mb-2">
+                    <span class="text-xl">👥</span>
+                    <span id="journeyBadge5" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">กำลังโหลด...</span>
+                  </div>
+                  <h4 class="text-xs font-bold text-slate-900 mb-1">5. มอบหมายผู้ใช้เข้ากลุ่ม</h4>
+                  <p class="text-[11px] text-slate-500 leading-relaxed mb-3">
+                    ระบุว่าผู้ใช้คนไหนอยู่ในกลุ่มใด เพื่อบังคับใช้นโยบายความปลอดภัยและการเข้าถึงข้อมูล
+                  </p>
+                </div>
+                <button 
+                  type="button" 
+                  onclick="switchAppTab('governance')" 
+                  class="w-full py-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-700 font-medium text-xs rounded-lg transition-colors flex items-center justify-center space-x-1"
+                >
+                  <span>👥 จัดการสมาชิกกลุ่ม</span>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
         </div>
 
         <!-- 4 Intuitive Metric KPI Cards (Click to Filter!) -->

@@ -17,6 +17,8 @@ let mapMarkers = [];
 // App Startup
 document.addEventListener('DOMContentLoaded', async () => {
   initUIEventHandlers();
+  initDemoMode();
+  initAdminJourneyState();
   await refreshAuthStatus();
 });
 
@@ -111,6 +113,183 @@ function toggleDevDrawer() {
 // Authentication & View State Handlers
 // ----------------------------------------------------
 
+function initDemoMode() {
+  const isDemo = localStorage.getItem('app_demo_mode') === 'true';
+  applyDemoMode(isDemo);
+}
+
+function toggleDemoMode() {
+  const current = localStorage.getItem('app_demo_mode') === 'true';
+  const next = !current;
+  localStorage.setItem('app_demo_mode', next ? 'true' : 'false');
+  applyDemoMode(next);
+  showToast(
+    next
+      ? '⚡ เปิดโหมดทดสอบระบบ (Developer Test Mode ON)'
+      : '🛡️ เข้าสู่โหมดใช้งานจริง (Production Mode)',
+    'success'
+  );
+}
+
+function applyDemoMode(enabled) {
+  const panel = document.getElementById('loginDemoAccountsPanel');
+  const badge = document.getElementById('demoModeBadge');
+  const btn = document.getElementById('btnToggleDemoMode');
+
+  if (panel) {
+    if (enabled) {
+      panel.classList.remove('hidden');
+    } else {
+      panel.classList.add('hidden');
+    }
+  }
+  if (badge) {
+    badge.textContent = enabled ? 'ON' : 'OFF';
+    badge.className = enabled ? 'text-emerald-600 font-bold font-mono' : 'text-slate-500 font-mono';
+  }
+  if (btn) {
+    if (enabled) {
+      btn.className =
+        'text-xs text-blue-700 transition-colors inline-flex items-center space-x-1.5 py-1 px-3 rounded-full border border-blue-300 bg-blue-50/90 hover:bg-blue-100 shadow-xs cursor-pointer';
+    } else {
+      btn.className =
+        'text-xs text-slate-400 hover:text-slate-600 transition-colors inline-flex items-center space-x-1.5 py-1 px-3 rounded-full border border-slate-200 bg-white hover:bg-slate-50 shadow-xs cursor-pointer';
+    }
+  }
+}
+
+function initAdminJourneyState() {
+  const isCollapsed = localStorage.getItem('admin_journey_collapsed') === 'true';
+  const content = document.getElementById('adminJourneyContent');
+  const icon = document.getElementById('journeyToggleIcon');
+  const label = document.getElementById('journeyToggleLabel');
+  if (content) {
+    if (isCollapsed) {
+      content.classList.add('hidden');
+      if (icon) icon.textContent = '▴';
+      if (label) label.textContent = 'ขยาย';
+    } else {
+      content.classList.remove('hidden');
+      if (icon) icon.textContent = '▾';
+      if (label) label.textContent = 'ย่อเก็บ';
+    }
+  }
+}
+
+function toggleAdminJourneyCollapse() {
+  const content = document.getElementById('adminJourneyContent');
+  const icon = document.getElementById('journeyToggleIcon');
+  const label = document.getElementById('journeyToggleLabel');
+  if (!content) return;
+
+  const isCollapsed = content.classList.contains('hidden');
+  if (isCollapsed) {
+    content.classList.remove('hidden');
+    if (icon) icon.textContent = '▾';
+    if (label) label.textContent = 'ย่อเก็บ';
+    localStorage.setItem('admin_journey_collapsed', 'false');
+  } else {
+    content.classList.add('hidden');
+    if (icon) icon.textContent = '▴';
+    if (label) label.textContent = 'ขยาย';
+    localStorage.setItem('admin_journey_collapsed', 'true');
+  }
+}
+
+async function updateAdminSetupJourney() {
+  const card = document.getElementById('adminSetupJourneyCard');
+  if (!card || card.classList.contains('hidden')) return;
+
+  try {
+    const [permsRes, groupsRes, usersRes] = await Promise.all([
+      api.masterTable.findAll('Permission', { limit: 100 }),
+      api.masterTable.findAll('Group', { limit: 100 }),
+      api.masterTable.findAll('User', { limit: 100 }),
+    ]);
+
+    const perms = permsRes.data || [];
+    const groups = groupsRes.data || [];
+    const users = usersRes.data || [];
+
+    // Step 1: Permissions Taxonomy (Expect 16 system permissions)
+    const b1 = document.getElementById('journeyBadge1');
+    const step1Done = perms.length >= 16;
+    if (b1) {
+      b1.textContent = step1Done ? `✅ ${perms.length} สิทธิ์พร้อม` : `⚠️ มี ${perms.length} สิทธิ์`;
+      b1.className = step1Done
+        ? 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
+        : 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+    }
+
+    // Step 2: Role Groups (Expect >= 2 groups)
+    const b2 = document.getElementById('journeyBadge2');
+    const step2Done = groups.length >= 2;
+    if (b2) {
+      b2.textContent = step2Done ? `✅ มี ${groups.length} กลุ่มบทบาท` : `⚠️ มีเพียง ${groups.length} กลุ่ม`;
+      b2.className = step2Done
+        ? 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
+        : 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+    }
+
+    // Step 3: Assign Permissions to Groups (Check if any group has permissions assigned)
+    const b3 = document.getElementById('journeyBadge3');
+    const groupsWithPerms = groups.filter((g) => g.permissions && g.permissions.length > 0);
+    const step3Done = groupsWithPerms.length > 0;
+    if (b3) {
+      b3.textContent = step3Done ? `✅ ผูกสิทธิ์แล้ว ${groupsWithPerms.length} กลุ่ม` : '⚠️ ยังไม่ได้ผูกสิทธิ์';
+      b3.className = step3Done
+        ? 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
+        : 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+    }
+
+    // Step 4: Create Users with Employee ID (Check total users and how many have employeeId)
+    const b4 = document.getElementById('journeyBadge4');
+    const usersWithEmpId = users.filter((u) => u.employeeId && u.employeeId.trim() !== '');
+    const step4Done = users.length >= 2;
+    if (b4) {
+      b4.textContent = step4Done
+        ? `✅ มี ${users.length} บัญชี (${usersWithEmpId.length} มีรหัสพนักงาน)`
+        : `⚠️ มี ${users.length} ผู้ใช้`;
+      b4.className = step4Done
+        ? 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
+        : 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+    }
+
+    // Step 5: Delegate Users to Groups (Check users that belong to at least 1 group)
+    const b5 = document.getElementById('journeyBadge5');
+    const usersInGroups = users.filter((u) => u.groups && u.groups.length > 0);
+    const step5Done = usersInGroups.length >= 2;
+    if (b5) {
+      b5.textContent = step5Done ? `✅ มอบหมายแล้ว ${usersInGroups.length} คน` : `⚠️ มอบหมาย ${usersInGroups.length} คน`;
+      b5.className = step5Done
+        ? 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800'
+        : 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800';
+    }
+
+    // Calculate Completion
+    const stepsCompleted = [step1Done, step2Done, step3Done, step4Done, step5Done].filter(Boolean).length;
+    const percent = Math.round((stepsCompleted / 5) * 100);
+
+    const bar = document.getElementById('journeyProgressBar');
+    const percentText = document.getElementById('journeyPercentText');
+    const statusMsg = document.getElementById('journeyStatusMessage');
+
+    if (bar) bar.style.width = `${percent}%`;
+    if (percentText) percentText.textContent = `${percent}%`;
+    if (statusMsg) {
+      if (percent === 100) {
+        statusMsg.textContent = `สมบูรณ์แบบ! (${stepsCompleted}/5 ขั้นตอนพร้อมใช้งานเต็มระบบ)`;
+        statusMsg.className = 'font-semibold text-emerald-600';
+      } else {
+        statusMsg.textContent = `ดำเนินแล้ว ${stepsCompleted} จาก 5 ขั้นตอนหลัก (${5 - stepsCompleted} ขั้นตอนที่แนะนำ)`;
+        statusMsg.className = 'font-normal text-slate-500';
+      }
+    }
+  } catch (err) {
+    console.warn('Unable to load Admin Setup Journey telemetry:', err.message);
+  }
+}
+
 function toggleDemoAccountsPanel() {
   const panel = document.getElementById('demoAccountsPanel');
   const icon = document.getElementById('demoAccountsToggleIcon');
@@ -129,6 +308,7 @@ async function refreshAuthStatus() {
   const viewLogin = document.getElementById('viewLogin');
   const viewApp = document.getElementById('viewApp');
   const navAdminTab = document.getElementById('navAdminTab');
+  const setupCard = document.getElementById('adminSetupJourneyCard');
 
   if (api.isAuthenticated()) {
     try {
@@ -144,12 +324,13 @@ async function refreshAuthStatus() {
       if (nameDisp) nameDisp.textContent = user.username;
       if (roleDisp) roleDisp.textContent = `(${user.groups[0] || 'User'})`;
 
-      if (navAdminTab) {
-        if (user.groups.includes('SUPER_ADMIN')) {
-          navAdminTab.classList.remove('hidden');
-        } else {
-          navAdminTab.classList.add('hidden');
-        }
+      if (user.groups.includes('SUPER_ADMIN')) {
+        if (navAdminTab) navAdminTab.classList.remove('hidden');
+        if (setupCard) setupCard.classList.remove('hidden');
+        await updateAdminSetupJourney();
+      } else {
+        if (navAdminTab) navAdminTab.classList.add('hidden');
+        if (setupCard) setupCard.classList.add('hidden');
       }
 
       // Re-render map after container becomes visible
@@ -352,6 +533,12 @@ async function loadDashboardStats() {
           )
           .join('');
       }
+    }
+
+    // Refresh Setup Journey if card is active
+    const setupCard = document.getElementById('adminSetupJourneyCard');
+    if (setupCard && !setupCard.classList.contains('hidden')) {
+      updateAdminSetupJourney();
     }
   } catch (err) {
     console.warn('Dashboard stats load error:', err);
