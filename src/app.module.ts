@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CryptoModule } from './crypto/crypto.module';
+import { AdminModule } from './admin/admin.module';
 import { PayloadCryptoMiddleware } from './crypto/payload-crypto.middleware';
 import { PayloadCryptoInterceptor } from './crypto/payload-crypto.interceptor';
 
@@ -18,6 +19,7 @@ import { PayloadCryptoInterceptor } from './crypto/payload-crypto.interceptor';
     PrismaModule,
     AuthModule,
     UsersModule,
+    AdminModule,
   ],
   providers: [
     {
