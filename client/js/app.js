@@ -71,6 +71,43 @@ function logConsole(title, data, isError = false) {
 }
 
 // ----------------------------------------------------
+// UI Notification & Dev Drawer Handlers
+// ----------------------------------------------------
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  const isSuccess = type === 'success';
+  toast.className = `p-3.5 rounded-xl border shadow-lg text-xs font-semibold flex items-center space-x-2 transition-all transform duration-300 translate-y-2 opacity-0 pointer-events-auto ${
+    isSuccess
+      ? 'bg-emerald-50 text-emerald-900 border-emerald-200 shadow-emerald-500/10'
+      : 'bg-rose-50 text-rose-900 border-rose-200 shadow-rose-500/10'
+  }`;
+  toast.innerHTML = `
+    <span class="text-base">${isSuccess ? '✅' : '⚠️'}</span>
+    <span>${message}</span>
+  `;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.remove('translate-y-2', 'opacity-0');
+  });
+
+  setTimeout(() => {
+    toast.classList.add('opacity-0', 'translate-y-2');
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+function toggleDevDrawer() {
+  const drawer = document.getElementById('devDrawer');
+  if (!drawer) return;
+  drawer.classList.toggle('hidden');
+}
+
+// ----------------------------------------------------
 // Authentication & View State Handlers
 // ----------------------------------------------------
 
@@ -91,8 +128,6 @@ function toggleDemoAccountsPanel() {
 async function refreshAuthStatus() {
   const viewLogin = document.getElementById('viewLogin');
   const viewApp = document.getElementById('viewApp');
-  const authStatus = document.getElementById('authStatus');
-  const grantsBanner = document.getElementById('grantsBanner');
   const navAdminTab = document.getElementById('navAdminTab');
 
   if (api.isAuthenticated()) {
@@ -103,26 +138,11 @@ async function refreshAuthStatus() {
       if (viewLogin) viewLogin.classList.add('hidden');
       if (viewApp) viewApp.classList.remove('hidden');
 
-      if (authStatus) {
-        authStatus.innerHTML = `
-          <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
-          <span class="font-bold text-neutral-900 uppercase">เข้าสู่ระบบแล้ว: ${user.username}</span>
-        `;
-      }
-
-      if (grantsBanner) {
-        grantsBanner.classList.remove('hidden');
-        const groupsContainer = document.getElementById('activeGroupsList');
-        if (groupsContainer) {
-          groupsContainer.innerHTML = user.groups
-            .map((g) => `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] font-semibold">${g}</span>`)
-            .join('');
-        }
-        const permsCount = document.getElementById('activePermsCount');
-        if (permsCount) {
-          permsCount.textContent = `เปิดใช้งาน ${user.permissions.length} สิทธิ์ (${user.permissions.length} PERMISSION(S) ACTIVE)`;
-        }
-      }
+      // Update User profile pill
+      const nameDisp = document.getElementById('currentUsernameDisplay');
+      const roleDisp = document.getElementById('currentUserRoleDisplay');
+      if (nameDisp) nameDisp.textContent = user.username;
+      if (roleDisp) roleDisp.textContent = `(${user.groups[0] || 'User'})`;
 
       if (navAdminTab) {
         if (user.groups.includes('SUPER_ADMIN')) {
@@ -138,6 +158,9 @@ async function refreshAuthStatus() {
       } else {
         setTimeout(() => leafletMap.invalidateSize(), 150);
       }
+
+      // Load initial Dashboard metrics
+      await loadDashboardStats();
 
       return user;
     } catch (e) {
@@ -230,13 +253,13 @@ function handleLogout() {
 // ----------------------------------------------------
 
 function switchAppTab(tab) {
-  const tabs = ['overview', 'workflows', 'governance', 'masterTable'];
+  const tabs = ['overview', 'documents', 'masterTable', 'governance'];
   tabs.forEach((t) => {
     const section = document.getElementById(`tabSection_${t}`);
     const btn = document.getElementById(`tabBtn_${t}`);
     if (section) section.classList.add('hidden');
     if (btn) {
-      btn.className = 'text-neutral-400 hover:text-neutral-900 pb-1 font-mono text-xs transition-colors';
+      btn.className = 'px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100';
     }
   });
 
@@ -244,18 +267,232 @@ function switchAppTab(tab) {
   const activeBtn = document.getElementById(`tabBtn_${tab}`);
   if (activeSection) activeSection.classList.remove('hidden');
   if (activeBtn) {
-    activeBtn.className = 'font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-1 font-mono text-xs';
+    activeBtn.className = 'px-3.5 py-2 rounded-lg text-sm font-semibold transition-all text-blue-600 bg-blue-50';
   }
 
-  if (tab === 'overview' && leafletMap) {
-    setTimeout(() => leafletMap.invalidateSize(), 200);
+  if (tab === 'overview') {
+    loadDashboardStats();
+    if (leafletMap) setTimeout(() => leafletMap.invalidateSize(), 200);
   }
-  if (tab === 'governance') {
-    loadGovernanceData();
+  if (tab === 'documents') {
+    loadDocumentsData();
   }
   if (tab === 'masterTable') {
     loadMasterTableData();
   }
+  if (tab === 'governance') {
+    loadGovernanceData();
+  }
+}
+
+// ----------------------------------------------------
+// Dashboard Overview Logic (Friendly Cards & Actions)
+// ----------------------------------------------------
+
+async function loadDashboardStats() {
+  try {
+    const [docsRes, usersRes] = await Promise.all([
+      api.masterTable.findAll('Document', { limit: 100 }),
+      api.masterTable.findAll('User', { limit: 100 }),
+    ]);
+
+    const docs = docsRes.data || [];
+    const users = usersRes.data || [];
+
+    const totalDocs = docs.length;
+    const pendingDocs = docs.filter((d) => d.status === 'DRAFT');
+    const approvedDocs = docs.filter((d) => d.status === 'CONFIRMED');
+
+    // Update KPI counters
+    const elTotal = document.getElementById('statTotalDocs');
+    const elPending = document.getElementById('statPendingDocs');
+    const elApproved = document.getElementById('statApprovedDocs');
+    const elUsers = document.getElementById('statTotalUsers');
+
+    if (elTotal) elTotal.textContent = totalDocs;
+    if (elPending) elPending.textContent = pendingDocs.length;
+    if (elApproved) elApproved.textContent = approvedDocs.length;
+    if (elUsers) elUsers.textContent = users.length;
+
+    // Populate Pending Approvals list
+    const pendingContainer = document.getElementById('dashboardPendingList');
+    if (pendingContainer) {
+      if (pendingDocs.length === 0) {
+        pendingContainer.innerHTML = `
+          <div class="p-6 text-center text-slate-400 text-xs font-medium">
+            ✨ ไม่มีเอกสารค้างรอการอนุมัติในขณะนี้ ทุกอย่างเรียบร้อยดี
+          </div>
+        `;
+      } else {
+        pendingContainer.innerHTML = pendingDocs
+          .map(
+            (doc) => `
+          <div class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+            <div class="space-y-1">
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-slate-900 text-sm">${doc.title}</span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">รอยืนยัน</span>
+              </div>
+              <div class="text-xs text-slate-400 flex items-center space-x-3">
+                <span>รหัส: <strong class="text-slate-600 font-mono">${doc.docNumber}</strong></span>
+                <span>ผู้จัดทำ: <strong class="text-slate-600">${doc.author}</strong></span>
+                <span>หมวดหมู่: <strong class="text-slate-600">${doc.category}</strong></span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button onclick="confirmMasterDocument('${doc.id}', '${doc.docNumber}')" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs">
+                ✅ อนุมัติทันที
+              </button>
+              <button onclick="cancelMasterDocument('${doc.id}', '${doc.docNumber}')" class="px-3 py-1.5 border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg text-xs">
+                🚫 ยกเลิก
+              </button>
+            </div>
+          </div>
+        `
+          )
+          .join('');
+      }
+    }
+  } catch (err) {
+    console.warn('Dashboard stats load error:', err);
+  }
+}
+
+// ----------------------------------------------------
+// Dedicated Documents View Logic
+// ----------------------------------------------------
+
+let currentDocStatusFilter = 'ALL';
+
+function filterDocsByStatus(status) {
+  switchAppTab('documents');
+  setDocStatusFilter(status);
+}
+
+function setDocStatusFilter(status) {
+  currentDocStatusFilter = status;
+  const statuses = ['ALL', 'DRAFT', 'CONFIRMED', 'CANCELLED'];
+  statuses.forEach((s) => {
+    const btn = document.getElementById(`filterDoc_${s}`);
+    if (btn) {
+      if (s === status) {
+        btn.className = 'px-3 py-1 rounded-lg bg-white shadow-xs font-semibold text-slate-900';
+      } else {
+        btn.className = 'px-3 py-1 rounded-lg text-slate-600 hover:text-slate-900';
+      }
+    }
+  });
+  loadDocumentsData();
+}
+
+function executeDocSearch() {
+  loadDocumentsData();
+}
+
+async function loadDocumentsData() {
+  const tbody = document.getElementById('documentTableBody');
+  const countDisp = document.getElementById('docTableCountDisplay');
+  const searchInput = document.getElementById('docSearchInput');
+  const search = searchInput ? searchInput.value.trim() : '';
+
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="p-8 text-center text-slate-400 text-xs">
+        กำลังโหลดข้อมูลเอกสาร...
+      </td>
+    </tr>
+  `;
+
+  try {
+    const res = await api.masterTable.findAll('Document', {
+      search,
+      status: currentDocStatusFilter !== 'ALL' ? currentDocStatusFilter : undefined,
+      limit: 100,
+    });
+
+    const docs = res.data || [];
+    if (countDisp) countDisp.textContent = `แสดง ${docs.length} รายการ`;
+
+    if (docs.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="p-8 text-center text-slate-400 text-xs">
+            ไม่พบเอกสารตรงตามเงื่อนไข
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = docs
+      .map((doc) => {
+        let badge = '<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">⏳ รอยืนยัน (Draft)</span>';
+        if (doc.status === 'CONFIRMED') {
+          badge = '<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">✓ อนุมัติแล้ว</span>';
+        } else if (doc.status === 'CANCELLED') {
+          badge = '<span class="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-200">✕ ยกเลิกแล้ว</span>';
+        }
+
+        return `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="p-3.5 font-mono font-bold text-slate-900">${doc.docNumber}</td>
+          <td class="p-3.5 font-medium text-slate-900">${doc.title}</td>
+          <td class="p-3.5 text-slate-500 font-mono">${doc.category}</td>
+          <td class="p-3.5">${badge}</td>
+          <td class="p-3.5 text-slate-600">${doc.author}</td>
+          <td class="p-3.5 text-slate-600">${doc.confirmedBy || '-'}</td>
+          <td class="p-3.5 text-right space-x-1.5 no-print">
+            ${
+              doc.status === 'DRAFT'
+                ? `<button onclick="confirmMasterDocument('${doc.id}', '${doc.docNumber}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs rounded-lg shadow-xs">
+                    ✅ อนุมัติ
+                  </button>
+                  <button onclick="cancelMasterDocument('${doc.id}', '${doc.docNumber}')" class="px-2.5 py-1 border border-slate-200 hover:bg-slate-100 text-slate-700 font-medium text-xs rounded-lg">
+                    🚫 ยกเลิก
+                  </button>
+                  <button onclick="openMasterEditModal('${doc.id}')" class="px-2 py-1 text-slate-500 hover:text-slate-800 text-xs">
+                    ✏️ แก้ไข
+                  </button>`
+                : doc.status === 'CONFIRMED'
+                ? `<button onclick="openDocPrintModal('${doc.id}')" class="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium text-xs rounded-lg border border-blue-200">
+                    🖨️ พิมพ์เอกสาร
+                  </button>
+                  <button onclick="cancelMasterDocument('${doc.id}', '${doc.docNumber}')" class="px-2.5 py-1 border border-rose-200 hover:bg-rose-50 text-rose-600 font-medium text-xs rounded-lg">
+                    🚫 ยกเลิก
+                  </button>`
+                : `<button onclick="openDocPrintModal('${doc.id}')" class="px-2.5 py-1 border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs rounded-lg">
+                    📄 ดูรายละเอียด
+                  </button>`
+            }
+            <button onclick="deleteMasterRecord('${doc.id}', '${doc.docNumber}')" class="px-2 py-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg text-xs">
+              🗑️ ลบ
+            </button>
+          </td>
+        </tr>
+      `;
+      })
+      .join('');
+  } catch (err) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-8 text-center text-rose-600 text-xs">
+          เกิดข้อผิดพลาด: ${err.message}
+        </td>
+      </tr>
+    `;
+  }
+}
+
+function openMasterCreateModalFor(table) {
+  selectMasterTable(table);
+  openMasterCreateModal();
+}
+
+function openMasterImportModalFor(table) {
+  selectMasterTable(table);
+  openMasterImportModal();
 }
 
 // ----------------------------------------------------
@@ -863,15 +1100,18 @@ function changeMasterPage(delta) {
 // ----------------------------------------------------
 
 async function confirmMasterDocument(id, docNumber) {
-  if (!confirm(`Maker ต้องการยืนยันและอนุมัติเอกสาร '${docNumber}' ใช่หรือไม่?`)) return;
+  if (!confirm(`ต้องการยืนยันและอนุมัติเอกสาร '${docNumber}' ใช่หรือไม่?`)) return;
 
   try {
     const res = await api.masterTable.confirmDocument(id);
     logConsole('DOCUMENT CONFIRMED', res);
+    showToast(`อนุมัติเอกสาร ${docNumber} เรียบร้อยแล้ว`, 'success');
     loadMasterTableData();
+    loadDocumentsData();
+    loadDashboardStats();
   } catch (err) {
     logConsole('CONFIRM FAILED', err.data || err.message, true);
-    alert('ไม่สามารถยืนยันเอกสารได้: ' + (err.data?.message || err.message));
+    showToast('ไม่สามารถยืนยันเอกสารได้: ' + (err.data?.message || err.message), 'error');
   }
 }
 
@@ -882,10 +1122,13 @@ async function cancelMasterDocument(id, docNumber) {
   try {
     const res = await api.masterTable.cancelDocument(id, reason);
     logConsole('DOCUMENT CANCELLED', res);
+    showToast(`ยกเลิกเอกสาร ${docNumber} เรียบร้อยแล้ว`, 'success');
     loadMasterTableData();
+    loadDocumentsData();
+    loadDashboardStats();
   } catch (err) {
     logConsole('CANCEL FAILED', err.data || err.message, true);
-    alert('ไม่สามารถยกเลิกเอกสารได้: ' + (err.data?.message || err.message));
+    showToast('ไม่สามารถยกเลิกเอกสารได้: ' + (err.data?.message || err.message), 'error');
   }
 }
 
@@ -894,15 +1137,18 @@ async function cancelMasterDocument(id, docNumber) {
 // ----------------------------------------------------
 
 async function deleteMasterRecord(id, identifier) {
-  if (!confirm(`Maker ต้องการลบข้อมูลรายการ '${identifier}' จากตาราง ${activeMasterTable} ใช่หรือไม่?`)) return;
+  if (!confirm(`ต้องการลบข้อมูลรายการ '${identifier}' ใช่หรือไม่?`)) return;
 
   try {
     const res = await api.masterTable.delete(activeMasterTable, id);
     logConsole('RECORD DELETED', res);
+    showToast(`ลบข้อมูล '${identifier}' เรียบร้อยแล้ว`, 'success');
     loadMasterTableData();
+    loadDocumentsData();
+    loadDashboardStats();
   } catch (err) {
     logConsole('DELETE FAILED', err.data || err.message, true);
-    alert('ไม่สามารถลบข้อมูลได้: ' + (err.data?.message || err.message));
+    showToast('ไม่สามารถลบข้อมูลได้: ' + (err.data?.message || err.message), 'error');
   }
 }
 
@@ -1082,16 +1328,20 @@ async function handleMasterFormSubmit(event) {
     if (recordId) {
       const res = await api.masterTable.update(activeMasterTable, recordId, payload);
       logConsole('RECORD UPDATED', res);
+      showToast('บันทึกการแก้ไขข้อมูลเรียบร้อยแล้ว', 'success');
     } else {
       const res = await api.masterTable.create(activeMasterTable, payload);
       logConsole('RECORD CREATED', res);
+      showToast('สร้างข้อมูลรายการใหม่เรียบร้อยแล้ว', 'success');
     }
 
     closeMasterFormModal();
     loadMasterTableData();
+    loadDocumentsData();
+    loadDashboardStats();
   } catch (err) {
     logConsole('FORM SUBMIT FAILED', err.data || err.message, true);
-    alert('บันทึกข้อมูลไม่สำเร็จ: ' + (err.data?.message || err.message));
+    showToast('บันทึกข้อมูลไม่สำเร็จ: ' + (err.data?.message || err.message), 'error');
   } finally {
     if (btnSubmit) btnSubmit.disabled = false;
   }
@@ -1142,7 +1392,7 @@ function parseAndPreviewImportData() {
   const previewTable = document.getElementById('importPreviewTable');
 
   if (!raw) {
-    alert('กรุณาเลือกไฟล์หรือวางข้อความข้อมูล CSV หรือ JSON');
+    showToast('กรุณาเลือกไฟล์หรือวางข้อความข้อมูล CSV หรือ JSON', 'error');
     return;
   }
 
@@ -1169,7 +1419,7 @@ function parseAndPreviewImportData() {
     }
 
     if (parsedImportData.length === 0) {
-      alert('ไม่สามารถประมวลผลข้อมูลได้ กรุณาตรวจสอบรูปแบบข้อมูล');
+      showToast('ไม่สามารถประมวลผลข้อมูลได้ กรุณาตรวจสอบรูปแบบข้อมูล', 'error');
       return;
     }
 
@@ -1177,7 +1427,7 @@ function parseAndPreviewImportData() {
     const previewHeaders = Object.keys(parsedImportData[0]);
 
     previewTable.innerHTML = `
-      <thead class="bg-neutral-200">
+      <thead class="bg-slate-200">
         <tr>${previewHeaders.map((h) => `<th class="p-1 border">${h}</th>`).join('')}</tr>
       </thead>
       <tbody>
@@ -1193,13 +1443,13 @@ function parseAndPreviewImportData() {
 
     previewContainer.classList.remove('hidden');
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการแปลงข้อมูล: ' + err.message);
+    showToast('เกิดข้อผิดพลาดในการแปลงข้อมูล: ' + err.message, 'error');
   }
 }
 
 async function executeBulkImport() {
   if (parsedImportData.length === 0) {
-    alert('กรุณากดตรวจสอบข้อมูล (Parse & Preview) ก่อนเริ่มการนำเข้า');
+    showToast('กรุณากดตรวจสอบข้อมูล (Preview) ก่อนเริ่มการนำเข้า', 'error');
     return;
   }
 
@@ -1209,12 +1459,14 @@ async function executeBulkImport() {
   try {
     const res = await api.masterTable.bulkImport(activeMasterTable, parsedImportData);
     logConsole('IMPORT COMMITTED', res);
-    alert(res.message || 'นำเข้าข้อมูลเรียบร้อยแล้ว');
+    showToast(res.message || 'นำเข้าข้อมูลเรียบร้อยแล้ว', 'success');
     closeMasterImportModal();
     loadMasterTableData();
+    loadDocumentsData();
+    loadDashboardStats();
   } catch (err) {
     logConsole('IMPORT FAILED', err.data || err.message, true);
-    alert('การนำเข้าข้อมูลล้มเหลว: ' + (err.data?.message || err.message));
+    showToast('การนำเข้าข้อมูลล้มเหลว: ' + (err.data?.message || err.message), 'error');
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -1249,9 +1501,10 @@ async function exportMasterData(format) {
     }
 
     logConsole(`DATA EXPORTED (${format.toUpperCase()})`, { table: activeMasterTable });
+    showToast(`ส่งออกข้อมูลตาราง ${activeMasterTable} (${format.toUpperCase()}) เรียบร้อยแล้ว`, 'success');
   } catch (err) {
     logConsole('EXPORT FAILED', err.data || err.message, true);
-    alert('ไม่สามารถส่งออกข้อมูลได้: ' + (err.data?.message || err.message));
+    showToast('ไม่สามารถส่งออกข้อมูลได้: ' + (err.data?.message || err.message), 'error');
   }
 }
 
