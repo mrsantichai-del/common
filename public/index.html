@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise Multi-Group RBAC & Comprehensive Action Matrix</title>
+  <title>Enterprise Multi-Group RBAC & Symmetric Payload Encryption</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -22,10 +23,17 @@
   <!-- Top Navigation Bar -->
   <header class="border-b border-neutral-200 px-8 py-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-6">
-      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // ENTERPRISE PERMISSIONS TAXONOMY</span>
-      <span class="text-xs font-mono text-neutral-400">CRUD + WORKFLOW + FILE I/O + AUDIT</span>
+      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // SYMMETRIC AES-256 ENCRYPTION</span>
+      <span class="text-xs font-mono text-neutral-400">SHARED SECRET KEY PROTOCOL</span>
     </div>
-    <div class="flex items-center gap-4 text-xs font-mono">
+
+    <!-- Encryption Switch & Auth Status -->
+    <div class="flex items-center gap-6 text-xs font-mono">
+      <label class="flex items-center gap-2 cursor-pointer bg-neutral-100 px-2.5 py-1 border border-neutral-300">
+        <input type="checkbox" id="cryptoToggle" checked class="rounded-none border-neutral-500">
+        <span class="font-semibold text-neutral-800">AES-256 ENCRYPTION (SHARED KEY)</span>
+      </label>
+
       <div id="authStatus" class="flex items-center gap-2">
         <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
         <span class="text-neutral-500 uppercase">UNAUTHENTICATED</span>
@@ -58,7 +66,7 @@
       <div class="max-w-md w-full">
         
         <div class="mb-6">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS CONTROL ENGINE</p>
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS CONTROL & CIPHER ENGINE</p>
           <h2 id="formTitle" class="text-2xl font-semibold tracking-tight text-neutral-900">Sign in to workspace</h2>
         </div>
 
@@ -68,19 +76,19 @@
           <div class="grid grid-cols-1 gap-1.5">
             <button onclick="fillAndLogin('approver_ellen', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
               <span>approver_ellen</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">EXECUTIVE APPROVER (Confirm, Cancel, Download)</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">EXECUTIVE APPROVER</span>
             </button>
             <button onclick="fillAndLogin('auditor_arthur', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
               <span>auditor_arthur</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">COMPLIANCE AUDITOR (Audit Read, Audit Download)</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">COMPLIANCE AUDITOR</span>
             </button>
             <button onclick="fillAndLogin('hybrid_harry', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
               <span>hybrid_harry</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">HYBRID MULTI-GROUP (Operator + Auditor)</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">HYBRID (OPERATOR + AUDITOR)</span>
             </button>
             <button onclick="fillAndLogin('root_admin', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
               <span>root_admin</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">SUPER_ADMIN (All 16 Permissions)</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">SUPER_ADMIN (ALL PERMISSIONS)</span>
             </button>
           </div>
         </div>
@@ -161,35 +169,30 @@
     <!-- Right Column: Comprehensive Action Matrix Inspector -->
     <section class="lg:col-span-7 p-8 lg:p-12 flex flex-col justify-between bg-neutral-50/50">
       <div>
-        <div class="mb-6">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">COMPREHENSIVE ACTION MATRIX</p>
+        <div class="mb-4">
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-1">COMPREHENSIVE ACTION MATRIX</p>
           <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">Fine-Grained Operation Inspector</h2>
-          <p class="text-xs text-neutral-500 font-mono mt-1">ทดสอบการสกัดกั้นตาม Action Taxonomy: อ่าน, เพิ่ม, ลบ, แก้ไข, ยืนยัน, ยกเลิก, อัปโหลด, ดาวน์โหลด, ตรวจสอบ</p>
         </div>
 
         <!-- 1. CRUD Category -->
-        <div class="mb-4">
-          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">1. CRUD ACTIONS (อ่าน / เพิ่ม / แก้ไข / ลบ)</div>
+        <div class="mb-3">
+          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">1. CRUD ACTIONS (อ่าน / เพิ่ม / แก้ไข / ลบ)</div>
           <div class="border border-neutral-200 bg-white">
-            <!-- Read -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/documents/read</span>
               <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:read</span> (อ่าน)</span>
               <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/read', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <!-- Create -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/provision</span>
               <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">users:create</span> (เพิ่ม)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/provision', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/provision', 'POST', { username: 'newbie_demo' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <!-- Update -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">PATCH</span> /users/profile/update</span>
               <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">users:update</span> (แก้ไข)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/profile/update', 'PATCH')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/profile/update', 'PATCH', { statusNote: 'Updated via AES cipher' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <!-- Delete -->
             <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">DELETE</span> /users/purge-account</span>
               <span class="col-span-5"><span class="bg-neutral-900 text-white px-1 py-0.5 text-[10px]">users:delete</span> (ลบ)</span>
@@ -199,70 +202,70 @@
         </div>
 
         <!-- 2. Workflow & Approval Category -->
-        <div class="mb-4">
-          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">2. WORKFLOW ACTIONS (ยืนยัน / ยกเลิก)</div>
+        <div class="mb-3">
+          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">2. WORKFLOW ACTIONS (ยืนยัน / ยกเลิก)</div>
           <div class="border border-neutral-200 bg-white">
-            <!-- Confirm -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/confirm</span>
               <span class="col-span-5"><span class="border border-neutral-900 px-1 py-0.5 text-[10px] font-bold">documents:confirm</span> (ยืนยัน/อนุมัติ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/confirm', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/confirm', 'POST', { documentId: 'DOC-88' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <!-- Cancel -->
             <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/cancel</span>
               <span class="col-span-5"><span class="border border-neutral-900 px-1 py-0.5 text-[10px] font-bold">documents:cancel</span> (ยกเลิก/ปฏิเสธ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/cancel', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/cancel', 'POST', { documentId: 'DOC-88' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
           </div>
         </div>
 
         <!-- 3. File I/O Category -->
-        <div class="mb-4">
-          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">3. FILE & DATA I/O (อัปโหลด / ดาวน์โหลด)</div>
+        <div class="mb-3">
+          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">3. FILE & DATA I/O (อัปโหลด / ดาวน์โหลด)</div>
           <div class="border border-neutral-200 bg-white">
-            <!-- Upload -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/upload</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:upload</span> (อัปโหลดไฟล์)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/upload', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:upload</span> (อัปโหลด)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/upload', 'POST', { file: 'secret.pdf' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <!-- Download Docs -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/documents/download</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:download</span> (ดาวน์โหลดเอกสาร)</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:download</span> (ดาวน์โหลด)</span>
               <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <!-- Download Reports -->
-            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/reports/download</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">reports:download</span> (ดาวน์โหลดรายงาน)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/reports/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
           </div>
         </div>
 
         <!-- 4. Governance & Audit Category -->
-        <div class="mb-6">
-          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">4. GOVERNANCE & AUDIT (ตรวจสอบ / ตั้งค่าระบบ)</div>
+        <div class="mb-4">
+          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">4. GOVERNANCE & AUDIT (ตรวจสอบ / ตั้งค่าระบบ)</div>
           <div class="border border-neutral-200 bg-white">
-            <!-- Audit Read -->
             <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/audit/read</span>
               <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">audit:read</span> (ตรวจสอบประวัติ)</span>
               <span class="col-span-3 text-right"><button onclick="testApi('/users/audit/read', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <!-- Audit Download -->
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/audit/download</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">audit:download</span> (ดาวน์โหลดประวัติ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/audit/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <!-- System Configure -->
             <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
               <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/system/config</span>
               <span class="col-span-5"><span class="bg-neutral-900 text-white px-1 py-0.5 text-[10px]">system:configure</span> (ตั้งค่าระบบ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/system/config', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/system/config', 'POST', { kernelMode: 'ENCRYPTED' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cryptographic Wire Inspector (Live Cipher vs Plaintext) -->
+        <div class="mb-4 p-3 border border-neutral-300 bg-neutral-100/70 text-xs font-mono">
+          <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-neutral-700">
+            <span>CRYPTOGRAPHIC WIRE TELEMETRY (AES-256)</span>
+            <span id="cryptoStateBadge" class="bg-neutral-900 text-white px-1.5 py-0.2 text-[10px]">AES-256 ENCRYPTED</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
+            <div>
+              <span class="text-neutral-500 block uppercase">1. Outgoing Wire Payload (ที่ส่งข้ามเน็ตเวิร์ก):</span>
+              <div id="wireOut" class="p-1.5 bg-white border border-neutral-300 text-neutral-600 truncate min-h-[26px]">None</div>
+            </div>
+            <div>
+              <span class="text-neutral-500 block uppercase">2. Incoming Wire Payload (ที่เซิร์ฟเวอร์ตอบกลับ):</span>
+              <div id="wireIn" class="p-1.5 bg-white border border-neutral-300 text-neutral-600 truncate min-h-[26px]">None</div>
             </div>
           </div>
         </div>
@@ -270,17 +273,17 @@
         <!-- Telemetry / Console Output -->
         <div>
           <div class="flex items-center justify-between mb-1 text-xs font-mono uppercase tracking-wider text-neutral-400">
-            <span>LIVE HTTP TELEMETRY PAYLOAD</span>
+            <span>DECRYPTED SERVER RESPONSE PAYLOAD</span>
             <span id="responseStatus" class="font-semibold text-neutral-500">IDLE</span>
           </div>
-          <pre id="output" class="w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[130px] leading-relaxed">// Awaiting operation...</pre>
+          <pre id="output" class="w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[110px] leading-relaxed">// Awaiting operation...</pre>
         </div>
       </div>
 
       <!-- Footer Info -->
-      <div class="mt-6 pt-3 border-t border-neutral-200 flex justify-between items-center text-xs font-mono text-neutral-400">
-        <span>SECURITY PROTOCOL: JWT PASSPORT</span>
-        <span>AUTHORIZATION: FINE-GRAINED ACTION RESOLVER</span>
+      <div class="mt-4 pt-3 border-t border-neutral-200 flex justify-between items-center text-xs font-mono text-neutral-400">
+        <span>SECURITY: SHARED SYMMETRIC AES-256 KEY</span>
+        <span>CIPHER: OPENSSL PKCS7 WITH AES-CBC/GCM</span>
       </div>
     </section>
 
@@ -288,6 +291,27 @@
 
   <script>
     const API_BASE = window.location.origin;
+    // Shared Secret Key (ชุดเดียวกันกับหลังบ้านใน .env: PAYLOAD_SECRET_KEY)
+    const SHARED_SECRET_KEY = "aes-shared-payload-key-secret-2026-v1";
+
+    function isEncryptionEnabled() {
+      return document.getElementById('cryptoToggle').checked;
+    }
+
+    function encryptPayload(data) {
+      const raw = typeof data === 'string' ? data : JSON.stringify(data);
+      return CryptoJS.AES.encrypt(raw, SHARED_SECRET_KEY).toString();
+    }
+
+    function decryptPayload(ciphertext) {
+      const bytes = CryptoJS.AES.decrypt(ciphertext, SHARED_SECRET_KEY);
+      const str = bytes.toString(CryptoJS.enc.Utf8);
+      try {
+        return JSON.parse(str);
+      } catch {
+        return str;
+      }
+    }
 
     function getToken() {
       return localStorage.getItem('token');
@@ -371,21 +395,12 @@
       const username = document.getElementById('loginUsername').value;
       const password = document.getElementById('loginPassword').value;
 
-      try {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        showResponse(res.status, data);
-
-        if (res.ok && data.accessToken) {
+      const rawBody = { username, password };
+      await executeApiCall('/auth/login', 'POST', rawBody, (data) => {
+        if (data && data.accessToken) {
           setToken(data.accessToken);
         }
-      } catch (err) {
-        showResponse(500, { error: err.message });
-      }
+      });
     }
 
     async function fillAndLogin(username, password) {
@@ -405,63 +420,103 @@
         document.querySelectorAll('input[name="regGroups"]:checked')
       ).map(cb => cb.value);
 
-      try {
-        const res = await fetch(`${API_BASE}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, groups: checkedGroups })
-        });
-        const data = await res.json();
-        showResponse(res.status, data);
-
-        if (res.ok) {
-          switchTab('login');
-          document.getElementById('loginUsername').value = username;
-          document.getElementById('loginPassword').value = '';
-        }
-      } catch (err) {
-        showResponse(500, { error: err.message });
-      }
+      const rawBody = { username, password, groups: checkedGroups };
+      await executeApiCall('/auth/register', 'POST', rawBody, (data) => {
+        switchTab('login');
+        document.getElementById('loginUsername').value = username;
+        document.getElementById('loginPassword').value = '';
+      });
     }
 
     function handleLogout() {
       setToken(null);
-      showResponse(200, { message: 'Session terminated. Token cleared.' });
+      showResponse(200, { message: 'Session terminated. Token cleared.' }, 'NONE', 'NONE');
     }
 
-    async function testApi(endpoint, method = 'GET') {
+    async function testApi(endpoint, method = 'GET', body = null) {
+      await executeApiCall(endpoint, method, body);
+    }
+
+    async function executeApiCall(endpoint, method = 'GET', rawBody = null, onSuccess = null) {
+      const useCrypto = isEncryptionEnabled();
       const token = getToken();
       const headers = { 'Content-Type': 'application/json' };
+
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      let outgoingWire = 'None (GET/Empty)';
+      let fetchBody = null;
+
+      if (rawBody && method !== 'GET') {
+        if (useCrypto) {
+          headers['X-Payload-Encrypted'] = 'true';
+          const ciphertext = encryptPayload(rawBody);
+          outgoingWire = ciphertext;
+          fetchBody = JSON.stringify({ encryptedData: ciphertext });
+        } else {
+          outgoingWire = JSON.stringify(rawBody);
+          fetchBody = outgoingWire;
+        }
+      } else if (useCrypto) {
+        headers['X-Payload-Encrypted'] = 'true';
       }
 
       try {
         const res = await fetch(`${API_BASE}${endpoint}`, {
           method,
           headers,
+          body: fetchBody,
         });
-        const data = await res.json();
-        showResponse(res.status, data);
+
+        const rawJson = await res.json();
+        let incomingWire = JSON.stringify(rawJson);
+        let finalDecrypted = rawJson;
+
+        if (rawJson && rawJson.isEncrypted && rawJson.encryptedData) {
+          incomingWire = rawJson.encryptedData;
+          finalDecrypted = decryptPayload(rawJson.encryptedData);
+        }
+
+        showResponse(res.status, finalDecrypted, outgoingWire, incomingWire);
+
+        if (res.ok && onSuccess) {
+          onSuccess(finalDecrypted);
+        }
       } catch (err) {
-        showResponse(500, { error: err.message });
+        showResponse(500, { error: err.message }, outgoingWire, 'ERR');
       }
     }
 
-    function showResponse(status, data) {
+    function showResponse(status, data, wireOut = 'None', wireIn = 'None') {
       const output = document.getElementById('output');
       const statusEl = document.getElementById('responseStatus');
+      const wireOutEl = document.getElementById('wireOut');
+      const wireInEl = document.getElementById('wireIn');
+      const badge = document.getElementById('cryptoStateBadge');
+
+      wireOutEl.textContent = wireOut;
+      wireInEl.textContent = wireIn;
+
+      if (isEncryptionEnabled()) {
+        badge.textContent = 'AES-256 ENCRYPTED';
+        badge.className = 'bg-neutral-900 text-white px-1.5 py-0.2 text-[10px] font-semibold';
+      } else {
+        badge.textContent = 'PLAINTEXT (NO CIPHER)';
+        badge.className = 'bg-neutral-300 text-neutral-800 px-1.5 py-0.2 text-[10px]';
+      }
 
       statusEl.textContent = `STATUS // ${status}`;
       if (status >= 200 && status < 300) {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-900 font-semibold';
-        output.className = 'w-full p-3 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[130px] leading-relaxed';
+        output.className = 'w-full p-3 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[110px] leading-relaxed';
       } else if (status === 401 || status === 403) {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-        output.className = 'w-full p-3 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[130px] leading-relaxed';
+        output.className = 'w-full p-3 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[110px] leading-relaxed';
       } else {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-        output.className = 'w-full p-3 border border-neutral-300 bg-neutral-50 font-mono text-xs text-neutral-600 overflow-x-auto min-h-[130px] leading-relaxed';
+        output.className = 'w-full p-3 border border-neutral-300 bg-neutral-50 font-mono text-xs text-neutral-600 overflow-x-auto min-h-[110px] leading-relaxed';
       }
 
       output.textContent = JSON.stringify(data, null, 2);
