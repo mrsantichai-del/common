@@ -34,10 +34,10 @@ function updateCryptoBadge(enabled) {
   const badge = document.getElementById('cryptoStateBadge');
   if (!badge) return;
   if (enabled) {
-    badge.textContent = 'AES-256 ENCRYPTED';
+    badge.textContent = 'AES-256 ACTIVE';
     badge.className = 'bg-neutral-900 text-white px-1.5 py-0.2 text-[10px] font-semibold';
   } else {
-    badge.textContent = 'PLAINTEXT (NO CIPHER)';
+    badge.textContent = 'ข้อความธรรมดา (PLAINTEXT)';
     badge.className = 'bg-neutral-300 text-neutral-800 px-1.5 py-0.2 text-[10px]';
   }
 }
@@ -47,14 +47,14 @@ function renderWireTelemetry(telemetry) {
   const wireIn = document.getElementById('wireIn');
   const wireStatus = document.getElementById('wireStatus');
 
-  if (wireOut) wireOut.textContent = telemetry.outgoingWire || 'None';
-  if (wireIn) wireIn.textContent = telemetry.incomingWire || 'None';
+  if (wireOut) wireOut.textContent = telemetry.outgoingWire || 'ไม่มีข้อมูล (None)';
+  if (wireIn) wireIn.textContent = telemetry.incomingWire || 'ไม่มีข้อมูล (None)';
   if (wireStatus) {
-    wireStatus.textContent = `${telemetry.method} ${telemetry.endpoint} // ${telemetry.status}`;
+    wireStatus.textContent = `${telemetry.method} ${telemetry.endpoint} // รหัสสถานะ ${telemetry.status}`;
     wireStatus.className =
       telemetry.status >= 200 && telemetry.status < 300
-        ? 'font-semibold text-neutral-900'
-        : 'font-semibold text-rose-600';
+        ? 'font-semibold text-neutral-900 font-mono text-xs'
+        : 'font-semibold text-rose-600 font-mono text-xs';
   }
 }
 
@@ -106,7 +106,7 @@ async function refreshAuthStatus() {
       if (authStatus) {
         authStatus.innerHTML = `
           <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
-          <span class="font-bold text-neutral-900 uppercase">${user.username}</span>
+          <span class="font-bold text-neutral-900 uppercase">เข้าสู่ระบบแล้ว: ${user.username}</span>
         `;
       }
 
@@ -120,7 +120,7 @@ async function refreshAuthStatus() {
         }
         const permsCount = document.getElementById('activePermsCount');
         if (permsCount) {
-          permsCount.textContent = `${user.permissions.length} PERMISSION(S) ACTIVE`;
+          permsCount.textContent = `เปิดใช้งาน ${user.permissions.length} สิทธิ์ (${user.permissions.length} PERMISSION(S) ACTIVE)`;
         }
       }
 
@@ -166,7 +166,7 @@ async function handleLoginSubmit(event) {
   if (errBox) errBox.classList.add('hidden');
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.textContent = 'AUTHENTICATING...';
+    btnSubmit.textContent = 'กำลังตรวจสอบข้อมูล... (AUTHENTICATING...)';
   }
 
   try {
@@ -174,16 +174,16 @@ async function handleLoginSubmit(event) {
     logConsole('LOGIN SUCCESSFUL', res);
     await refreshAuthStatus();
   } catch (err) {
-    const errMsg = err.data?.message || err.message || 'Invalid credentials or connection error';
+    const errMsg = err.data?.message || err.message || 'ข้อมูลชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
     if (errBox) {
-      errBox.textContent = `AUTHENTICATION FAILED: ${Array.isArray(errMsg) ? errMsg.join(', ') : errMsg}`;
+      errBox.textContent = `การยืนยันตัวตนไม่สำเร็จ: ${Array.isArray(errMsg) ? errMsg.join(', ') : errMsg}`;
       errBox.classList.remove('hidden');
     }
     logConsole('AUTHENTICATION REJECTED', err.data || err.message, true);
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
-      btnSubmit.textContent = 'SIGN IN (ลงชื่อเข้าสู่ระบบ)';
+      btnSubmit.textContent = 'ลงชื่อเข้าสู่ระบบ (Sign In)';
     }
   }
 }
@@ -274,10 +274,10 @@ function initLeafletMap() {
   }).addTo(leafletMap);
 
   const stations = [
-    { id: 'NODE-01', name: 'Bangkok Central Core', lat: 13.7563, lng: 100.5018, status: 'ONLINE', cluster: 'Kernel A' },
-    { id: 'NODE-02', name: 'Suvarnabhumi Gateway', lat: 13.6900, lng: 100.7501, status: 'ONLINE', cluster: 'Secure Edge' },
-    { id: 'NODE-03', name: 'Chonburi Logistics Node', lat: 13.3611, lng: 100.9847, status: 'STANDBY', cluster: 'Data Vault' },
-    { id: 'NODE-04', name: 'Ayutthaya Backup Hub', lat: 14.3532, lng: 100.5684, status: 'ONLINE', cluster: 'Kernel B' },
+    { id: 'NODE-01', name: 'ศูนย์ปฏิบัติการกลาง (Bangkok Central Core)', lat: 13.7563, lng: 100.5018, status: 'ONLINE', cluster: 'Kernel A' },
+    { id: 'NODE-02', name: 'เกตเวย์สุวรรณภูมิ (Suvarnabhumi Gateway)', lat: 13.6900, lng: 100.7501, status: 'ONLINE', cluster: 'Secure Edge' },
+    { id: 'NODE-03', name: 'โหนดคลังข้อมูลชลบุรี (Chonburi Logistics Node)', lat: 13.3611, lng: 100.9847, status: 'STANDBY', cluster: 'Data Vault' },
+    { id: 'NODE-04', name: 'ศูนย์สำรองอยุธยา (Ayutthaya Backup Hub)', lat: 14.3532, lng: 100.5684, status: 'ONLINE', cluster: 'Kernel B' },
   ];
 
   stations.forEach((st) => {
@@ -291,11 +291,11 @@ function initLeafletMap() {
     }).addTo(leafletMap);
 
     marker.bindPopup(`
-      <div class="font-mono text-xs">
-        <strong>${st.name}</strong><br>
-        <span class="text-neutral-500">Node ID: ${st.id}</span><br>
-        <span class="text-neutral-500">Status: ${st.status}</span><br>
-        <span class="text-neutral-500">Cluster: ${st.cluster}</span>
+      <div class="text-xs">
+        <strong class="font-mono">${st.name}</strong><br>
+        <span class="text-neutral-500">รหัสโหนด (Node ID): ${st.id}</span><br>
+        <span class="text-neutral-500">สถานะ (Status): ${st.status === 'ONLINE' ? 'ออนไลน์ (ONLINE)' : 'สแตนด์บาย (STANDBY)'}</span><br>
+        <span class="text-neutral-500">กลุ่มคลัสเตอร์ (Cluster): ${st.cluster}</span>
       </div>
     `);
 
@@ -361,9 +361,9 @@ function renderAdminGroupSelector() {
       } text-xs font-mono transition-colors">
         <div class="font-bold flex justify-between">
           <span>${g.name}</span>
-          <span class="text-[10px] opacity-75">${g._count ? g._count.users : 0} users</span>
+          <span class="text-[10px] opacity-75 font-sans">${g._count ? g._count.users : 0} บัญชี</span>
         </div>
-        <div class="text-[10px] ${isSelected ? 'text-neutral-300' : 'text-neutral-400'} truncate">${g.description || ''}</div>
+        <div class="text-[10px] ${isSelected ? 'text-neutral-300' : 'text-neutral-400'} font-sans truncate">${g.description || ''}</div>
       </button>
     `;
     })
@@ -377,7 +377,7 @@ function selectAdminGroup(groupId) {
   if (!selectedAdminGroup) return;
 
   document.getElementById('governanceGroupName').textContent = selectedAdminGroup.name;
-  document.getElementById('governanceGroupDesc').textContent = selectedAdminGroup.description || 'No description';
+  document.getElementById('governanceGroupDesc').textContent = selectedAdminGroup.description || 'ไม่มีคำอธิบายบทบาท';
 
   const btnDel = document.getElementById('btnDelGroup');
   if (btnDel) {
@@ -399,7 +399,7 @@ function selectAdminGroup(groupId) {
         <input type="checkbox" value="${p.code}" ${isChecked ? 'checked' : ''} class="perm-chk mt-0.5 rounded-none border-neutral-400">
         <div>
           <strong class="text-neutral-900">${p.code}</strong>
-          <span class="text-[10px] text-neutral-400 block">${p.description || ''}</span>
+          <span class="text-[11px] text-neutral-500 block font-sans">${p.description || ''}</span>
         </div>
       </label>
     `;
@@ -423,7 +423,7 @@ async function saveAdminGroupPermissions() {
 
 async function deleteSelectedAdminGroup() {
   if (!selectedAdminGroup) return;
-  if (!confirm(`Delete group '${selectedAdminGroup.name}'?`)) return;
+  if (!confirm(`Maker ต้องการลบกลุ่มบทบาท '${selectedAdminGroup.name}' ออกจากระบบใช่หรือไม่?`)) return;
 
   try {
     const res = await api.admin.deleteGroup(selectedAdminGroup.id);
@@ -443,21 +443,21 @@ function renderAdminUserTable() {
     .map(
       (u) => `
     <tr class="hover:bg-neutral-50 transition-colors">
-      <td class="p-3 font-bold text-neutral-900">${u.username}</td>
+      <td class="p-3 font-bold text-neutral-900 font-mono">${u.username}</td>
       <td class="p-3">
-        <div class="flex gap-1 flex-wrap">
+        <div class="flex gap-1 flex-wrap font-mono">
           ${u.groups.map((g) => `<span class="border border-neutral-300 px-1 py-0.2 bg-white text-[10px]">${g}</span>`).join('')}
         </div>
       </td>
-      <td class="p-3 text-neutral-500">${u.permissions.length} actions</td>
+      <td class="p-3 text-neutral-500 font-mono">${u.permissions.length} สิทธิ์</td>
       <td class="p-3 text-right">
-        <button onclick="openUserGroupDelegationModal('${u.id}')" class="px-2 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white uppercase text-[10px] mr-1">
-          Delegate
+        <button onclick="openUserGroupDelegationModal('${u.id}')" class="px-2 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white uppercase text-[10px] mr-1 font-semibold">
+          มอบหมายสิทธิ์ (DELEGATE)
         </button>
         ${
           u.username !== 'root_admin'
-            ? `<button onclick="deleteUserAccount('${u.id}', '${u.username}')" class="px-2 py-1 text-rose-600 border border-rose-300 hover:bg-rose-600 hover:text-white uppercase text-[10px]">
-                Purge
+            ? `<button onclick="deleteUserAccount('${u.id}', '${u.username}')" class="px-2 py-1 text-rose-600 border border-rose-300 hover:bg-rose-600 hover:text-white uppercase text-[10px] font-semibold">
+                ลบบัญชี (PURGE)
               </button>`
             : ''
         }
@@ -516,7 +516,7 @@ async function saveUserDelegation() {
 }
 
 async function deleteUserAccount(userId, username) {
-  if (!confirm(`Purge user account '${username}' permanently?`)) return;
+  if (!confirm(`Maker ต้องการลบบัญชีผู้ใช้ '${username}' ออกจากระบบอย่างถาวรใช่หรือไม่?`)) return;
   try {
     const res = await api.admin.deleteUser(userId);
     logConsole('USER PURGED', res);
