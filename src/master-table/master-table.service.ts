@@ -12,15 +12,26 @@ export class MasterTableService {
   constructor(private readonly prisma: PrismaService) {}
 
   // --------------------------------------------------------------------------
-  // Audit Helper
+  // Audit Helper with Full Change Tracking (Old Value vs New Value)
   // --------------------------------------------------------------------------
-  private async logAudit(action: string, target: string, details: string, userId?: string) {
+  private async logAudit(
+    action: string,
+    target: string,
+    details: string,
+    userId?: string,
+    targetId?: string,
+    oldValue?: any,
+    newValue?: any,
+  ) {
     try {
       await this.prisma.auditLog.create({
         data: {
           action,
           target,
+          targetId: targetId || null,
           details,
+          oldValue: oldValue ? (typeof oldValue === 'string' ? oldValue : JSON.stringify(oldValue)) : null,
+          newValue: newValue ? (typeof newValue === 'string' ? newValue : JSON.stringify(newValue)) : null,
           userId: userId || null,
           ipAddress: '127.0.0.1',
         },
@@ -248,7 +259,10 @@ export class MasterTableService {
             id: a.id,
             action: a.action,
             target: a.target,
+            targetId: a.targetId,
             details: a.details,
+            oldValue: a.oldValue,
+            newValue: a.newValue,
             ipAddress: a.ipAddress,
             username: a.user ? a.user.username : 'SYSTEM',
             createdAt: a.createdAt,
@@ -318,6 +332,8 @@ export class MasterTableService {
             password: passwordHash,
             employeeId: employeeId ? employeeId.trim() : null,
             isActive: true,
+            createdById: userId || null,
+            updatedById: userId || null,
           },
         });
 
@@ -332,7 +348,7 @@ export class MasterTableService {
           }
         }
 
-        await this.logAudit('USER_CREATE', 'User', `Created user account: ${username}`, userId);
+        await this.logAudit('USER_CREATE', 'User', `Created user account: ${username}`, userId, user.id, null, { username, employeeId });
         return { message: `User '${username}' successfully created`, id: user.id };
       }
 
@@ -344,7 +360,13 @@ export class MasterTableService {
         if (existing) throw new ConflictException(`Group '${name}' already exists`);
 
         const group = await this.prisma.group.create({
-          data: { name, description, isActive: true },
+          data: {
+            name,
+            description,
+            isActive: true,
+            createdById: userId || null,
+            updatedById: userId || null,
+          },
         });
 
         if (permissions.length > 0) {
@@ -358,7 +380,7 @@ export class MasterTableService {
           }
         }
 
-        await this.logAudit('GROUP_CREATE', 'Group', `Created role group: ${name}`, userId);
+        await this.logAudit('GROUP_CREATE', 'Group', `Created role group: ${name}`, userId, group.id, null, { name, description });
         return { message: `Group '${name}' successfully created`, id: group.id };
       }
 
@@ -370,10 +392,15 @@ export class MasterTableService {
         if (existing) throw new ConflictException(`Permission '${code}' already exists`);
 
         const perm = await this.prisma.permission.create({
-          data: { code, description },
+          data: {
+            code,
+            description,
+            createdById: userId || null,
+            updatedById: userId || null,
+          },
         });
 
-        await this.logAudit('PERM_CREATE', 'Permission', `Created permission: ${code}`, userId);
+        await this.logAudit('PERM_CREATE', 'Permission', `Created permission: ${code}`, userId, perm.id, null, { code, description });
         return { message: `Permission '${code}' successfully created`, id: perm.id };
       }
 
@@ -392,10 +419,12 @@ export class MasterTableService {
             content,
             status: 'DRAFT',
             authorId: userId || null,
+            createdById: userId || null,
+            updatedById: userId || null,
           },
         });
 
-        await this.logAudit('DOC_CREATE', 'Document', `Created document ${docNumber}: ${title}`, userId);
+        await this.logAudit('DOC_CREATE', 'Document', `Created document ${docNumber}: ${title}`, userId, doc.id, null, { docNumber, title, category });
         return { message: `Document '${docNumber}' created as DRAFT`, id: doc.id };
       }
 
@@ -414,7 +443,7 @@ export class MasterTableService {
         const user = await this.prisma.user.findUnique({ where: { id } });
         if (!user) throw new NotFoundException('User not found');
 
-        const updateData: any = {};
+        const updateData: any = { updatedById: userId || null };
         if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
         if (payload.password) updateData.password = await bcrypt.hash(payload.password, 10);
         if (payload.employeeId !== undefined) updateData.employeeId = payload.employeeId ? payload.employeeId.trim() : null;
@@ -431,7 +460,7 @@ export class MasterTableService {
           }
         }
 
-        await this.logAudit('USER_UPDATE', 'User', `Updated user: ${user.username}`, userId);
+        await this.logAudit('USER_UPDATE', 'User', `Updated user: ${user.username}`, userId, id, { isActive: user.isActive, employeeId: user.employeeId }, updateData);
         return { message: `User '${user.username}' successfully updated` };
       }
 
@@ -440,7 +469,7 @@ export class MasterTableService {
         const group = await this.prisma.group.findUnique({ where: { id } });
         if (!group) throw new NotFoundException('Group not found');
 
-        const updateData: any = {};
+        const updateData: any = { updatedById: userId || null };
         if (payload.description !== undefined) updateData.description = payload.description;
         if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
 
@@ -458,7 +487,7 @@ export class MasterTableService {
           }
         }
 
-        await this.logAudit('GROUP_UPDATE', 'Group', `Updated role group: ${group.name}`, userId);
+        await this.logAudit('GROUP_UPDATE', 'Group', `Updated role group: ${group.name}`, userId, id, { description: group.description, isActive: group.isActive }, updateData);
         return { message: `Group '${group.name}' successfully updated` };
       }
 
@@ -469,10 +498,10 @@ export class MasterTableService {
 
         await this.prisma.permission.update({
           where: { id },
-          data: { description: payload.description },
+          data: { description: payload.description, updatedById: userId || null },
         });
 
-        await this.logAudit('PERM_UPDATE', 'Permission', `Updated permission: ${perm.code}`, userId);
+        await this.logAudit('PERM_UPDATE', 'Permission', `Updated permission: ${perm.code}`, userId, id, { description: perm.description }, { description: payload.description });
         return { message: `Permission '${perm.code}' updated` };
       }
 
@@ -484,13 +513,13 @@ export class MasterTableService {
           throw new BadRequestException('Cannot modify a CONFIRMED document. Revoke or cancel first.');
         }
 
-        const updateData: any = {};
+        const updateData: any = { updatedById: userId || null };
         if (payload.title) updateData.title = payload.title;
         if (payload.category) updateData.category = payload.category;
         if (payload.content !== undefined) updateData.content = payload.content;
 
         await this.prisma.document.update({ where: { id }, data: updateData });
-        await this.logAudit('DOC_UPDATE', 'Document', `Updated document ${doc.docNumber}`, userId);
+        await this.logAudit('DOC_UPDATE', 'Document', `Updated document ${doc.docNumber}`, userId, id, { title: doc.title, category: doc.category }, updateData);
         return { message: `Document '${doc.docNumber}' updated` };
       }
 

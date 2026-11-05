@@ -13,6 +13,8 @@ model User {
   password      String
   employeeId    String?     @unique
   isActive      Boolean     @default(true)
+  createdById   String?
+  updatedById   String?
   groups        UserGroup[]
   authoredDocs  Document[]  @relation("AuthorDocs")
   confirmedDocs Document[]  @relation("ConfirmedDocs")
@@ -26,6 +28,8 @@ model Group {
   name        String            @unique
   description String?
   isActive    Boolean           @default(true)
+  createdById String?
+  updatedById String?
   permissions GroupPermission[]
   users       UserGroup[]
   createdAt   DateTime          @default(now())
@@ -36,6 +40,8 @@ model Permission {
   id          String            @id @default(uuid())
   code        String            @unique
   description String?
+  createdById String?
+  updatedById String?
   groups      GroupPermission[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
@@ -72,6 +78,8 @@ model Document {
   confirmedBy   User?     @relation("ConfirmedDocs", fields: [confirmedById], references: [id], onDelete: SetNull)
   confirmedAt   DateTime?
   cancelledAt   DateTime?
+  createdById   String?
+  updatedById   String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -80,8 +88,12 @@ model AuditLog {
   id        String   @id @default(uuid())
   action    String   // CREATE, UPDATE, DELETE, CONFIRM, CANCEL, IMPORT, EXPORT
   target    String   // User, Group, Permission, Document
+  targetId  String?  // Reference ID of affected entity
   details   String?
+  oldValue  String?  // JSON snapshot before change
+  newValue  String?  // JSON snapshot after change
   ipAddress String?  @default("127.0.0.1")
+  userAgent String?
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
