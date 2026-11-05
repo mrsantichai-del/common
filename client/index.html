@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ULTRON CORE // Sovereign Mesh Control System</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Leaflet.js CSS & JS CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- CryptoJS CDN for AES-256 Symmetric Payload Encryption -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap');
+    
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 0;
+      border: 1px solid #171717;
+      box-shadow: none;
+    }
+    .leaflet-container {
+      background-color: #f5f5f5;
+    }
+  </style>
+</head>
+<body class="bg-neutral-100 text-neutral-900 min-h-screen flex flex-col selection:bg-neutral-900 selection:text-white">
+
+  <!-- TOP HEADER / STATUS BAR -->
+  <header class="bg-white border-b border-neutral-300 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo & Architecture Indicator -->
+      <div class="flex items-center space-x-3">
+        <div class="w-8 h-8 bg-neutral-900 flex items-center justify-center text-white font-mono font-bold text-sm tracking-tighter">
+          UL
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="font-mono font-bold tracking-tight text-sm">ULTRON SOVEREIGN CORE</span>
+            <span class="text-[10px] bg-neutral-200 px-1.5 py-0.2 font-mono font-semibold">PORT 8080 (FRONTEND)</span>
+            <span class="text-[10px] bg-neutral-900 text-white px-1.5 py-0.2 font-mono font-semibold">API: 3000 (BACKEND)</span>
+          </div>
+          <div class="text-[11px] text-neutral-500 font-mono">Decoupled Architecture // AES-256 Encrypted Wire</div>
+        </div>
+      </div>
+
+      <!-- Auth State & Cipher Toggle -->
+      <div class="flex items-center space-x-4">
+        
+        <!-- AES Encryption Switch -->
+        <div class="flex items-center space-x-2 border border-neutral-300 px-2 py-1 bg-neutral-50">
+          <input type="checkbox" id="cryptoToggle" checked class="cursor-pointer rounded-none border-neutral-400 text-neutral-900 focus:ring-0">
+          <label for="cryptoToggle" class="text-xs font-mono font-semibold cursor-pointer select-none">AES CIPHER</label>
+          <span id="cryptoStateBadge" class="bg-neutral-900 text-white px-1.5 py-0.2 text-[10px] font-semibold">AES-256 ENCRYPTED</span>
+        </div>
+
+        <!-- Identity / Session State -->
+        <div id="authStatus" class="font-mono text-xs flex items-center space-x-1.5 border border-neutral-200 px-2.5 py-1 bg-white">
+          <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
+          <span class="text-neutral-400 uppercase">UNAUTHENTICATED</span>
+        </div>
+
+        <!-- Login / Logout Actions -->
+        <button id="loginModalBtn" onclick="openLoginModal()" class="px-3 py-1 bg-neutral-900 text-white font-mono text-xs font-semibold hover:bg-neutral-800 transition-colors">
+          SIGN IN
+        </button>
+        <button id="logoutBtn" onclick="handleLogout()" class="hidden px-3 py-1 border border-neutral-300 font-mono text-xs font-semibold hover:bg-neutral-200 transition-colors">
+          TERMINATE
+        </button>
+      </div>
+    </div>
+
+    <!-- Active Grants / Delegations Sub-Banner -->
+    <div id="grantsBanner" class="hidden bg-neutral-900 text-neutral-100 text-xs font-mono py-1.5 px-4 sm:px-6 lg:px-8 flex items-center justify-between border-t border-neutral-800">
+      <div class="flex items-center space-x-2">
+        <span class="text-neutral-400 font-bold">DELEGATED ROLES:</span>
+        <div id="activeGroupsList" class="flex gap-1.5 flex-wrap"></div>
+      </div>
+      <div id="activePermsCount" class="text-[11px] text-neutral-400 font-semibold">
+        0 PERMISSIONS ACTIVE
+      </div>
+    </div>
+
+    <!-- Navigation Tabs Bar -->
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-6 pt-3 pb-1 border-t border-neutral-200 bg-white">
+      <button id="tabBtn_overview" onclick="switchAppTab('overview')" class="font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-1 font-mono text-xs">
+        [01] SYSTEM OVERVIEW & MAP
+      </button>
+      <button id="tabBtn_workflows" onclick="switchAppTab('workflows')" class="text-neutral-400 hover:text-neutral-900 pb-1 font-mono text-xs transition-colors">
+        [02] SECURE WORKFLOW ACTIONS
+      </button>
+      <button id="navAdminTab" onclick="switchAppTab('governance')" class="hidden text-neutral-400 hover:text-neutral-900 pb-1 font-mono text-xs transition-colors">
+        [03] GOVERNANCE & ACCESS CONTROL
+      </button>
+    </nav>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- TAB 1: OVERVIEW & MAP -->
+    <section id="tabSection_overview" class="space-y-6">
+      
+      <!-- Quick Persona Login Bar -->
+      <div class="bg-white border border-neutral-300 p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="font-mono text-xs font-bold uppercase tracking-wider text-neutral-700">
+            Quick Multi-Persona Identity Simulation (Pre-Seeded Accounts)
+          </div>
+          <span class="text-[11px] font-mono text-neutral-400">Password default: 123456</span>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <button onclick="quickLoginAs('root_admin')" class="p-2 border border-neutral-300 hover:border-neutral-900 bg-neutral-50 hover:bg-neutral-100 text-left transition-all font-mono">
+            <div class="text-xs font-bold text-neutral-900">root_admin</div>
+            <div class="text-[10px] text-neutral-500">SUPER_ADMIN (Full Power)</div>
+          </button>
+          <button onclick="quickLoginAs('approver_ellen')" class="p-2 border border-neutral-300 hover:border-neutral-900 bg-neutral-50 hover:bg-neutral-100 text-left transition-all font-mono">
+            <div class="text-xs font-bold text-neutral-900">approver_ellen</div>
+            <div class="text-[10px] text-neutral-500">APPROVER (Confirm/Cancel)</div>
+          </button>
+          <button onclick="quickLoginAs('auditor_arthur')" class="p-2 border border-neutral-300 hover:border-neutral-900 bg-neutral-50 hover:bg-neutral-100 text-left transition-all font-mono">
+            <div class="text-xs font-bold text-neutral-900">auditor_arthur</div>
+            <div class="text-[10px] text-neutral-500">AUDITOR (Reports & Logs)</div>
+          </button>
+          <button onclick="quickLoginAs('hybrid_harry')" class="p-2 border border-neutral-300 hover:border-neutral-900 bg-neutral-50 hover:bg-neutral-100 text-left transition-all font-mono">
+            <div class="text-xs font-bold text-neutral-900">hybrid_harry</div>
+            <div class="text-[10px] text-neutral-500">Dual: OPERATOR + AUDITOR</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Geospatial Grid & Operational Nodes -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Leaflet Map Container -->
+        <div class="lg:col-span-2 bg-white border border-neutral-300 shadow-sm flex flex-col">
+          <div class="p-3 border-b border-neutral-200 flex items-center justify-between bg-neutral-50 font-mono text-xs">
+            <span class="font-bold">LEAFLET GEOSPATIAL NODE TELEMETRY</span>
+            <span class="text-neutral-500">4 SITES DETECTED // LOCAL COORDINATES</span>
+          </div>
+          <div id="operationalMap" class="w-full h-80 z-0"></div>
+        </div>
+
+        <!-- Node Status / Metric Panel -->
+        <div class="bg-white border border-neutral-300 p-4 shadow-sm flex flex-col justify-between font-mono text-xs">
+          <div>
+            <div class="font-bold border-b border-neutral-200 pb-2 mb-3 text-neutral-800">
+              ARCHITECTURE TOPOLOGY
+            </div>
+            <div class="space-y-3">
+              <div>
+                <div class="text-neutral-500 text-[10px]">BACKEND SERVICE</div>
+                <div class="font-semibold text-neutral-900">NestJS v11 + Prisma ORM</div>
+                <div class="text-neutral-400 text-[10px]">Bound to Port 3000 (CORS Enabled)</div>
+              </div>
+              <div>
+                <div class="text-neutral-500 text-[10px]">STORAGE CORE</div>
+                <div class="font-semibold text-neutral-900">SQLite (Sovereign Local DB)</div>
+                <div class="text-neutral-400 text-[10px]">prisma/dev.db (PBAC / RBAC Schema)</div>
+              </div>
+              <div>
+                <div class="text-neutral-500 text-[10px]">SECURITY LAYER</div>
+                <div class="font-semibold text-neutral-900">AES-256 Symmetric Cipher</div>
+                <div class="text-neutral-400 text-[10px]">Auto-Encrypted Wire Payload Interceptor</div>
+              </div>
+              <div>
+                <div class="text-neutral-500 text-[10px]">FRONTEND HOST</div>
+                <div class="font-semibold text-neutral-900">Native Node Static Server</div>
+                <div class="text-neutral-400 text-[10px]">Bound to Port 8080 (Decoupled Client)</div>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3 border-t border-neutral-200 text-[10px] text-neutral-400">
+            SYSTEM ENGINE HEALTH: OPTIMAL (100%)
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: WORKFLOW ACTIONS TESTBED -->
+    <section id="tabSection_workflows" class="hidden space-y-6">
+      <div class="bg-white border border-neutral-300 p-4 shadow-sm">
+        <div class="font-mono text-xs font-bold text-neutral-700 uppercase mb-1">
+          Permission-Enforced Workflow Operations
+        </div>
+        <p class="text-xs text-neutral-500 font-mono mb-4">
+          Each action performs an encrypted cross-origin HTTP call (Port 8080 &rarr; Port 3000) guarded by granular Permission Guards.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- Category 1: User Lifecycle -->
+          <div class="border border-neutral-200 p-3 bg-neutral-50">
+            <div class="font-mono text-xs font-bold text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
+              USER LIFECYCLE
+            </div>
+            <div class="space-y-2">
+              <button onclick="runSdkAction('Get Current Profile', () => api.users.getProfile())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/users/profile</strong></div>
+                <div class="text-[10px] text-neutral-500">Requires Authentication</div>
+              </button>
+              <button onclick="runSdkAction('List All Users', () => api.users.listUsers())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/users/list</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: USER_READ</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 2: Document Lifecycle -->
+          <div class="border border-neutral-200 p-3 bg-neutral-50">
+            <div class="font-mono text-xs font-bold text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
+              DOCUMENT ACTIONS
+            </div>
+            <div class="space-y-2">
+              <button onclick="runSdkAction('Read Document', () => api.users.readDocument())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/documents/read</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: DOC_READ</div>
+              </button>
+              <button onclick="runSdkAction('Confirm Document', () => api.users.confirmDocument('DOC-2026-ALPHA'))" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/documents/confirm</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: DOC_CONFIRM</div>
+              </button>
+              <button onclick="runSdkAction('Cancel Document', () => api.users.cancelDocument('DOC-2026-ALPHA'))" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/documents/cancel</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: DOC_CANCEL</div>
+              </button>
+              <button onclick="runSdkAction('Upload Document', () => api.users.uploadDocument({ file: 'payload.dat', bytes: 2048 }))" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/documents/upload</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: DOC_UPLOAD</div>
+              </button>
+              <button onclick="runSdkAction('Download Document', () => api.users.downloadDocument())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/documents/download</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: DOC_DOWNLOAD</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 3: Reports & Governance -->
+          <div class="border border-neutral-200 p-3 bg-neutral-50">
+            <div class="font-mono text-xs font-bold text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
+              REPORTS & AUDITING
+            </div>
+            <div class="space-y-2">
+              <button onclick="runSdkAction('Download Reports', () => api.users.downloadReports())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/reports/download</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: REPORT_DOWNLOAD</div>
+              </button>
+              <button onclick="runSdkAction('Read Audit Log', () => api.users.getAuditLog())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/audit/read</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: AUDIT_READ</div>
+              </button>
+              <button onclick="runSdkAction('Download Audit Log', () => api.users.downloadAuditLog())" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/audit/download</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: AUDIT_DOWNLOAD</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category 4: System Kernel -->
+          <div class="border border-neutral-200 p-3 bg-neutral-50">
+            <div class="font-mono text-xs font-bold text-neutral-900 border-b border-neutral-200 pb-1 mb-2">
+              SYSTEM KERNEL
+            </div>
+            <div class="space-y-2">
+              <button onclick="runSdkAction('Configure System', () => api.users.configureSystem({ mode: 'STRICT_SOVEREIGN', keyRot: 3600 }))" class="w-full text-left p-2 border border-neutral-300 bg-white hover:bg-neutral-100 font-mono text-xs">
+                <div><strong>/system/config</strong></div>
+                <div class="text-[10px] text-neutral-500">Perm: SYSTEM_CONFIG</div>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: GOVERNANCE & ACCESS CONTROL -->
+    <section id="tabSection_governance" class="hidden space-y-6">
+      
+      <!-- Top Section: Group & Permission Matrix -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <!-- Left: Group Selector -->
+        <div class="bg-white border border-neutral-300 p-4 shadow-sm flex flex-col">
+          <div class="font-mono text-xs font-bold text-neutral-700 uppercase mb-3 flex justify-between items-center">
+            <span>Groups / Roles Directory</span>
+          </div>
+          <div id="adminGroupSelector" class="space-y-2 overflow-y-auto max-h-[360px]"></div>
+        </div>
+
+        <!-- Middle & Right: Group Permissions Matrix -->
+        <div class="md:col-span-2 bg-white border border-neutral-300 p-4 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-start border-b border-neutral-200 pb-3 mb-3">
+              <div>
+                <h3 id="governanceGroupName" class="font-mono font-bold text-sm text-neutral-900">SELECT A GROUP</h3>
+                <p id="governanceGroupDesc" class="font-mono text-xs text-neutral-500">Group description and assigned capability matrix</p>
+              </div>
+              <div class="flex space-x-2">
+                <button id="btnDelGroup" onclick="deleteSelectedAdminGroup()" class="px-2.5 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 font-mono text-xs">
+                  DELETE
+                </button>
+                <button onclick="saveAdminGroupPermissions()" class="px-3 py-1 bg-neutral-900 text-white font-mono text-xs font-semibold hover:bg-neutral-800">
+                  SAVE MATRIX
+                </button>
+              </div>
+            </div>
+
+            <div id="governancePermissionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto max-h-[290px]"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- User Delegation Table -->
+      <div class="bg-white border border-neutral-300 p-4 shadow-sm">
+        <div class="font-mono text-xs font-bold text-neutral-700 uppercase mb-3">
+          User Account Multi-Group Delegations
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left font-mono text-xs border border-neutral-200">
+            <thead class="bg-neutral-100 text-neutral-600 border-b border-neutral-200">
+              <tr>
+                <th class="p-3">USERNAME</th>
+                <th class="p-3">ATTACHED GROUPS</th>
+                <th class="p-3">EFFECTIVE CAPABILITY</th>
+                <th class="p-3 text-right">OPERATIONS</th>
+              </tr>
+            </thead>
+            <tbody id="governanceUserTableBody" class="divide-y divide-neutral-200"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Permission Taxonomy Catalog -->
+      <div class="bg-white border border-neutral-300 p-4 shadow-sm">
+        <div class="font-mono text-xs font-bold text-neutral-700 uppercase mb-3">
+          16 Atomic System Permissions Taxonomy
+        </div>
+        <div id="governancePermCatalog" class="grid grid-cols-2 md:grid-cols-4 gap-2 font-mono text-xs"></div>
+      </div>
+    </section>
+
+    <!-- LIVE WIRE TELEMETRY & CONSOLE INSPECTOR (ALWAYS VISIBLE AT BOTTOM) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- AES Wire Sniffer -->
+      <div class="bg-white border border-neutral-300 shadow-sm p-4">
+        <div class="flex items-center justify-between border-b border-neutral-200 pb-2 mb-2">
+          <div class="font-mono text-xs font-bold uppercase text-neutral-800">
+            WIRE TELEMETRY SNIFFER (ENCRYPTED HTTP PACKETS)
+          </div>
+          <span id="wireStatus" class="font-mono text-xs text-neutral-400">IDLE</span>
+        </div>
+        
+        <div class="space-y-2 font-mono text-xs">
+          <div>
+            <span class="text-[10px] text-neutral-400 block">OUTGOING WIRE (REQUEST BODY CIPHERTEXT)</span>
+            <div id="wireOut" class="p-2 bg-neutral-50 border border-neutral-200 text-neutral-700 break-all text-[11px] min-h-[46px] max-h-20 overflow-y-auto">
+              None
+            </div>
+          </div>
+          <div>
+            <span class="text-[10px] text-neutral-400 block">INCOMING WIRE (RAW RESPONSE CIPHERTEXT)</span>
+            <div id="wireIn" class="p-2 bg-neutral-50 border border-neutral-200 text-neutral-700 break-all text-[11px] min-h-[46px] max-h-20 overflow-y-auto">
+              None
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Structured Log Console -->
+      <div class="bg-white border border-neutral-300 shadow-sm p-4">
+        <div class="flex items-center justify-between border-b border-neutral-200 pb-2 mb-2">
+          <div id="consoleTitle" class="font-mono text-xs font-bold uppercase text-neutral-800">
+            SYSTEM CONSOLE
+          </div>
+          <button onclick="logConsole('CONSOLE CLEARED', { ready: true })" class="text-[10px] font-mono text-neutral-400 hover:text-neutral-900">
+            CLEAR
+          </button>
+        </div>
+        <pre id="consoleOutput" class="w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[110px] max-h-36 leading-relaxed">System ready. Select a persona or run workflow operations.</pre>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- LOGIN MODAL -->
+  <div id="modalLogin" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+    <div class="bg-white border border-neutral-900 w-full max-w-sm p-6 shadow-2xl font-mono">
+      <div class="flex justify-between items-center border-b border-neutral-200 pb-3 mb-4">
+        <h3 class="font-bold text-sm">AUTHENTICATE IDENTITY</h3>
+        <button onclick="closeLoginModal()" class="text-neutral-400 hover:text-neutral-900 font-bold">&times;</button>
+      </div>
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-neutral-600 mb-1">USERNAME</label>
+          <input type="text" id="inputUsername" required class="w-full p-2 border border-neutral-300 focus:border-neutral-900 outline-none">
+        </div>
+        <div>
+          <label class="block text-neutral-600 mb-1">PASSWORD</label>
+          <input type="password" id="inputPassword" required class="w-full p-2 border border-neutral-300 focus:border-neutral-900 outline-none">
+        </div>
+        <div class="flex justify-end space-x-2 pt-2">
+          <button type="button" onclick="closeLoginModal()" class="px-3 py-1.5 border border-neutral-300 hover:bg-neutral-100">
+            CANCEL
+          </button>
+          <button type="submit" class="px-4 py-1.5 bg-neutral-900 text-white font-bold hover:bg-neutral-800">
+            LOGIN
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- USER DELEGATION MODAL -->
+  <div id="modalUserDelegation" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+    <div class="bg-white border border-neutral-900 w-full max-w-md p-6 shadow-2xl font-mono">
+      <div class="flex justify-between items-center border-b border-neutral-200 pb-3 mb-4">
+        <div>
+          <h3 class="font-bold text-sm">DELEGATE USER GROUPS</h3>
+          <div class="text-[11px] text-neutral-500">Target: <strong id="delegationModalUsername" class="text-neutral-900"></strong></div>
+        </div>
+        <button onclick="closeUserGroupDelegationModal()" class="text-neutral-400 hover:text-neutral-900 font-bold">&times;</button>
+      </div>
+      <div id="delegationModalCheckboxes" class="space-y-1.5 max-h-60 overflow-y-auto mb-4 border border-neutral-200 p-2 text-xs"></div>
+      <div class="flex justify-end space-x-2">
+        <button onclick="closeUserGroupDelegationModal()" class="px-3 py-1.5 border border-neutral-300 hover:bg-neutral-100 text-xs">
+          CANCEL
+        </button>
+        <button onclick="saveUserDelegation()" class="px-4 py-1.5 bg-neutral-900 text-white font-bold hover:bg-neutral-800 text-xs">
+          APPLY DELEGATION
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT SDK & UI LOGIC -->
+  <script src="/js/api-client.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
