@@ -3,12 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise Multi-Group RBAC & Management Console</title>
+  <title>Enterprise RBAC & Operational Dashboard</title>
+
+  <!-- Tailwind CSS CDN (No Build Tool) -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet.js CSS & JS CDN (Tech Stack) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- CryptoJS CDN (AES-256 Symmetric Cipher) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
   <style>
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -16,44 +27,59 @@
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
+    .leaflet-container {
+      font-family: 'JetBrains Mono', monospace;
+    }
   </style>
 </head>
 <body class="bg-white text-neutral-900 min-h-screen flex flex-col antialiased">
 
-  <!-- Top Navigation Bar -->
-  <header class="border-b border-neutral-200 px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+  <!-- Top Global Navigation Bar -->
+  <header class="border-b border-neutral-200 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 bg-white sticky top-0 z-40">
     <div class="flex items-center gap-6">
-      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // ENTERPRISE ACCESS CONTROL</span>
-      <div class="flex gap-4 text-xs font-mono">
-        <button id="viewBtnTesting" onclick="switchMainView('testing')" class="font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-1">
-          01. ACCESS & TESTING
-        </button>
-        <button id="viewBtnManagement" onclick="switchMainView('management')" class="text-neutral-400 hover:text-neutral-900 pb-1 transition-colors">
-          02. SYSTEM MANAGEMENT CONSOLE
-        </button>
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 bg-neutral-900"></span>
+        <span class="font-bold text-sm tracking-tight uppercase">ENTERPRISE HUB</span>
       </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex gap-4 text-xs font-mono">
+        <button id="tabBtn_overview" onclick="switchAppTab('overview')" class="font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-1">
+          01. OVERVIEW & MAP
+        </button>
+        <button id="tabBtn_workflows" onclick="switchAppTab('workflows')" class="text-neutral-400 hover:text-neutral-900 pb-1 transition-colors">
+          02. WORKFLOWS & ACTIONS
+        </button>
+        <button id="navAdminTab" onclick="switchAppTab('governance')" class="hidden text-neutral-400 hover:text-neutral-900 pb-1 transition-colors">
+          03. GOVERNANCE & RBAC
+        </button>
+      </nav>
     </div>
 
-    <!-- Encryption Switch & Auth Status -->
-    <div class="flex items-center gap-6 text-xs font-mono">
-      <label class="flex items-center gap-2 cursor-pointer bg-neutral-100 px-2.5 py-1 border border-neutral-300">
+    <!-- Security, Cipher & Authentication Status -->
+    <div class="flex items-center gap-4 text-xs font-mono">
+      <label class="flex items-center gap-1.5 cursor-pointer bg-neutral-100 px-2 py-1 border border-neutral-300">
         <input type="checkbox" id="cryptoToggle" checked class="rounded-none border-neutral-500">
-        <span class="font-semibold text-neutral-800">AES-256 ENCRYPTION</span>
+        <span class="font-semibold text-neutral-800 text-[11px]">AES-256 CIPHER</span>
       </label>
 
       <div id="authStatus" class="flex items-center gap-2">
         <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
         <span class="text-neutral-500 uppercase">UNAUTHENTICATED</span>
       </div>
+
+      <button id="loginModalBtn" onclick="openLoginModal()" class="px-3 py-1 bg-neutral-900 hover:bg-neutral-800 text-white uppercase text-xs">
+        Sign In
+      </button>
       <button id="logoutBtn" onclick="handleLogout()" class="hidden text-neutral-900 underline hover:text-neutral-500 uppercase">
         Sign Out
       </button>
     </div>
   </header>
 
-  <!-- User Grants Banner (Visible When Logged In) -->
-  <div id="grantsBanner" class="hidden border-b border-neutral-200 bg-neutral-50 px-8 py-3 text-xs font-mono">
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+  <!-- Grants Banner (Active Groups and Permissions) -->
+  <div id="grantsBanner" class="hidden border-b border-neutral-200 bg-neutral-50 px-6 py-2.5 text-xs font-mono">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-neutral-400 uppercase">ACTIVE GROUPS:</span>
         <span id="activeGroupsList" class="flex gap-1.5 flex-wrap"></span>
@@ -65,914 +91,305 @@
     </div>
   </div>
 
-  <!-- VIEW 1: ACCESS & TESTING (SPLIT LAYOUT) -->
-  <main id="mainViewTesting" class="flex-1 grid grid-cols-1 lg:grid-cols-12 border-b border-neutral-200">
-    
-    <!-- Left Column: Identity & Group Assignment -->
-    <section class="lg:col-span-5 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-neutral-200 flex flex-col justify-start">
-      <div class="max-w-md w-full">
-        <div class="mb-6">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS CONTROL & CIPHER ENGINE</p>
-          <h2 id="formTitle" class="text-2xl font-semibold tracking-tight text-neutral-900">Sign in to workspace</h2>
-        </div>
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <div class="flex-1 flex flex-col">
 
-        <!-- Quick Demo Profiles -->
-        <div class="mb-6 p-3 border border-neutral-200 bg-neutral-50 text-xs font-mono">
-          <div class="text-[11px] uppercase tracking-wider text-neutral-400 mb-2 font-semibold">PRE-SEEDED IDENTITIES (PASSWORD: 123456)</div>
-          <div class="grid grid-cols-1 gap-1.5">
-            <button onclick="fillAndLogin('root_admin', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
-              <span>root_admin</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">SUPER_ADMIN (CAN MANAGE SYSTEM)</span>
-            </button>
-            <button onclick="fillAndLogin('approver_ellen', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
-              <span>approver_ellen</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">EXECUTIVE APPROVER (Confirm, Cancel)</span>
-            </button>
-            <button onclick="fillAndLogin('auditor_arthur', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
-              <span>auditor_arthur</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">COMPLIANCE AUDITOR (Audit Read/DL)</span>
-            </button>
-            <button onclick="fillAndLogin('hybrid_harry', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
-              <span>hybrid_harry</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">HYBRID (OPERATOR + AUDITOR)</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Mode Toggle -->
-        <div class="flex gap-6 border-b border-neutral-200 mb-6 pb-3 text-xs font-mono uppercase tracking-wider">
-          <button id="tabLogin" onclick="switchTab('login')" class="font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-3 -mb-3 transition-colors">
-            01. SIGN IN
-          </button>
-          <button id="tabRegister" onclick="switchTab('register')" class="font-normal text-neutral-400 hover:text-neutral-900 transition-colors">
-            02. MULTI-GROUP REGISTRATION
-          </button>
-        </div>
-
-        <!-- Sign-In Form -->
-        <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-          <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Username</label>
-            <input type="text" id="loginUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Username">
-          </div>
-          <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Password</label>
-            <input type="password" id="loginPassword" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Password">
-          </div>
-          <button type="submit" class="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-widest transition-colors">
-            Authenticate Identity
-          </button>
-        </form>
-
-        <!-- Register Form -->
-        <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
-          <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Username</label>
-            <input type="text" id="regUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Username">
-          </div>
-          <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Password</label>
-            <input type="password" id="regPassword" minlength="6" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Password">
-          </div>
-          <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Assign Groups (Select Multiple)</label>
-            <div id="registrationGroupsContainer" class="space-y-2 border border-neutral-200 p-3 bg-neutral-50 max-h-52 overflow-y-auto">
-              <!-- Loaded dynamically -->
-            </div>
-          </div>
-          <button type="submit" class="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-widest transition-colors">
-            Provision Account
-          </button>
-        </form>
-      </div>
-    </section>
-
-    <!-- Right Column: Action Matrix Inspector -->
-    <section class="lg:col-span-7 p-8 lg:p-12 flex flex-col justify-between bg-neutral-50/50">
-      <div>
-        <div class="mb-4">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-1">COMPREHENSIVE ACTION MATRIX</p>
-          <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">Fine-Grained Operation Inspector</h2>
-        </div>
-
-        <!-- 1. CRUD Category -->
-        <div class="mb-3">
-          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">1. CRUD ACTIONS (อ่าน / เพิ่ม / แก้ไข / ลบ)</div>
-          <div class="border border-neutral-200 bg-white">
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/documents/read</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:read</span> (อ่าน)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/read', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/provision</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">users:create</span> (เพิ่ม)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/provision', 'POST', { username: 'newbie_demo' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">PATCH</span> /users/profile/update</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">users:update</span> (แก้ไข)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/profile/update', 'PATCH', { statusNote: 'Updated' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">DELETE</span> /users/purge-account</span>
-              <span class="col-span-5"><span class="bg-neutral-900 text-white px-1 py-0.5 text-[10px]">users:delete</span> (ลบ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/purge-account', 'DELETE')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. Workflow Category -->
-        <div class="mb-3">
-          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">2. WORKFLOW ACTIONS (ยืนยัน / ยกเลิก)</div>
-          <div class="border border-neutral-200 bg-white">
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/confirm</span>
-              <span class="col-span-5"><span class="border border-neutral-900 px-1 py-0.5 text-[10px] font-bold">documents:confirm</span> (ยืนยัน/อนุมัติ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/confirm', 'POST', { documentId: 'DOC-88' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/cancel</span>
-              <span class="col-span-5"><span class="border border-neutral-900 px-1 py-0.5 text-[10px] font-bold">documents:cancel</span> (ยกเลิก/ปฏิเสธ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/cancel', 'POST', { documentId: 'DOC-88' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 3. File I/O Category -->
-        <div class="mb-3">
-          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">3. FILE & DATA I/O (อัปโหลด / ดาวน์โหลด)</div>
-          <div class="border border-neutral-200 bg-white">
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/upload</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:upload</span> (อัปโหลด)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/upload', 'POST', { file: 'doc.pdf' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/documents/download</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:download</span> (ดาวน์โหลด)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 4. Governance & Audit Category -->
-        <div class="mb-4">
-          <div class="text-[10px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">4. GOVERNANCE & AUDIT</div>
-          <div class="border border-neutral-200 bg-white">
-            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/audit/read</span>
-              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">audit:read</span> (ตรวจสอบประวัติ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/audit/read', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
-              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/system/config</span>
-              <span class="col-span-5"><span class="bg-neutral-900 text-white px-1 py-0.5 text-[10px]">system:configure</span> (ตั้งค่าระบบ)</span>
-              <span class="col-span-3 text-right"><button onclick="testApi('/users/system/config', 'POST', { kernelMode: 'ENCRYPTED' })" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cryptographic Wire Inspector -->
-        <div class="mb-4 p-3 border border-neutral-300 bg-neutral-100/70 text-xs font-mono">
-          <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-neutral-700">
-            <span>CRYPTOGRAPHIC WIRE TELEMETRY (AES-256)</span>
-            <span id="cryptoStateBadge" class="bg-neutral-900 text-white px-1.5 py-0.2 text-[10px]">AES-256 ENCRYPTED</span>
-          </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-[11px]">
-            <div>
-              <span class="text-neutral-500 block uppercase">1. Outgoing Wire Payload:</span>
-              <div id="wireOut" class="p-1.5 bg-white border border-neutral-300 text-neutral-600 truncate min-h-[26px]">None</div>
-            </div>
-            <div>
-              <span class="text-neutral-500 block uppercase">2. Incoming Wire Payload:</span>
-              <div id="wireIn" class="p-1.5 bg-white border border-neutral-300 text-neutral-600 truncate min-h-[26px]">None</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Telemetry Output -->
-        <div>
-          <div class="flex items-center justify-between mb-1 text-xs font-mono uppercase tracking-wider text-neutral-400">
-            <span>DECRYPTED SERVER RESPONSE PAYLOAD</span>
-            <span id="responseStatus" class="font-semibold text-neutral-500">IDLE</span>
-          </div>
-          <pre id="output" class="w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[100px] leading-relaxed">// Ready...</pre>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- VIEW 2: SYSTEM MANAGEMENT CONSOLE (ADMIN CONTROL ROOM) -->
-  <main id="mainViewManagement" class="hidden flex-1 p-8 lg:p-12 border-b border-neutral-200 bg-neutral-50/30">
-    <div class="max-w-6xl mx-auto space-y-10">
+    <!-- ============================================================== -->
+    <!-- TAB 1: OVERVIEW & INTERACTIVE MAP (LEAFLET.JS)                  -->
+    <!-- ============================================================== -->
+    <section id="tabSection_overview" class="flex-1 p-6 lg:p-8 space-y-6">
       
-      <!-- Management Header -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-neutral-200 pb-4 gap-4">
-        <div>
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-1">SUPER ADMIN DIRECTORY & POLICY MANAGER</p>
-          <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">System Governance Console</h2>
+      <!-- Key Operational Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="border border-neutral-200 p-4 bg-white">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-neutral-400 block mb-1">OPERATIONAL CLUSTER</span>
+          <div class="text-xl font-bold text-neutral-900">4 ACTIVE NODES</div>
+          <span class="text-[11px] font-mono text-neutral-500">Latency: 2.1ms (Localhost)</span>
         </div>
-        <div class="flex gap-2">
-          <button onclick="loadAdminData()" class="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-wider transition-colors">
-            ↻ Reload Directory
-          </button>
+        <div class="border border-neutral-200 p-4 bg-white">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-neutral-400 block mb-1">DATA ACCESS PROTOCOL</span>
+          <div class="text-xl font-bold text-neutral-900">PRISMA ORM</div>
+          <span class="text-[11px] font-mono text-neutral-500">Engine: SQLite / Sovereignty</span>
+        </div>
+        <div class="border border-neutral-200 p-4 bg-white">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-neutral-400 block mb-1">SECURITY STANDARD</span>
+          <div class="text-xl font-bold text-neutral-900">AES-256 + JWT</div>
+          <span class="text-[11px] font-mono text-neutral-500">End-to-End Symmetric Payload</span>
+        </div>
+        <div class="border border-neutral-200 p-4 bg-white">
+          <span class="text-[10px] font-mono uppercase tracking-widest text-neutral-400 block mb-1">RBAC RESOLUTION</span>
+          <div class="text-xl font-bold text-neutral-900">16 ACTIONS</div>
+          <span class="text-[11px] font-mono text-neutral-500">Union Multi-Group Delegation</span>
         </div>
       </div>
 
-      <!-- Section 1: Live Group & Permission Matrix Editor -->
-      <div class="border border-neutral-200 bg-white p-6 shadow-sm">
-        <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-neutral-200 gap-4 mb-6">
-          <div>
-            <h3 class="font-semibold text-lg text-neutral-900">1. Group & Permission Matrix Editor</h3>
-            <p class="text-xs font-mono text-neutral-500">เลือกกลุ่มเพื่อแก้ไขหรือติ๊กสิทธิ์ (Check/Uncheck) และบันทึกลงฐานข้อมูลแบบ Real-time</p>
+      <!-- Geospatial Section: Leaflet.js Map + Station Telemetry -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 border border-neutral-200 bg-white p-4">
+        <div class="lg:col-span-8 flex flex-col">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <h3 class="font-bold text-sm tracking-tight uppercase">OPERATIONAL GEOSPATIAL MAP</h3>
+              <p class="text-[11px] font-mono text-neutral-400">Leaflet.js telemetry across operational gateway stations</p>
+            </div>
+            <span class="border border-neutral-300 px-2 py-0.5 text-[10px] font-mono">LAT/LNG BANGKOK CORE</span>
           </div>
-          <button onclick="openNewGroupModal()" class="px-3 py-1.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white text-xs font-mono uppercase tracking-wider transition-colors">
-            + Create New Custom Group
-          </button>
+
+          <!-- Leaflet Map Container -->
+          <div id="operationalMap" class="w-full h-80 border border-neutral-200 bg-neutral-100 z-10"></div>
+        </div>
+
+        <!-- Node Status Checklist -->
+        <div class="lg:col-span-4 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-neutral-200 lg:pl-6 pt-4 lg:pt-0">
+          <div>
+            <h4 class="font-semibold text-xs font-mono uppercase text-neutral-400 mb-3">Gateway Node Ledger</h4>
+            <div class="space-y-2 text-xs font-mono">
+              <div class="p-2 border border-neutral-200 flex justify-between items-center">
+                <span>Bangkok Central (NODE-01)</span>
+                <span class="text-[10px] bg-neutral-900 text-white px-1.5 py-0.2">ONLINE</span>
+              </div>
+              <div class="p-2 border border-neutral-200 flex justify-between items-center">
+                <span>Suvarnabhumi Gateway (NODE-02)</span>
+                <span class="text-[10px] bg-neutral-900 text-white px-1.5 py-0.2">ONLINE</span>
+              </div>
+              <div class="p-2 border border-neutral-200 flex justify-between items-center">
+                <span>Chonburi Vault (NODE-03)</span>
+                <span class="text-[10px] bg-neutral-200 text-neutral-700 px-1.5 py-0.2">STANDBY</span>
+              </div>
+              <div class="p-2 border border-neutral-200 flex justify-between items-center">
+                <span>Ayutthaya Core (NODE-04)</span>
+                <span class="text-[10px] bg-neutral-900 text-white px-1.5 py-0.2">ONLINE</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-neutral-100 text-[11px] font-mono text-neutral-400">
+            Click on any station marker to view node telemetry.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 2: WORKFLOWS & ACTIONS                                     -->
+    <!-- ============================================================== -->
+    <section id="tabSection_workflows" class="hidden flex-1 p-6 lg:p-8 space-y-6">
+      <div class="border border-neutral-200 bg-white p-6">
+        <div class="mb-4">
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-1">CLIENT SDK INTEGRATION</p>
+          <h2 class="text-xl font-bold tracking-tight text-neutral-900">Enterprise Action & Workflow Execution</h2>
+          <p class="text-xs font-mono text-neutral-500">Every button directly triggers high-level methods in <code>api-client.js</code> with automatic AES-256 encryption.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- Category 1: Documents & Approvals -->
+          <div class="border border-neutral-200 p-4 space-y-2 text-xs font-mono">
+            <span class="font-bold text-neutral-900 block border-b border-neutral-100 pb-1">1. DOCUMENT LIFECYCLE</span>
+            <button onclick="runSdkAction('Read Document', () => api.users.readDocument())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Read Document (DOC-88)
+            </button>
+            <button onclick="runSdkAction('Confirm / Approve', () => api.users.confirmDocument('DOC-88'))" class="w-full text-left p-2 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors font-bold">
+              ✓ Confirm / Approve
+            </button>
+            <button onclick="runSdkAction('Cancel / Reject', () => api.users.cancelDocument('DOC-88'))" class="w-full text-left p-2 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors font-bold">
+              ✕ Cancel / Reject
+            </button>
+          </div>
+
+          <!-- Category 2: File Transfer -->
+          <div class="border border-neutral-200 p-4 space-y-2 text-xs font-mono">
+            <span class="font-bold text-neutral-900 block border-b border-neutral-100 pb-1">2. FILE & REPORT I/O</span>
+            <button onclick="runSdkAction('Upload File', () => api.users.uploadDocument({ file: 'contract.pdf' }))" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Upload Document Payload
+            </button>
+            <button onclick="runSdkAction('Download Binary', () => api.users.downloadDocument())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Download Signed Binary
+            </button>
+            <button onclick="runSdkAction('Export Reports', () => api.users.downloadReports())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Download Analytical Reports
+            </button>
+          </div>
+
+          <!-- Category 3: Governance & Audit -->
+          <div class="border border-neutral-200 p-4 space-y-2 text-xs font-mono">
+            <span class="font-bold text-neutral-900 block border-b border-neutral-100 pb-1">3. AUDIT & FORENSICS</span>
+            <button onclick="runSdkAction('Audit Ledger', () => api.users.getAuditLog())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Inspect Audit Activity Log
+            </button>
+            <button onclick="runSdkAction('Download Audit Trail', () => api.users.downloadAuditLog())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Download Cryptographic Audit Trail
+            </button>
+            <button onclick="runSdkAction('System Configure', () => api.users.configureSystem({ mode: 'STRICT' }))" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Configure Kernel Security
+            </button>
+          </div>
+
+          <!-- Category 4: User Directory -->
+          <div class="border border-neutral-200 p-4 space-y-2 text-xs font-mono">
+            <span class="font-bold text-neutral-900 block border-b border-neutral-100 pb-1">4. IDENTITY QUERIES</span>
+            <button onclick="runSdkAction('Get Current Profile', () => api.users.getProfile())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              Query Verified Profile
+            </button>
+            <button onclick="runSdkAction('List All Users', () => api.users.listUsers())" class="w-full text-left p-2 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors">
+              List Registered Identities
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- TAB 3: GOVERNANCE & RBAC (ADMIN ONLY)                          -->
+    <!-- ============================================================== -->
+    <section id="tabSection_governance" class="hidden flex-1 p-6 lg:p-8 space-y-6">
+      
+      <!-- Group & Matrix Editor -->
+      <div class="border border-neutral-200 bg-white p-6">
+        <div class="flex justify-between items-center pb-3 border-b border-neutral-200 mb-4">
+          <div>
+            <h3 class="font-bold text-sm tracking-tight uppercase">Group & Permission Matrix Editor</h3>
+            <p class="text-xs font-mono text-neutral-400">Select any group to check/uncheck atomic privileges live in database</p>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <!-- Left: Group Selector List -->
           <div class="lg:col-span-4 border border-neutral-200 p-3 bg-neutral-50">
-            <span class="text-xs font-mono uppercase tracking-wider text-neutral-400 block mb-2 font-semibold">SELECT TARGET GROUP:</span>
-            <div id="adminGroupList" class="space-y-1.5 max-h-80 overflow-y-auto">
-              <!-- Loaded dynamically -->
-            </div>
+            <span class="text-xs font-mono uppercase text-neutral-400 block mb-2 font-semibold">Select Target Group:</span>
+            <div id="adminGroupSelector" class="space-y-1.5 max-h-72 overflow-y-auto"></div>
           </div>
 
-          <!-- Right: Interactive Permission Checkbox Matrix for Selected Group -->
           <div class="lg:col-span-8 border border-neutral-200 p-4 bg-white flex flex-col justify-between">
             <div>
               <div class="flex justify-between items-center mb-3 pb-2 border-b border-neutral-100">
                 <div>
-                  <span id="editorGroupName" class="font-bold text-sm text-neutral-900">SUPER_ADMIN</span>
-                  <p id="editorGroupDesc" class="text-xs font-mono text-neutral-400">Select a group to edit</p>
+                  <span id="governanceGroupName" class="font-bold text-sm">SELECT GROUP</span>
+                  <p id="governanceGroupDesc" class="text-xs font-mono text-neutral-400">Description</p>
                 </div>
                 <div class="flex gap-2">
-                  <button id="btnDeleteGroup" onclick="deleteSelectedGroup()" class="hidden px-2.5 py-1 text-xs font-mono text-rose-600 border border-rose-300 hover:bg-rose-600 hover:text-white transition-colors">
-                    Delete Group
+                  <button id="btnDelGroup" onclick="deleteSelectedAdminGroup()" class="px-2 py-1 text-xs font-mono text-rose-600 border border-rose-300 hover:bg-rose-600 hover:text-white">
+                    Delete
                   </button>
-                  <button onclick="saveGroupPermissions()" class="px-3 py-1 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-wider transition-colors">
+                  <button onclick="saveAdminGroupPermissions()" class="px-3 py-1 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase">
                     Save Permission Mapping
                   </button>
                 </div>
               </div>
 
-              <!-- Permission Checkboxes Grid -->
-              <div id="editorPermissionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono max-h-72 overflow-y-auto p-1">
-                <!-- Loaded dynamically -->
-              </div>
-            </div>
-
-            <div class="mt-4 pt-3 border-t border-neutral-100 flex justify-between text-[11px] font-mono text-neutral-400">
-              <span>All updates dispatched with AES-256 cipher payload</span>
-              <span id="matrixSaveStatus" class="font-semibold text-neutral-700"></span>
+              <div id="governancePermissionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs font-mono max-h-60 overflow-y-auto p-1"></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Section 2: User Directory & Group Assignment Manager -->
-      <div class="border border-neutral-200 bg-white p-6 shadow-sm">
-        <div class="flex justify-between items-center pb-4 border-b border-neutral-200 mb-6">
-          <div>
-            <h3 class="font-semibold text-lg text-neutral-900">2. User Directory & Group Delegations</h3>
-            <p class="text-xs font-mono text-neutral-500">จัดการผู้ใช้งานและมอบหมายกลุ่มสิทธิ์ (Assign Multiple Groups)</p>
-          </div>
-        </div>
-
+      <!-- User Directory Table -->
+      <div class="border border-neutral-200 bg-white p-6">
+        <h3 class="font-bold text-sm tracking-tight uppercase mb-3">User Directory & Group Delegations</h3>
         <div class="border border-neutral-200 overflow-x-auto">
           <table class="w-full text-left text-xs font-mono">
             <thead class="bg-neutral-50 border-b border-neutral-200 text-neutral-400 uppercase">
               <tr>
-                <th class="p-3">User Identity</th>
-                <th class="p-3">Assigned Groups (Many-to-Many)</th>
+                <th class="p-3">Username</th>
+                <th class="p-3">Assigned Groups</th>
                 <th class="p-3">Total Permissions</th>
                 <th class="p-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody id="adminUserTableBody" class="divide-y divide-neutral-100">
-              <!-- Loaded dynamically -->
-            </tbody>
+            <tbody id="governanceUserTableBody" class="divide-y divide-neutral-100"></tbody>
           </table>
         </div>
       </div>
 
-      <!-- Section 3: Permission Catalog & Creation -->
-      <div class="border border-neutral-200 bg-white p-6 shadow-sm">
-        <div class="flex flex-col md:flex-row md:items-center justify-between pb-4 border-b border-neutral-200 gap-4 mb-4">
-          <div>
-            <h3 class="font-semibold text-lg text-neutral-900">3. Atomic Permission Catalog</h3>
-            <p class="text-xs font-mono text-neutral-500">สารบบสิทธิ์ทั้งหมดในฐานข้อมูล พร้อมฟอร์มเพิ่มสิทธิ์ใหม่เข้าสู่ระบบ</p>
-          </div>
+    </section>
+
+  </div>
+
+  <!-- Bottom Drawer: Cryptographic Wire Inspector & Console -->
+  <footer class="border-t border-neutral-200 bg-neutral-50 p-6 space-y-4">
+    
+    <!-- Wire Telemetry -->
+    <div class="border border-neutral-300 bg-white p-3 text-xs font-mono">
+      <div class="flex justify-between items-center mb-1 text-[11px] font-semibold text-neutral-700">
+        <span>AES-256 SYMMETRIC WIRE TELEMETRY</span>
+        <span id="wireStatus" class="font-semibold text-neutral-400">IDLE</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+        <div>
+          <span class="text-neutral-400 block uppercase">1. Outgoing Wire Payload (Ciphertext):</span>
+          <div id="wireOut" class="p-1.5 bg-neutral-50 border border-neutral-200 text-neutral-600 truncate min-h-[26px]">None</div>
         </div>
+        <div>
+          <span class="text-neutral-400 block uppercase">2. Incoming Wire Payload (Ciphertext):</span>
+          <div id="wireIn" class="p-1.5 bg-neutral-50 border border-neutral-200 text-neutral-600 truncate min-h-[26px]">None</div>
+        </div>
+      </div>
+    </div>
 
-        <!-- Add Permission Form -->
-        <form onsubmit="handleCreatePermission(event)" class="grid grid-cols-1 md:grid-cols-12 gap-3 mb-6 p-3 bg-neutral-50 border border-neutral-200 text-xs font-mono">
-          <div class="md:col-span-5">
-            <label class="block text-neutral-500 uppercase mb-1">New Permission Code (e.g. invoices:approve)</label>
-            <input type="text" id="newPermCode" required placeholder="module:action" class="w-full px-2 py-1.5 border border-neutral-300 rounded-none bg-white text-neutral-900">
-          </div>
-          <div class="md:col-span-5">
-            <label class="block text-neutral-500 uppercase mb-1">Description</label>
-            <input type="text" id="newPermDesc" required placeholder="What does this permit?" class="w-full px-2 py-1.5 border border-neutral-300 rounded-none bg-white text-neutral-900">
-          </div>
-          <div class="md:col-span-2 flex items-end">
-            <button type="submit" class="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white uppercase tracking-wider">
-              + Register
-            </button>
-          </div>
-        </form>
+    <!-- Decrypted Console Output -->
+    <div>
+      <div class="flex justify-between items-center mb-1 text-xs font-mono text-neutral-400 uppercase tracking-wider">
+        <span id="consoleTitle">Decrypted Server Response</span>
+        <span>Format: JSON</span>
+      </div>
+      <pre id="consoleOutput" class="w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[90px] leading-relaxed">// Awaiting operation...</pre>
+    </div>
+  </footer>
 
-        <div id="adminPermList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 text-xs font-mono max-h-48 overflow-y-auto">
-          <!-- Loaded dynamically -->
+  <!-- Modal: Sign In -->
+  <div id="modalLogin" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white border border-neutral-900 p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-neutral-100 pb-2">
+        <h3 class="font-bold text-base uppercase">Authenticate Identity</h3>
+        <button onclick="closeLoginModal()" class="text-neutral-400 hover:text-neutral-900 font-mono text-sm">✕</button>
+      </div>
+
+      <!-- Quick Identities -->
+      <div class="p-2.5 bg-neutral-50 border border-neutral-200 text-xs font-mono">
+        <span class="text-[10px] uppercase text-neutral-400 block mb-1 font-semibold">One-Click Quick Login (Pass: 123456)</span>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button onclick="quickLoginAs('root_admin')" class="p-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white text-left truncate">root_admin</button>
+          <button onclick="quickLoginAs('approver_ellen')" class="p-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white text-left truncate">approver_ellen</button>
+          <button onclick="quickLoginAs('auditor_arthur')" class="p-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white text-left truncate">auditor_arthur</button>
+          <button onclick="quickLoginAs('hybrid_harry')" class="p-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white text-left truncate">hybrid_harry</button>
         </div>
       </div>
 
-    </div>
-  </main>
-
-  <!-- Modal for Creating New Group -->
-  <div id="modalNewGroup" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white border border-neutral-900 p-6 max-w-md w-full shadow-2xl">
-      <h3 class="font-bold text-lg text-neutral-900 mb-1">Create Custom Group</h3>
-      <p class="text-xs font-mono text-neutral-400 mb-4">ตั้งชื่อกลุ่มใหม่และผูกสิทธิ์เริ่มต้น</p>
-
-      <form onsubmit="handleCreateGroupSubmit(event)" class="space-y-4 text-xs font-mono">
+      <form onsubmit="handleLoginSubmit(event)" class="space-y-3 text-xs font-mono">
         <div>
-          <label class="block text-neutral-600 uppercase mb-1">Group Name (e.g. FINANCE_LEAD)</label>
-          <input type="text" id="newGroupName" required placeholder="UPPERCASE_NAME" class="w-full px-3 py-2 border border-neutral-300 rounded-none bg-white text-neutral-900">
+          <label class="block text-neutral-500 uppercase mb-1">Username</label>
+          <input type="text" id="inputUsername" required class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-none bg-white">
         </div>
         <div>
-          <label class="block text-neutral-600 uppercase mb-1">Description</label>
-          <input type="text" id="newGroupDesc" placeholder="Responsibilities of this group" class="w-full px-3 py-2 border border-neutral-300 rounded-none bg-white text-neutral-900">
+          <label class="block text-neutral-500 uppercase mb-1">Password</label>
+          <input type="password" id="inputPassword" required class="w-full px-2.5 py-1.5 border border-neutral-300 rounded-none bg-white">
         </div>
-        <div class="flex justify-end gap-3 pt-4 border-t border-neutral-200">
-          <button type="button" onclick="closeNewGroupModal()" class="px-3 py-1.5 border border-neutral-400 text-neutral-700 hover:bg-neutral-100 uppercase">
-            Cancel
-          </button>
-          <button type="submit" class="px-4 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white uppercase">
-            Create Record
-          </button>
-        </div>
+        <button type="submit" class="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-white uppercase tracking-wider">
+          Sign In
+        </button>
       </form>
     </div>
   </div>
 
-  <!-- Modal for Editing User Groups -->
-  <div id="modalEditUserGroups" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-white border border-neutral-900 p-6 max-w-md w-full shadow-2xl">
-      <h3 class="font-bold text-lg text-neutral-900 mb-1">Delegate Groups for User</h3>
-      <p id="modalTargetUser" class="text-xs font-mono text-neutral-400 mb-4">Editing identity...</p>
-
-      <div id="modalUserGroupsCheckboxes" class="space-y-2 border border-neutral-200 p-3 bg-neutral-50 max-h-60 overflow-y-auto mb-4 text-xs font-mono">
-        <!-- Loaded dynamically -->
+  <!-- Modal: User Group Delegation -->
+  <div id="modalUserDelegation" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-white border border-neutral-900 p-6 max-w-md w-full shadow-2xl space-y-4">
+      <div class="border-b border-neutral-100 pb-2">
+        <h3 class="font-bold text-base uppercase">Delegate Groups</h3>
+        <p class="text-xs font-mono text-neutral-400">Target: <span id="delegationModalUsername" class="text-neutral-900 font-bold"></span></p>
       </div>
 
-      <div class="flex justify-end gap-3 pt-3 border-t border-neutral-200 text-xs font-mono">
-        <button type="button" onclick="closeEditUserModal()" class="px-3 py-1.5 border border-neutral-400 text-neutral-700 hover:bg-neutral-100 uppercase">
-          Cancel
-        </button>
-        <button type="button" onclick="saveUserGroupAssignment()" class="px-4 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white uppercase">
-          Save Group Assignment
-        </button>
+      <div id="delegationModalCheckboxes" class="space-y-1.5 border border-neutral-200 p-3 bg-neutral-50 max-h-56 overflow-y-auto text-xs font-mono"></div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-neutral-100 text-xs font-mono">
+        <button onclick="closeUserGroupDelegationModal()" class="px-3 py-1.5 border border-neutral-300 text-neutral-600 uppercase">Cancel</button>
+        <button onclick="saveUserDelegation()" class="px-3 py-1.5 bg-neutral-900 text-white uppercase">Save Delegations</button>
       </div>
     </div>
   </div>
 
-  <script>
-    const API_BASE = window.location.origin;
-    const SHARED_SECRET_KEY = "aes-shared-payload-key-secret-2026-v1";
-
-    let cachedGroups = [];
-    let cachedPermissions = [];
-    let cachedUsers = [];
-    let selectedGroupForEdit = null;
-    let editingTargetUserId = null;
-
-    function isEncryptionEnabled() {
-      return document.getElementById('cryptoToggle').checked;
-    }
-
-    function encryptPayload(data) {
-      const raw = typeof data === 'string' ? data : JSON.stringify(data);
-      return CryptoJS.AES.encrypt(raw, SHARED_SECRET_KEY).toString();
-    }
-
-    function decryptPayload(ciphertext) {
-      const bytes = CryptoJS.AES.decrypt(ciphertext, SHARED_SECRET_KEY);
-      const str = bytes.toString(CryptoJS.enc.Utf8);
-      try {
-        return JSON.parse(str);
-      } catch {
-        return str;
-      }
-    }
-
-    function getToken() {
-      return localStorage.getItem('token');
-    }
-
-    function setToken(token) {
-      if (token) {
-        localStorage.setItem('token', token);
-      } else {
-        localStorage.removeItem('token');
-      }
-      updateUI();
-    }
-
-    function switchMainView(view) {
-      const vTesting = document.getElementById('mainViewTesting');
-      const vManagement = document.getElementById('mainViewManagement');
-      const btnTesting = document.getElementById('viewBtnTesting');
-      const btnManagement = document.getElementById('viewBtnManagement');
-
-      if (view === 'testing') {
-        vTesting.classList.remove('hidden');
-        vManagement.classList.add('hidden');
-        btnTesting.className = 'font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-1';
-        btnManagement.className = 'text-neutral-400 hover:text-neutral-900 pb-1 transition-colors';
-      } else {
-        vTesting.classList.add('hidden');
-        vManagement.classList.remove('hidden');
-        btnManagement.className = 'font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-1';
-        btnTesting.className = 'text-neutral-400 hover:text-neutral-900 pb-1 transition-colors';
-        loadAdminData();
-      }
-    }
-
-    async function executeApiCall(endpoint, method = 'GET', rawBody = null, onSuccess = null) {
-      const useCrypto = isEncryptionEnabled();
-      const token = getToken();
-      const headers = { 'Content-Type': 'application/json' };
-
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-
-      let outgoingWire = 'None (GET/Empty)';
-      let fetchBody = null;
-
-      if (rawBody && method !== 'GET') {
-        if (useCrypto) {
-          headers['X-Payload-Encrypted'] = 'true';
-          const ciphertext = encryptPayload(rawBody);
-          outgoingWire = ciphertext;
-          fetchBody = JSON.stringify({ encryptedData: ciphertext });
-        } else {
-          outgoingWire = JSON.stringify(rawBody);
-          fetchBody = outgoingWire;
-        }
-      } else if (useCrypto) {
-        headers['X-Payload-Encrypted'] = 'true';
-      }
-
-      try {
-        const res = await fetch(`${API_BASE}${endpoint}`, {
-          method,
-          headers,
-          body: fetchBody,
-        });
-
-        const rawJson = await res.json();
-        let incomingWire = JSON.stringify(rawJson);
-        let finalDecrypted = rawJson;
-
-        if (rawJson && rawJson.isEncrypted && rawJson.encryptedData) {
-          incomingWire = rawJson.encryptedData;
-          finalDecrypted = decryptPayload(rawJson.encryptedData);
-        }
-
-        showResponse(res.status, finalDecrypted, outgoingWire, incomingWire);
-
-        if (res.ok && onSuccess) {
-          onSuccess(finalDecrypted);
-        }
-        return { ok: res.ok, status: res.status, data: finalDecrypted };
-      } catch (err) {
-        showResponse(500, { error: err.message }, outgoingWire, 'ERR');
-        return { ok: false, status: 500, data: { error: err.message } };
-      }
-    }
-
-    function showResponse(status, data, wireOut = 'None', wireIn = 'None') {
-      const output = document.getElementById('output');
-      const statusEl = document.getElementById('responseStatus');
-      const wireOutEl = document.getElementById('wireOut');
-      const wireInEl = document.getElementById('wireIn');
-      const badge = document.getElementById('cryptoStateBadge');
-
-      if (wireOutEl) wireOutEl.textContent = wireOut;
-      if (wireInEl) wireInEl.textContent = wireIn;
-
-      if (badge) {
-        if (isEncryptionEnabled()) {
-          badge.textContent = 'AES-256 ENCRYPTED';
-          badge.className = 'bg-neutral-900 text-white px-1.5 py-0.2 text-[10px] font-semibold';
-        } else {
-          badge.textContent = 'PLAINTEXT (NO CIPHER)';
-          badge.className = 'bg-neutral-300 text-neutral-800 px-1.5 py-0.2 text-[10px]';
-        }
-      }
-
-      if (statusEl) {
-        statusEl.textContent = `STATUS // ${status}`;
-        if (status >= 200 && status < 300) {
-          statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-900 font-semibold';
-          if (output) output.className = 'w-full p-3 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[100px] leading-relaxed';
-        } else {
-          statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-          if (output) output.className = 'w-full p-3 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[100px] leading-relaxed';
-        }
-      }
-
-      if (output) output.textContent = JSON.stringify(data, null, 2);
-    }
-
-    async function updateUI() {
-      const token = getToken();
-      const statusEl = document.getElementById('authStatus');
-      const logoutBtn = document.getElementById('logoutBtn');
-      const grantsBanner = document.getElementById('grantsBanner');
-      const groupsList = document.getElementById('activeGroupsList');
-      const permsCount = document.getElementById('activePermsCount');
-
-      if (token) {
-        try {
-          const res = await fetch(`${API_BASE}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (res.ok) {
-            const user = await res.json();
-            statusEl.innerHTML = `
-              <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
-              <span class="font-bold text-neutral-900 uppercase">${user.username}</span>
-            `;
-            logoutBtn.classList.remove('hidden');
-            grantsBanner.classList.remove('hidden');
-
-            groupsList.innerHTML = user.groups.map(g => 
-              `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] text-neutral-800 font-semibold">${g}</span>`
-            ).join('');
-
-            permsCount.textContent = `${user.permissions.length} PERMISSION(S) ACTIVE`;
-            return;
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      }
-
-      statusEl.innerHTML = `
-        <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
-        <span class="text-neutral-400 uppercase">UNAUTHENTICATED</span>
-      `;
-      logoutBtn.classList.add('hidden');
-      grantsBanner.classList.add('hidden');
-    }
-
-    function switchTab(tab) {
-      const loginForm = document.getElementById('loginForm');
-      const regForm = document.getElementById('registerForm');
-      const tabLogin = document.getElementById('tabLogin');
-      const tabRegister = document.getElementById('tabRegister');
-      const formTitle = document.getElementById('formTitle');
-
-      if (tab === 'login') {
-        loginForm.classList.remove('hidden');
-        regForm.classList.add('hidden');
-        formTitle.textContent = 'Sign in to workspace';
-        tabLogin.className = 'font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-3 -mb-3 transition-colors';
-        tabRegister.className = 'font-normal text-neutral-400 hover:text-neutral-900 transition-colors';
-      } else {
-        loginForm.classList.add('hidden');
-        regForm.classList.remove('hidden');
-        formTitle.textContent = 'Provision Multi-Group Account';
-        tabRegister.className = 'font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-3 -mb-3 transition-colors';
-        tabLogin.className = 'font-normal text-neutral-400 hover:text-neutral-900 transition-colors';
-      }
-    }
-
-    async function handleLogin(e) {
-      e.preventDefault();
-      const username = document.getElementById('loginUsername').value;
-      const password = document.getElementById('loginPassword').value;
-
-      await executeApiCall('/auth/login', 'POST', { username, password }, (data) => {
-        if (data && data.accessToken) {
-          setToken(data.accessToken);
-        }
-      });
-    }
-
-    async function fillAndLogin(username, password) {
-      document.getElementById('loginUsername').value = username;
-      document.getElementById('loginPassword').value = password;
-      switchTab('login');
-      await executeApiCall('/auth/login', 'POST', { username, password }, (data) => {
-        if (data && data.accessToken) {
-          setToken(data.accessToken);
-        }
-      });
-    }
-
-    async function handleRegister(e) {
-      e.preventDefault();
-      const username = document.getElementById('regUsername').value;
-      const password = document.getElementById('regPassword').value;
-
-      const checkedGroups = Array.from(
-        document.querySelectorAll('input[name="regGroups"]:checked')
-      ).map(cb => cb.value);
-
-      await executeApiCall('/auth/register', 'POST', { username, password, groups: checkedGroups }, () => {
-        switchTab('login');
-        document.getElementById('loginUsername').value = username;
-        document.getElementById('loginPassword').value = '';
-      });
-    }
-
-    function handleLogout() {
-      setToken(null);
-      showResponse(200, { message: 'Session terminated. Token cleared.' }, 'NONE', 'NONE');
-    }
-
-    async function testApi(endpoint, method = 'GET', body = null) {
-      await executeApiCall(endpoint, method, body);
-    }
-
-    // ==========================================
-    // MANAGEMENT CONSOLE LOGIC (SUPER ADMIN)
-    // ==========================================
-
-    async function loadAdminData() {
-      const groupsRes = await executeApiCall('/admin/groups', 'GET');
-      const permsRes = await executeApiCall('/admin/permissions', 'GET');
-      const usersRes = await executeApiCall('/admin/users', 'GET');
-
-      if (groupsRes.ok) {
-        cachedGroups = groupsRes.data;
-        renderAdminGroupList();
-        renderRegistrationGroups();
-        if (!selectedGroupForEdit && cachedGroups.length > 0) {
-          selectGroupForEdit(cachedGroups[0].id);
-        }
-      }
-
-      if (permsRes.ok) {
-        cachedPermissions = permsRes.data;
-        renderAdminPermCatalog();
-        if (selectedGroupForEdit) {
-          renderPermissionsGridForGroup(selectedGroupForEdit);
-        }
-      }
-
-      if (usersRes.ok) {
-        cachedUsers = usersRes.data;
-        renderAdminUserTable();
-      }
-    }
-
-    function renderRegistrationGroups() {
-      const container = document.getElementById('registrationGroupsContainer');
-      if (!container) return;
-      container.innerHTML = cachedGroups.map(g => `
-        <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
-          <input type="checkbox" value="${g.name}" name="regGroups" ${g.name === 'GENERAL_USER' ? 'checked' : ''} class="mt-0.5 rounded-none border-neutral-400">
-          <span><strong>${g.name}</strong> <span class="text-neutral-400 block text-[10px]">${g.description || ''}</span></span>
-        </label>
-      `).join('');
-    }
-
-    function renderAdminGroupList() {
-      const container = document.getElementById('adminGroupList');
-      if (!container) return;
-
-      container.innerHTML = cachedGroups.map(g => {
-        const isSelected = selectedGroupForEdit && selectedGroupForEdit.id === g.id;
-        return `
-          <button onclick="selectGroupForEdit('${g.id}')" class="w-full text-left p-2 border ${isSelected ? 'border-neutral-900 bg-neutral-900 text-white' : 'border-neutral-200 bg-white hover:border-neutral-400'} text-xs font-mono transition-colors">
-            <div class="font-bold flex justify-between">
-              <span>${g.name}</span>
-              <span class="text-[10px] opacity-75">${g._count ? g._count.users : 0} users</span>
-            </div>
-            <div class="text-[10px] ${isSelected ? 'text-neutral-300' : 'text-neutral-400'} truncate">${g.description || 'No description'}</div>
-          </button>
-        `;
-      }).join('');
-    }
-
-    function selectGroupForEdit(groupId) {
-      selectedGroupForEdit = cachedGroups.find(g => g.id === groupId);
-      renderAdminGroupList();
-
-      if (!selectedGroupForEdit) return;
-
-      document.getElementById('editorGroupName').textContent = selectedGroupForEdit.name;
-      document.getElementById('editorGroupDesc').textContent = selectedGroupForEdit.description || 'No description';
-
-      const btnDel = document.getElementById('btnDeleteGroup');
-      if (selectedGroupForEdit.name === 'SUPER_ADMIN') {
-        btnDel.classList.add('hidden');
-      } else {
-        btnDel.classList.remove('hidden');
-      }
-
-      renderPermissionsGridForGroup(selectedGroupForEdit);
-    }
-
-    function renderPermissionsGridForGroup(group) {
-      const grid = document.getElementById('editorPermissionsGrid');
-      if (!grid) return;
-
-      const groupPermCodes = new Set(
-        group.permissions ? group.permissions.map(gp => gp.permission.code) : []
-      );
-
-      grid.innerHTML = cachedPermissions.map(p => {
-        const isChecked = groupPermCodes.has(p.code);
-        return `
-          <label class="flex items-start gap-2 p-2 border border-neutral-200 hover:bg-neutral-50 cursor-pointer">
-            <input type="checkbox" value="${p.code}" ${isChecked ? 'checked' : ''} class="perm-checkbox mt-0.5 rounded-none border-neutral-400">
-            <div>
-              <strong class="text-neutral-900">${p.code}</strong>
-              <span class="text-[10px] text-neutral-400 block">${p.description || ''}</span>
-            </div>
-          </label>
-        `;
-      }).join('');
-    }
-
-    async function saveGroupPermissions() {
-      if (!selectedGroupForEdit) return;
-
-      const checkboxes = document.querySelectorAll('#editorPermissionsGrid .perm-checkbox:checked');
-      const selectedCodes = Array.from(checkboxes).map(cb => cb.value);
-
-      const statusEl = document.getElementById('matrixSaveStatus');
-      statusEl.textContent = 'Saving cipher payload...';
-
-      const res = await executeApiCall(`/admin/groups/${selectedGroupForEdit.id}`, 'PATCH', {
-        permissions: selectedCodes
-      });
-
-      if (res.ok) {
-        statusEl.textContent = `SAVED (${selectedCodes.length} PERMISSIONS ASSIGNED)`;
-        statusEl.className = 'font-semibold text-neutral-900';
-        await loadAdminData();
-      } else {
-        statusEl.textContent = 'FAILED TO SAVE';
-        statusEl.className = 'font-semibold text-rose-600';
-      }
-    }
-
-    async function deleteSelectedGroup() {
-      if (!selectedGroupForEdit) return;
-      if (!confirm(`Are you sure you want to delete group '${selectedGroupForEdit.name}'?`)) return;
-
-      const res = await executeApiCall(`/admin/groups/${selectedGroupForEdit.id}`, 'DELETE');
-      if (res.ok) {
-        selectedGroupForEdit = null;
-        await loadAdminData();
-      }
-    }
-
-    function renderAdminUserTable() {
-      const tbody = document.getElementById('adminUserTableBody');
-      if (!tbody) return;
-
-      tbody.innerHTML = cachedUsers.map(u => `
-        <tr class="hover:bg-neutral-50 transition-colors">
-          <td class="p-3 font-bold text-neutral-900">${u.username}</td>
-          <td class="p-3">
-            <div class="flex gap-1 flex-wrap">
-              ${u.groups.map(g => `<span class="border border-neutral-300 px-1 py-0.2 bg-white text-[10px]">${g}</span>`).join('')}
-            </div>
-          </td>
-          <td class="p-3 text-neutral-500">${u.permissions.length} actions</td>
-          <td class="p-3 text-right">
-            <button onclick="openEditUserModal('${u.id}')" class="px-2 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white uppercase text-[10px] mr-1">
-              Delegate Groups
-            </button>
-            ${u.username !== 'root_admin' ? `
-              <button onclick="handleDeleteUser('${u.id}', '${u.username}')" class="px-2 py-1 text-rose-600 border border-rose-300 hover:bg-rose-600 hover:text-white uppercase text-[10px]">
-                Purge
-              </button>
-            ` : ''}
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function openEditUserModal(userId) {
-      const user = cachedUsers.find(u => u.id === userId);
-      if (!user) return;
-
-      editingTargetUserId = userId;
-      document.getElementById('modalTargetUser').textContent = `Target Identity: ${user.username}`;
-
-      const container = document.getElementById('modalUserGroupsCheckboxes');
-      const userGroupsSet = new Set(user.groups);
-
-      container.innerHTML = cachedGroups.map(g => `
-        <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-white border border-transparent hover:border-neutral-200">
-          <input type="checkbox" value="${g.name}" ${userGroupsSet.has(g.name) ? 'checked' : ''} class="user-group-chk rounded-none border-neutral-400">
-          <span><strong>${g.name}</strong> <span class="text-neutral-400 text-[10px]">(${g.description || ''})</span></span>
-        </label>
-      `).join('');
-
-      document.getElementById('modalEditUserGroups').classList.remove('hidden');
-    }
-
-    function closeEditUserModal() {
-      document.getElementById('modalEditUserGroups').classList.add('hidden');
-      editingTargetUserId = null;
-    }
-
-    async function saveUserGroupAssignment() {
-      if (!editingTargetUserId) return;
-
-      const checked = Array.from(
-        document.querySelectorAll('#modalUserGroupsCheckboxes .user-group-chk:checked')
-      ).map(cb => cb.value);
-
-      const res = await executeApiCall(`/admin/users/${editingTargetUserId}/groups`, 'PATCH', {
-        groups: checked
-      });
-
-      if (res.ok) {
-        closeEditUserModal();
-        await loadAdminData();
-        await updateUI();
-      }
-    }
-
-    async function handleDeleteUser(userId, username) {
-      if (!confirm(`Purge user account '${username}' completely?`)) return;
-
-      const res = await executeApiCall(`/admin/users/${userId}`, 'DELETE');
-      if (res.ok) {
-        await loadAdminData();
-      }
-    }
-
-    function renderAdminPermCatalog() {
-      const container = document.getElementById('adminPermList');
-      if (!container) return;
-
-      container.innerHTML = cachedPermissions.map(p => `
-        <div class="border border-neutral-200 p-2 bg-neutral-50/50">
-          <div class="font-bold text-neutral-900">${p.code}</div>
-          <div class="text-[10px] text-neutral-400 truncate">${p.description || ''}</div>
-        </div>
-      `).join('');
-    }
-
-    async function handleCreatePermission(e) {
-      e.preventDefault();
-      const code = document.getElementById('newPermCode').value.trim();
-      const description = document.getElementById('newPermDesc').value.trim();
-
-      const res = await executeApiCall('/admin/permissions', 'POST', { code, description });
-      if (res.ok) {
-        document.getElementById('newPermCode').value = '';
-        document.getElementById('newPermDesc').value = '';
-        await loadAdminData();
-      }
-    }
-
-    function openNewGroupModal() {
-      document.getElementById('modalNewGroup').classList.remove('hidden');
-    }
-
-    function closeNewGroupModal() {
-      document.getElementById('modalNewGroup').classList.add('hidden');
-    }
-
-    async function handleCreateGroupSubmit(e) {
-      e.preventDefault();
-      const name = document.getElementById('newGroupName').value.trim().toUpperCase();
-      const description = document.getElementById('newGroupDesc').value.trim();
-
-      const res = await executeApiCall('/admin/groups', 'POST', { name, description, permissions: [] });
-      if (res.ok) {
-        closeNewGroupModal();
-        document.getElementById('newGroupName').value = '';
-        document.getElementById('newGroupDesc').value = '';
-        await loadAdminData();
-        selectGroupForEdit(res.data.id);
-      }
-    }
-
-    // Initial Bootstrap
-    updateUI();
-    executeApiCall('/auth/groups', 'GET', null, (data) => {
-      cachedGroups = data;
-      renderRegistrationGroups();
-    });
-  </script>
+  <!-- Application Client SDK & Controller Scripts -->
+  <script src="/js/api-client.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>
