@@ -214,9 +214,9 @@ function quickLoginAs(username) {
   const errorMsg = document.getElementById('loginErrorMsg');
   const btnSubmit = document.getElementById('btnLoginSubmit');
 
-  // กรอกข้อมูลลงในฟอร์มเท่านั้น ไม่ยิง Request อัตโนมัติ
+  // กรอกข้อมูลลงในฟอร์มเท่านั้น ไม่ยิง Request อัตโนมัติ (รหัสผ่านฐานข้อมูลตั้งต้นคือ 123456)
   if (usernameInput) usernameInput.value = username;
-  if (passwordInput) passwordInput.value = 'Password123!';
+  if (passwordInput) passwordInput.value = '123456';
   if (errorMsg) errorMsg.classList.add('hidden');
 
   // แสดงการแจ้งเตือนสั้นๆ และ Focus ที่ปุ่มเข้าสู่ระบบเพื่อให้ Maker หรือผู้ใช้กดเอง
