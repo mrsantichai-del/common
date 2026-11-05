@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ULTRON // Enterprise Core System</title>
+  <title>ULTRON // Core System</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,64 +20,18 @@
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
-
-    /* Professional Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
-
-    /* Print Stylesheet */
-    @media print {
-      header, nav, aside, #viewLogin, .no-print, #toastContainer,
-      .action-buttons, #masterToolbar, #masterTableTabs, #authProfileBar {
-        display: none !important;
-      }
-      body, #viewApp, #tabSection_documents, #tabSection_masterTable {
-        background: white !important;
-        color: black !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-      }
-      .print-report-header {
-        display: block !important;
-      }
-      table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-      }
-      th, td {
-        border: 1px solid #e2e8f0 !important;
-        padding: 6px 10px !important;
-        font-size: 9.5pt !important;
-      }
-    }
-    .print-report-header {
-      display: none;
-    }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-center items-center p-4 antialiased">
 
-  <!-- TOAST NOTIFICATION CONTAINER (ALERT POPUPS) -->
-  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none no-print"></div>
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
 
   <!-- ============================================================== -->
   <!-- VIEW 1: AUTHENTICATION / SIGN IN                               -->
   <!-- ============================================================== -->
-  <div id="viewLogin" class="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-100">
-    <div class="w-full max-w-sm bg-white rounded-lg shadow-sm border border-slate-300 p-8">
+  <div id="viewLogin" class="w-full max-w-sm">
+    <div class="bg-white rounded-lg shadow-sm border border-slate-300 p-8">
       
       <!-- Brand Logo & Header -->
       <div class="text-center mb-6">
@@ -90,26 +44,26 @@
         <p class="text-xs text-slate-500 mt-0.5 font-mono">ULTRON CORE SYSTEM</p>
       </div>
 
-      <!-- Quick Test Accounts Panel (Developer Mode Only) -->
+      <!-- Quick Test Accounts Panel (Toggleable Developer Helper) -->
       <div id="loginDemoAccountsPanel" class="hidden mb-5 p-3 bg-slate-50 border border-slate-200 rounded-md">
         <div class="text-[11px] font-semibold text-slate-700 mb-2 flex items-center justify-between">
           <span>เลือกบัญชีทดสอบระบบ:</span>
           <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono">DEV MODE</span>
         </div>
         <div class="grid grid-cols-2 gap-1.5 text-xs">
-          <button type="button" onclick="quickLoginAs('root_admin')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors">
+          <button type="button" onclick="quickLoginAs('root_admin')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
             <div class="font-semibold text-slate-800 text-[11px]">ผู้ดูแลระบบ</div>
             <div class="text-[10px] text-slate-500 font-mono">root_admin</div>
           </button>
-          <button type="button" onclick="quickLoginAs('approver_ellen')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors">
+          <button type="button" onclick="quickLoginAs('approver_ellen')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
             <div class="font-semibold text-slate-800 text-[11px]">ผู้อนุมัติเอกสาร</div>
             <div class="text-[10px] text-slate-500 font-mono">approver_ellen</div>
           </button>
-          <button type="button" onclick="quickLoginAs('auditor_arthur')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors">
+          <button type="button" onclick="quickLoginAs('auditor_arthur')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
             <div class="font-semibold text-slate-800 text-[11px]">ผู้ตรวจสอบ</div>
             <div class="text-[10px] text-slate-500 font-mono">auditor_arthur</div>
           </button>
-          <button type="button" onclick="quickLoginAs('hybrid_harry')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors">
+          <button type="button" onclick="quickLoginAs('hybrid_harry')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
             <div class="font-semibold text-slate-800 text-[11px]">เจ้าหน้าที่บันทึก</div>
             <div class="text-[10px] text-slate-500 font-mono">hybrid_harry</div>
           </button>
@@ -150,7 +104,7 @@
         <button 
           type="submit" 
           id="btnLoginSubmit"
-          class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-md transition-colors shadow-xs"
+          class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-md transition-colors shadow-xs cursor-pointer"
         >
           เข้าสู่ระบบ (Sign In)
         </button>
@@ -176,884 +130,64 @@
     </div>
   </div>
 
-
   <!-- ============================================================== -->
-  <!-- VIEW 2: ENTERPRISE WORKSPACE WITH LEFT SIDEBAR                 -->
+  <!-- VIEW 2: POST-LOGIN MINIMAL VIEW (WHO LOGGED IN + SIGN OUT)     -->
   <!-- ============================================================== -->
-  <div id="viewApp" class="hidden min-h-screen flex bg-slate-50">
-    
-    <!-- Mobile Backdrop for Sidebar -->
-    <div id="sidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden md:hidden"></div>
-
-    <!-- LEFT SIDEBAR NAVIGATION -->
-    <aside id="sidebarNav" class="fixed inset-y-0 left-0 z-50 w-60 bg-slate-900 text-slate-300 flex flex-col justify-between transition-transform transform -translate-x-full md:translate-x-0 md:static md:inset-auto border-r border-slate-800 select-none flex-shrink-0 min-h-screen">
+  <div id="viewApp" class="hidden w-full max-w-md">
+    <div class="bg-white rounded-lg shadow-sm border border-slate-300 p-8 space-y-6">
       
-      <!-- Top Branding Section -->
+      <!-- User Avatar & Status -->
+      <div class="text-center">
+        <div class="w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-lg font-mono font-bold shadow-xs" id="userAvatar">
+          U
+        </div>
+        <div class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium mb-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>ลงชื่อเข้าสู่ระบบแล้ว</span>
+        </div>
+        <h2 class="text-xl font-bold text-slate-900 tracking-tight" id="currentUsernameDisplay">
+          -
+        </h2>
+      </div>
+
+      <!-- User Identity Details -->
+      <div class="bg-slate-50 rounded-md border border-slate-200 p-4 space-y-2.5 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">ชื่อผู้ใช้งาน:</span>
+          <span class="font-mono font-semibold text-slate-800" id="detailUsername">-</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">กลุ่มสิทธิ์ / บทบาท:</span>
+          <span class="font-mono font-semibold text-slate-800" id="detailRole">-</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500">รหัสพนักงาน (Employee ID):</span>
+          <span class="font-mono text-slate-700" id="detailEmployeeId">-</span>
+        </div>
+        <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px]">
+          <span class="text-slate-400">เวลาเข้าสู่ระบบ:</span>
+          <span class="font-mono text-slate-500" id="detailLoginTime">-</span>
+        </div>
+      </div>
+
+      <!-- Sign Out Button -->
       <div>
-        <div class="px-4 py-4 border-b border-slate-800 flex items-center justify-between">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-7 h-7 bg-blue-600 text-white rounded flex items-center justify-center font-bold text-xs shadow-xs">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-              </svg>
-            </div>
-            <div>
-              <div class="font-bold text-white text-sm tracking-tight leading-none">
-                ULTRON CORE
-              </div>
-              <div class="text-[10px] text-slate-400 mt-0.5">Enterprise Management</div>
-            </div>
-          </div>
-          <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-400 hover:text-white p-1 text-sm leading-none">&times;</button>
-        </div>
-
-        <!-- Super Admin Role Banner -->
-        <div id="sidebarAdminBadge" class="mx-3 mt-3 px-2.5 py-1.5 rounded bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs">
-          <span class="text-[11px] font-medium text-slate-300">สิทธิ์ผู้ดูแลระบบ</span>
-          <span class="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono font-semibold">SUPER_ADMIN</span>
-        </div>
-
-        <!-- Navigation Menu List -->
-        <nav class="p-3 space-y-4 text-xs">
-          
-          <!-- Section 1: Main Menu -->
-          <div>
-            <div class="px-2 pb-1.5 text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
-              เมนูหลัก
-            </div>
-            <div class="space-y-0.5">
-              <button 
-                id="sidebarBtn_overview" 
-                onclick="switchAppTab('overview')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded font-medium transition-colors text-white bg-blue-600"
-              >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
-                </svg>
-                <span class="flex-1 text-left">ภาพรวมระบบ (Overview)</span>
-              </button>
-              <button 
-                id="sidebarBtn_documents" 
-                onclick="switchAppTab('documents')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-                </svg>
-                <span class="flex-1 text-left">จัดการเอกสาร (Documents)</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Section 2: Master Tables (Direct Access) -->
-          <div id="sidebarSectionMasterTables">
-            <div class="px-2 pb-1.5 text-[10px] font-semibold tracking-wider text-slate-400 uppercase flex items-center justify-between">
-              <span>ตารางข้อมูลหลัก (Master)</span>
-              <span class="text-[9px] text-slate-400 font-mono">5 ตาราง</span>
-            </div>
-            <div class="space-y-0.5">
-              <button 
-                id="sidebarBtn_master_Document" 
-                onclick="navigateToMasterTable('Document')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                </svg>
-                <span class="flex-1 text-left">เอกสาร (Document)</span>
-              </button>
-              <button 
-                id="sidebarBtn_master_User" 
-                onclick="navigateToMasterTable('User')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                </svg>
-                <span class="flex-1 text-left">ผู้ใช้งาน (User)</span>
-              </button>
-              <button 
-                id="sidebarBtn_master_Group" 
-                onclick="navigateToMasterTable('Group')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                <span class="flex-1 text-left">กลุ่มบทบาท (Group)</span>
-              </button>
-              <button 
-                id="sidebarBtn_master_Permission" 
-                onclick="navigateToMasterTable('Permission')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <circle cx="14" cy="7" r="4"/><path d="M10 14l-6.5 6.5a2.12 2.12 0 0 1-3-3L7 11"/>
-                </svg>
-                <span class="flex-1 text-left">สิทธิ์ในระบบ (Permission)</span>
-              </button>
-              <button 
-                id="sidebarBtn_master_AuditLog" 
-                onclick="navigateToMasterTable('AuditLog')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-1.5 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span class="flex-1 text-left">ประวัติการใช้งาน (AuditLog)</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Section 3: Governance & Access Control -->
-          <div id="sidebarSectionGovernance">
-            <div class="px-2 pb-1.5 text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
-              ความปลอดภัยและสิทธิ์
-            </div>
-            <div class="space-y-0.5">
-              <button 
-                id="sidebarBtn_governance" 
-                onclick="switchAppTab('governance')" 
-                class="w-full flex items-center space-x-2.5 px-2.5 py-2 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                <span class="flex-1 text-left">กำหนดสิทธิ์บทบาท (PBAC)</span>
-              </button>
-            </div>
-          </div>
-
-        </nav>
-      </div>
-
-      <!-- Bottom User Profile & Sign Out -->
-      <div class="p-3 border-t border-slate-800 bg-slate-950/40">
-        <div class="flex items-center space-x-2 px-2 py-1.5">
-          <div class="w-6 h-6 rounded bg-slate-700 text-slate-200 flex items-center justify-center font-mono font-bold text-xs">
-            U
-          </div>
-          <div class="flex-1 min-w-0">
-            <div class="font-medium text-white text-xs truncate" id="sidebarUsername">root_admin</div>
-            <div class="text-[10px] text-slate-400 font-mono truncate" id="sidebarUserRole">SUPER_ADMIN</div>
-          </div>
-        </div>
         <button 
+          type="button" 
           onclick="handleLogout()" 
-          class="w-full mt-2 py-1.5 px-2 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-colors flex items-center justify-center space-x-1.5 border border-slate-700 cursor-pointer"
+          class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-md transition-colors cursor-pointer shadow-xs flex items-center justify-center space-x-2"
         >
-          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
-          <span>ออกจากระบบ</span>
+          <span>ลงชื่อออกจากระบบ (Sign Out)</span>
         </button>
       </div>
-
-    </aside>
-
-    <!-- RIGHT MAIN WORKSPACE -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
-      
-      <!-- Top Clean Header Bar -->
-      <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-6 py-3 flex items-center justify-between no-print">
-        <div class="flex items-center space-x-3">
-          <button onclick="toggleMobileSidebar()" class="md:hidden p-1.5 rounded text-slate-600 hover:bg-slate-100">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </button>
-          <div>
-            <h1 id="headerViewTitle" class="text-sm font-semibold text-slate-900 flex items-center space-x-2">
-              <span>ภาพรวมระบบ (System Overview)</span>
-            </h1>
-            <p id="headerViewSubtitle" class="text-[11px] text-slate-500">
-              สถานะภาพรวมและรายการที่ต้องดำเนินการในระบบ
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-2 text-xs">
-          <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-slate-100 text-slate-700 border border-slate-200 font-mono text-[11px]">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>SQLite Localhost</span>
-          </div>
-        </div>
-      </header>
-
-      <!-- MAIN CONTENT VIEWPORT -->
-      <main class="max-w-7xl mx-auto p-6 flex-1 w-full space-y-5">
-
-        <!-- ============================================================ -->
-        <!-- TAB 1: OVERVIEW & DASHBOARD                                  -->
-        <!-- ============================================================ -->
-        <section id="tabSection_overview" class="space-y-5">
-          
-          <!-- Workspace Title Bar -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
-            <div>
-              <h2 class="text-base font-bold text-slate-900 tracking-tight">ภาพรวมระบบ (System Overview)</h2>
-              <p class="text-xs text-slate-500">สรุปข้อมูลเอกสารและการดำเนินงานในระบบ</p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <button onclick="openMasterCreateModalFor('Document')" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded shadow-xs transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span>สร้างเอกสารใหม่</span>
-              </button>
-              <button onclick="switchAppTab('documents')" class="inline-flex items-center space-x-1 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium rounded shadow-xs transition-colors">
-                <span>ดูเอกสารทั้งหมด</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- ADMIN SETUP JOURNEY (GUIDED CHECKLIST) -->
-          <div id="adminSetupJourneyCard" class="hidden bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
-            
-            <!-- Checklist Header -->
-            <div class="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div class="flex items-center space-x-2">
-                <svg class="w-4 h-4 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <h3 class="font-semibold text-slate-900 text-xs">ขั้นตอนเริ่มต้นระบบ (System Setup Checklist)</h3>
-                <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.2 rounded font-mono">5 ขั้นตอน</span>
-              </div>
-              <button 
-                type="button" 
-                onclick="toggleAdminJourneyCollapse()" 
-                id="btnToggleAdminJourney"
-                class="px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-medium text-slate-600 transition-colors"
-              >
-                <span id="journeyToggleLabel">ย่อเก็บ</span>
-              </button>
-            </div>
-
-            <!-- Checklist Body -->
-            <div id="adminJourneyContent" class="p-4 space-y-3">
-              
-              <!-- Progress Bar -->
-              <div class="bg-slate-50 border border-slate-200 rounded p-3">
-                <div class="flex justify-between items-center text-xs mb-1.5">
-                  <span class="font-medium text-slate-700" id="journeyStatusMessage">ความคืบหน้าการตั้งค่าโครงสร้างระบบ</span>
-                  <span class="font-bold text-slate-900 font-mono text-xs" id="journeyPercentText">0%</span>
-                </div>
-                <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                  <div id="journeyProgressBar" class="bg-slate-900 h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
-                </div>
-              </div>
-
-              <!-- 5 Checklist Steps -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                
-                <!-- Step 1: Permissions -->
-                <div class="bg-white border border-slate-200 rounded p-3 flex flex-col justify-between hover:border-slate-400 transition-colors">
-                  <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                      <span class="text-[10px] font-bold text-slate-400 font-mono">01</span>
-                      <span id="journeyBadge1" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">ตรวจสอบ</span>
-                    </div>
-                    <div class="text-xs font-semibold text-slate-900 mb-1">สิทธิ์ในระบบ (PBAC)</div>
-                    <div class="text-[11px] text-slate-500 mb-3 leading-snug">สิทธิ์ระดับระบบ 16 รายการพื้นฐาน</div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick="selectMasterTable('Permission'); switchAppTab('masterTable');" 
-                    class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded transition-colors text-center"
-                  >
-                    ดูรายการสิทธิ์
-                  </button>
-                </div>
-
-                <!-- Step 2: Role Groups -->
-                <div class="bg-white border border-slate-200 rounded p-3 flex flex-col justify-between hover:border-slate-400 transition-colors">
-                  <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                      <span class="text-[10px] font-bold text-slate-400 font-mono">02</span>
-                      <span id="journeyBadge2" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">ตรวจสอบ</span>
-                    </div>
-                    <div class="text-xs font-semibold text-slate-900 mb-1">กลุ่มบทบาท (Roles)</div>
-                    <div class="text-[11px] text-slate-500 mb-3 leading-snug">นิยามกลุ่มหน้าที่ตามสายงาน</div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick="openMasterCreateModalFor('Group')" 
-                    class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded transition-colors text-center"
-                  >
-                    สร้างกลุ่มใหม่
-                  </button>
-                </div>
-
-                <!-- Step 3: Assign Permissions -->
-                <div class="bg-white border border-slate-200 rounded p-3 flex flex-col justify-between hover:border-slate-400 transition-colors">
-                  <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                      <span class="text-[10px] font-bold text-slate-400 font-mono">03</span>
-                      <span id="journeyBadge3" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">ตรวจสอบ</span>
-                    </div>
-                    <div class="text-xs font-semibold text-slate-900 mb-1">ผูกสิทธิ์ให้กลุ่ม</div>
-                    <div class="text-[11px] text-slate-500 mb-3 leading-snug">กำหนดหน้าที่และความรับผิดชอบ</div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick="switchAppTab('governance')" 
-                    class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded transition-colors text-center"
-                  >
-                    ผูกสิทธิ์กลุ่ม
-                  </button>
-                </div>
-
-                <!-- Step 4: Create Users -->
-                <div class="bg-white border border-slate-200 rounded p-3 flex flex-col justify-between hover:border-slate-400 transition-colors">
-                  <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                      <span class="text-[10px] font-bold text-slate-400 font-mono">04</span>
-                      <span id="journeyBadge4" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">ตรวจสอบ</span>
-                    </div>
-                    <div class="text-xs font-semibold text-slate-900 mb-1">บัญชีผู้ใช้งาน</div>
-                    <div class="text-[11px] text-slate-500 mb-3 leading-snug">เพิ่มผู้ใช้พร้อมรหัสพนักงาน</div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick="openMasterCreateModalFor('User')" 
-                    class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded transition-colors text-center"
-                  >
-                    เพิ่มผู้ใช้
-                  </button>
-                </div>
-
-                <!-- Step 5: Delegate Users -->
-                <div class="bg-white border border-slate-200 rounded p-3 flex flex-col justify-between hover:border-slate-400 transition-colors">
-                  <div>
-                    <div class="flex justify-between items-center mb-1.5">
-                      <span class="text-[10px] font-bold text-slate-400 font-mono">05</span>
-                      <span id="journeyBadge5" class="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">ตรวจสอบ</span>
-                    </div>
-                    <div class="text-xs font-semibold text-slate-900 mb-1">มอบหมายกลุ่มงาน</div>
-                    <div class="text-[11px] text-slate-500 mb-3 leading-snug">จัดสรรผู้ใช้เข้ากลุ่มบทบาท</div>
-                  </div>
-                  <button 
-                    type="button" 
-                    onclick="switchAppTab('governance')" 
-                    class="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs rounded transition-colors text-center"
-                  >
-                    มอบหมายกลุ่ม
-                  </button>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <!-- 4 KPI Metrics Cards -->
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            
-            <!-- KPI 1 -->
-            <div onclick="switchAppTab('documents')" class="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs hover:border-slate-400 transition-colors cursor-pointer">
-              <div class="text-xs text-slate-500 font-medium">เอกสารทั้งหมด</div>
-              <div id="statTotalDocs" class="text-2xl font-bold text-slate-900 mt-1 font-mono">0</div>
-              <div class="text-[11px] text-slate-400 mt-2">รายการทั้งหมดในระบบ</div>
-            </div>
-
-            <!-- KPI 2 -->
-            <div onclick="filterDocsByStatus('DRAFT')" class="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs hover:border-slate-400 transition-colors cursor-pointer">
-              <div class="text-xs text-amber-700 font-medium">รออนุมัติ / ตรวจสอบ</div>
-              <div id="statPendingDocs" class="text-2xl font-bold text-amber-700 mt-1 font-mono">0</div>
-              <div class="text-[11px] text-slate-400 mt-2">เอกสารสถานะร่าง (DRAFT)</div>
-            </div>
-
-            <!-- KPI 3 -->
-            <div onclick="filterDocsByStatus('CONFIRMED')" class="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs hover:border-slate-400 transition-colors cursor-pointer">
-              <div class="text-xs text-emerald-700 font-medium">อนุมัติแล้ว</div>
-              <div id="statApprovedDocs" class="text-2xl font-bold text-emerald-700 mt-1 font-mono">0</div>
-              <div class="text-[11px] text-slate-400 mt-2">เอกสารที่ผ่านการรับรอง</div>
-            </div>
-
-            <!-- KPI 4 -->
-            <div onclick="switchAppTab('governance')" class="bg-white p-4 rounded-lg border border-slate-200 shadow-2xs hover:border-slate-400 transition-colors cursor-pointer">
-              <div class="text-xs text-slate-500 font-medium">ผู้ใช้งานในระบบ</div>
-              <div id="statTotalUsers" class="text-2xl font-bold text-slate-900 mt-1 font-mono">0</div>
-              <div class="text-[11px] text-slate-400 mt-2">บัญชีผู้ใช้งานที่เปิดใช้งาน</div>
-            </div>
-
-          </div>
-
-          <!-- Pending Approvals Action Table -->
-          <div class="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-              <div class="font-semibold text-slate-900 text-xs">
-                รายการเอกสารที่รอการตรวจสอบและอนุมัติ (Pending Approvals)
-              </div>
-              <button onclick="switchAppTab('documents')" class="text-xs text-blue-600 hover:text-blue-800 font-medium">
-                ดูทั้งหมด &rarr;
-              </button>
-            </div>
-            <div id="dashboardPendingList" class="divide-y divide-slate-100">
-              <!-- Dynamically populated pending items -->
-            </div>
-          </div>
-
-        </section>
-
-        <!-- ============================================================ -->
-        <!-- TAB 2: DOCUMENTS WORKFLOW                                    -->
-        <!-- ============================================================ -->
-        <section id="tabSection_documents" class="hidden space-y-4">
-          
-          <!-- Header Bar -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
-            <div>
-              <h2 class="text-base font-bold text-slate-900 tracking-tight">จัดการเอกสารปฏิบัติการ (Documents)</h2>
-              <p class="text-xs text-slate-500">สร้าง ตรวจสอบ ค้นหา ยืนยันอนุมัติ ยกเลิก และพิมพ์เอกสาร</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <button onclick="openMasterCreateModalFor('Document')" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded shadow-xs transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span>สร้างเอกสาร</span>
-              </button>
-              <button onclick="openMasterImportModalFor('Document')" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded transition-colors shadow-2xs">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                <span>นำเข้า</span>
-              </button>
-              <button onclick="exportMasterData('csv')" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded transition-colors shadow-2xs">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                <span>ส่งออก</span>
-              </button>
-              <button onclick="printMasterTable()" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs rounded transition-colors shadow-2xs">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-                </svg>
-                <span>พิมพ์</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Toolbar: Search & Status Filters -->
-          <div class="bg-white rounded-lg border border-slate-200 p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2 flex-1">
-              
-              <!-- Search Input -->
-              <div class="relative flex-1 min-w-[200px] max-w-sm">
-                <span class="absolute left-3 top-2.5 text-slate-400">
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                </span>
-                <input 
-                  type="text" 
-                  id="docSearchInput" 
-                  placeholder="ค้นหาชื่อเอกสาร, รหัส, ผู้จัดทำ..." 
-                  onkeyup="if(event.key==='Enter') executeDocSearch()"
-                  class="w-full pl-8 pr-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                />
-              </div>
-              <button onclick="executeDocSearch()" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded">
-                ค้นหา
-              </button>
-
-              <!-- Status Filter Pills -->
-              <div class="flex items-center space-x-1 bg-slate-100 p-0.5 rounded border border-slate-200 text-xs">
-                <button onclick="setDocStatusFilter('ALL')" id="filterDoc_ALL" class="px-2.5 py-1 rounded bg-white shadow-2xs font-semibold text-slate-900">ทั้งหมด</button>
-                <button onclick="setDocStatusFilter('DRAFT')" id="filterDoc_DRAFT" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">รออนุมัติ</button>
-                <button onclick="setDocStatusFilter('CONFIRMED')" id="filterDoc_CONFIRMED" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">อนุมัติแล้ว</button>
-                <button onclick="setDocStatusFilter('CANCELLED')" id="filterDoc_CANCELLED" class="px-2.5 py-1 rounded text-slate-600 hover:text-slate-900">ยกเลิกแล้ว</button>
-              </div>
-
-            </div>
-            <div class="text-xs text-slate-500 font-mono" id="docTableCountDisplay">
-              0 รายการ
-            </div>
-          </div>
-
-          <!-- Document Table -->
-          <div class="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th class="py-2.5 px-3">รหัสเอกสาร</th>
-                    <th class="py-2.5 px-3">ชื่อเอกสาร</th>
-                    <th class="py-2.5 px-3">หมวดหมู่</th>
-                    <th class="py-2.5 px-3">สถานะ</th>
-                    <th class="py-2.5 px-3">ผู้จัดทำ</th>
-                    <th class="py-2.5 px-3">ผู้อนุมัติ</th>
-                    <th class="py-2.5 px-3 text-right no-print">การจัดการ</th>
-                  </tr>
-                </thead>
-                <tbody id="documentTableBody" class="divide-y divide-slate-100">
-                  <!-- Dynamic rows -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- ============================================================ -->
-        <!-- TAB 3: MASTER DATA TABLES                                    -->
-        <!-- ============================================================ -->
-        <section id="tabSection_masterTable" class="hidden space-y-4">
-          
-          <!-- Master Table Tabs Selector -->
-          <div class="bg-white rounded-lg border border-slate-200 p-2.5 shadow-2xs flex flex-wrap items-center gap-1.5">
-            <span class="text-xs font-semibold text-slate-500 mr-2">ตาราง:</span>
-            <button onclick="selectMasterTable('Document')" id="masterTabBtn_Document" class="px-3 py-1.5 rounded border border-slate-900 bg-slate-900 text-white text-xs font-medium transition-colors">
-              เอกสาร (Document)
-            </button>
-            <button onclick="selectMasterTable('User')" id="masterTabBtn_User" class="px-3 py-1.5 rounded border border-slate-200 hover:border-slate-400 bg-white text-slate-700 text-xs font-medium transition-colors">
-              ผู้ใช้งาน (User)
-            </button>
-            <button onclick="selectMasterTable('Group')" id="masterTabBtn_Group" class="px-3 py-1.5 rounded border border-slate-200 hover:border-slate-400 bg-white text-slate-700 text-xs font-medium transition-colors">
-              กลุ่มบทบาท (Group)
-            </button>
-            <button onclick="selectMasterTable('Permission')" id="masterTabBtn_Permission" class="px-3 py-1.5 rounded border border-slate-200 hover:border-slate-400 bg-white text-slate-700 text-xs font-medium transition-colors">
-              สิทธิ์ในระบบ (Permission)
-            </button>
-            <button onclick="selectMasterTable('AuditLog')" id="masterTabBtn_AuditLog" class="px-3 py-1.5 rounded border border-slate-200 hover:border-slate-400 bg-white text-slate-700 text-xs font-medium transition-colors">
-              ประวัติการใช้งาน (AuditLog)
-            </button>
-          </div>
-
-          <!-- Master Toolbar -->
-          <div id="masterToolbar" class="bg-white rounded-lg border border-slate-200 p-3 shadow-2xs flex flex-wrap items-center justify-between gap-3 no-print">
-            
-            <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
-              <div class="relative flex-1 min-w-[180px] max-w-sm">
-                <span class="absolute left-3 top-2.5 text-slate-400">
-                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                </span>
-                <input 
-                  type="text" 
-                  id="masterSearchInput" 
-                  placeholder="พิมพ์ค้นหาข้อมูล..." 
-                  onkeyup="if(event.key==='Enter') executeMasterSearch()"
-                  class="w-full pl-8 pr-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none"
-                />
-              </div>
-              <button onclick="executeMasterSearch()" class="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded hover:bg-slate-800">
-                ค้นหา
-              </button>
-
-              <!-- Document Status Filter -->
-              <select id="masterStatusFilter" onchange="loadMasterTableData()" class="py-1.5 px-2.5 rounded border border-slate-300 text-xs bg-white outline-none">
-                <option value="ALL">ทุกสถานะ</option>
-                <option value="DRAFT">รออนุมัติ (DRAFT)</option>
-                <option value="CONFIRMED">อนุมัติแล้ว (CONFIRMED)</option>
-                <option value="CANCELLED">ยกเลิกแล้ว (CANCELLED)</option>
-              </select>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-1.5">
-              <button id="masterBtnAdd" onclick="openMasterCreateModal()" class="inline-flex items-center space-x-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded shadow-xs">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span>เพิ่มข้อมูล</span>
-              </button>
-              <button id="masterBtnImport" onclick="openMasterImportModal()" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium rounded shadow-2xs">
-                <span>นำเข้า</span>
-              </button>
-              <button onclick="exportMasterData('csv')" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium rounded shadow-2xs">
-                <span>ส่งออก CSV</span>
-              </button>
-              <button onclick="exportMasterData('json')" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium rounded shadow-2xs">
-                <span>JSON</span>
-              </button>
-              <button onclick="printMasterTable()" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium rounded shadow-2xs">
-                <span>พิมพ์</span>
-              </button>
-              <button onclick="loadMasterTableData()" class="inline-flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-medium rounded shadow-2xs" title="รีเฟรชข้อมูล">
-                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                </svg>
-              </button>
-            </div>
-
-          </div>
-
-          <!-- Master Table View -->
-          <div class="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead id="masterTableThead" class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-                  <!-- Dynamically populated header -->
-                </thead>
-                <tbody id="masterTableTbody" class="divide-y divide-slate-100">
-                  <!-- Dynamically populated rows -->
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Table Pagination Footer -->
-            <div class="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600 no-print">
-              <div id="masterTableMetrics" class="font-mono">0 รายการ</div>
-              <div class="flex items-center space-x-2">
-                <button onclick="changeMasterPage(-1)" class="px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 font-medium disabled:opacity-40" id="btnMasterPrevPage">&larr; ก่อนหน้า</button>
-                <span id="masterCurrentPageDisplay" class="font-medium text-slate-700 font-mono">หน้า 1 / 1</span>
-                <button onclick="changeMasterPage(1)" class="px-2.5 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 font-medium disabled:opacity-40" id="btnMasterNextPage">ถัดไป &rarr;</button>
-              </div>
-            </div>
-          </div>
-
-        </section>
-
-        <!-- ============================================================ -->
-        <!-- TAB 4: GOVERNANCE & ACCESS CONTROL                           -->
-        <!-- ============================================================ -->
-        <section id="tabSection_governance" class="hidden space-y-4">
-          
-          <!-- Header -->
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-200">
-            <div>
-              <h2 class="text-base font-bold text-slate-900 tracking-tight">กำหนดสิทธิ์บทบาทและผู้ใช้งาน (PBAC)</h2>
-              <p class="text-xs text-slate-500">นโยบายความปลอดภัยและจัดสรรสิทธิ์ตามสถาปัตยกรรม Many-to-Many</p>
-            </div>
-            <button onclick="openMasterCreateModalFor('User')" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded shadow-xs">
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-              </svg>
-              <span>เพิ่มผู้ใช้งาน</span>
-            </button>
-          </div>
-
-          <!-- Groups & Permissions Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            <!-- Left: Group Selector -->
-            <div class="bg-white rounded-lg border border-slate-200 p-3.5 shadow-2xs flex flex-col">
-              <div class="text-xs font-semibold text-slate-700 uppercase mb-2.5 pb-2 border-b border-slate-100">
-                กลุ่มบทบาทหน้าที่ (Roles Directory)
-              </div>
-              <div id="adminGroupSelector" class="space-y-1 overflow-y-auto max-h-[360px]"></div>
-            </div>
-
-            <!-- Right: Group Permissions Matrix -->
-            <div class="md:col-span-2 bg-white rounded-lg border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
-              <div>
-                <div class="flex justify-between items-start border-b border-slate-100 pb-2.5 mb-3">
-                  <div>
-                    <h3 id="governanceGroupName" class="font-bold text-sm text-slate-900">เลือกกลุ่มจากรายการด้านซ้าย</h3>
-                    <p id="governanceGroupDesc" class="text-xs text-slate-500 mt-0.5">รายละเอียดบทบาทและรายการสิทธิ์ที่ได้รับมอบหมาย</p>
-                  </div>
-                  <div class="flex space-x-2">
-                    <button id="btnDelGroup" onclick="deleteSelectedAdminGroup()" class="px-2.5 py-1 border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-medium rounded">
-                      ลบกลุ่มนี้
-                    </button>
-                    <button onclick="saveAdminGroupPermissions()" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded shadow-xs">
-                      บันทึกสิทธิ์
-                    </button>
-                  </div>
-                </div>
-
-                <div id="governancePermissionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 overflow-y-auto max-h-[300px]"></div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- User Accounts Table -->
-          <div class="bg-white rounded-lg border border-slate-200 shadow-2xs overflow-hidden">
-            <div class="px-4 py-3 border-b border-slate-200 text-xs font-semibold text-slate-900">
-              รายชื่อผู้ใช้งานและการผูกสิทธิ์ (User Accounts & Delegations)
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left text-xs">
-                <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-                  <tr>
-                    <th class="py-2.5 px-3">ชื่อผู้ใช้</th>
-                    <th class="py-2.5 px-3">กลุ่มสิทธิ์ที่สังกัด</th>
-                    <th class="py-2.5 px-3">สิทธิ์รวมที่ได้รับ</th>
-                    <th class="py-2.5 px-3 text-right">การจัดการ</th>
-                  </tr>
-                </thead>
-                <tbody id="governanceUserTableBody" class="divide-y divide-slate-100"></tbody>
-              </table>
-            </div>
-          </div>
-
-        </section>
-
-      </main>
 
     </div>
 
-  </div>
-
-  <!-- ============================================================== -->
-  <!-- MODALS: ADD/EDIT, IMPORT, PRINT, DELEGATION                    -->
-  <!-- ============================================================== -->
-
-  <!-- USER DELEGATION MODAL -->
-  <div id="modalUserDelegation" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">
-    <div class="bg-white rounded-lg w-full max-w-md p-5 shadow-xl border border-slate-200">
-      <div class="flex justify-between items-center border-b border-slate-200 pb-2.5 mb-3">
-        <div>
-          <h3 class="font-bold text-sm text-slate-900">มอบหมายกลุ่มสิทธิ์</h3>
-          <div class="text-xs text-slate-500">บัญชีผู้ใช้: <strong id="delegationModalUsername" class="text-slate-900 font-mono"></strong></div>
-        </div>
-        <button onclick="closeUserGroupDelegationModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg leading-none">&times;</button>
-      </div>
-      <div id="delegationModalCheckboxes" class="space-y-1 max-h-60 overflow-y-auto mb-4 border border-slate-200 rounded p-2 text-xs"></div>
-      <div class="flex justify-end space-x-2">
-        <button onclick="closeUserGroupDelegationModal()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-xs font-medium rounded">
-          ยกเลิก
-        </button>
-        <button onclick="saveUserDelegation()" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded shadow-xs">
-          บันทึกการมอบหมาย
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MASTER TABLE ADD / EDIT MODAL -->
-  <div id="modalMasterForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">
-    <div class="bg-white rounded-lg w-full max-w-lg p-5 shadow-xl border border-slate-200">
-      <div class="flex justify-between items-center border-b border-slate-200 pb-2.5 mb-3">
-        <div>
-          <h3 id="masterFormTitle" class="font-bold text-sm text-slate-900">สร้างรายการใหม่</h3>
-          <div id="masterFormSubtitle" class="text-xs text-slate-500">กรุณากรอกข้อมูลตามแบบฟอร์ม</div>
-        </div>
-        <button onclick="closeMasterFormModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg leading-none">&times;</button>
-      </div>
-      
-      <form onsubmit="handleMasterFormSubmit(event)" class="space-y-3">
-        <input type="hidden" id="masterFormRecordId">
-        <div id="masterFormFieldsContainer" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-          <!-- Dynamically populated fields -->
-        </div>
-
-        <div class="flex justify-end space-x-2 pt-3 border-t border-slate-200">
-          <button type="button" onclick="closeMasterFormModal()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-xs font-medium rounded">
-            ยกเลิก
-          </button>
-          <button type="submit" id="btnMasterFormSubmit" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded shadow-xs">
-            บันทึกข้อมูล
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MASTER TABLE BULK IMPORT MODAL -->
-  <div id="modalMasterImport" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">
-    <div class="bg-white rounded-lg w-full max-w-2xl p-5 shadow-xl border border-slate-200">
-      <div class="flex justify-between items-center border-b border-slate-200 pb-2.5 mb-3">
-        <div>
-          <h3 class="font-bold text-sm text-slate-900">นำเข้าข้อมูล (Excel / CSV / JSON)</h3>
-          <div class="text-xs text-slate-500">ตารางเป้าหมาย: <strong id="importTargetTableName" class="text-slate-900 font-mono"></strong></div>
-        </div>
-        <button onclick="closeMasterImportModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg leading-none">&times;</button>
-      </div>
-      
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-medium text-slate-700 mb-1">
-            เลือกไฟล์ข้อมูล (.CSV หรือ .JSON)
-          </label>
-          <input type="file" id="masterImportFileInput" accept=".csv, .json" onchange="handleImportFileSelect(event)" class="w-full text-xs p-1.5 rounded border border-slate-300 bg-slate-50">
-        </div>
-
-        <div>
-          <label class="block font-medium text-slate-700 mb-1">
-            หรือวางข้อความข้อมูลลงที่นี่โดยตรง
-          </label>
-          <textarea id="masterImportTextInput" rows="4" placeholder='[{"title":"เอกสารสัญญา","category":"GENERAL"}] หรือ CSV' class="w-full p-2 rounded border border-slate-300 font-mono text-xs bg-slate-50 outline-none"></textarea>
-        </div>
-
-        <div>
-          <button type="button" onclick="parseAndPreviewImportData()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded font-medium border border-slate-300">
-            ตรวจสอบและแสดงตัวอย่างข้อมูล (Preview)
-          </button>
-        </div>
-
-        <!-- Preview Table -->
-        <div id="importPreviewContainer" class="hidden border border-slate-200 rounded p-2.5 max-h-48 overflow-auto bg-slate-50">
-          <div class="text-xs font-semibold text-slate-800 mb-1.5 font-mono" id="importPreviewCount">พบข้อมูล 0 แถว</div>
-          <table class="w-full text-left text-[11px] font-mono border-collapse" id="importPreviewTable"></table>
-        </div>
-
-        <div class="flex justify-end space-x-2 pt-2.5 border-t border-slate-200">
-          <button type="button" onclick="closeMasterImportModal()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-xs font-medium rounded">
-            ยกเลิก
-          </button>
-          <button type="button" id="btnExecuteImport" onclick="executeBulkImport()" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded shadow-xs disabled:opacity-40">
-            เริ่มนำเข้าข้อมูล (Execute Import)
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- DOCUMENT PRINT MODAL -->
-  <div id="modalDocPrint" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg w-full max-w-2xl p-8 shadow-xl font-sans" id="printDocSheet">
-      <div class="border-b-2 border-slate-900 pb-3 mb-4 flex justify-between items-start">
-        <div>
-          <h2 class="text-lg font-bold font-mono tracking-tight text-slate-900">ULTRON SOVEREIGN CORE</h2>
-          <div class="text-xs text-slate-500">เอกสารปฏิบัติการทางการ (Official Operational Record)</div>
-        </div>
-        <div class="text-right">
-          <span id="printDocStatusBadge" class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-300">CONFIRMED</span>
-          <div id="printDocNumber" class="text-xs font-mono font-bold mt-1 text-slate-800">DOC-2026-001</div>
-        </div>
-      </div>
-
-      <div class="space-y-3 text-xs">
-        <div>
-          <div class="text-[10px] text-slate-400 font-semibold uppercase">ชื่อเอกสาร (DOCUMENT TITLE)</div>
-          <div id="printDocTitle" class="text-sm font-bold text-slate-900 mt-0.5">-</div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3 border-y border-slate-200 py-2.5 text-slate-700">
-          <div>
-            <span class="text-slate-400 text-[10px] block">หมวดหมู่เอกสาร:</span>
-            <strong id="printDocCategory" class="text-xs">-</strong>
-          </div>
-          <div>
-            <span class="text-slate-400 text-[10px] block">ผู้จัดทำ (Author):</span>
-            <strong id="printDocAuthor" class="text-xs font-mono">-</strong>
-          </div>
-          <div>
-            <span class="text-slate-400 text-[10px] block">ผู้อนุมัติเอกสาร (Approved By):</span>
-            <strong id="printDocConfirmedBy" class="text-xs font-mono">-</strong>
-          </div>
-          <div>
-            <span class="text-slate-400 text-[10px] block">วันที่ยืนยันอนุมัติ:</span>
-            <strong id="printDocConfirmedAt" class="text-xs font-mono">-</strong>
-          </div>
-        </div>
-
-        <div>
-          <div class="text-[10px] text-slate-400 font-semibold uppercase mb-1">รายละเอียดและเนื้อหาเอกสาร</div>
-          <div id="printDocContent" class="p-3 bg-slate-50 rounded border border-slate-200 leading-relaxed min-h-[100px] whitespace-pre-wrap text-slate-800">
-            -
-          </div>
-        </div>
-
-        <div class="pt-3 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400 font-mono">
-          <div>VERIFICATION: LOCAL-SOVEREIGN-CERTIFIED</div>
-          <div class="text-slate-600 font-medium">ประทับตรายืนยันผ่านระบบเรียบร้อยแล้ว</div>
-        </div>
-      </div>
-
-      <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200 mt-4 no-print">
-        <button type="button" onclick="closeDocPrintModal()" class="px-3 py-1.5 border border-slate-300 hover:bg-slate-50 text-xs font-medium rounded">
-          ปิด
-        </button>
-        <button type="button" onclick="window.print()" class="px-4 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded shadow-xs">
-          พิมพ์เอกสาร
-        </button>
-      </div>
+    <div class="mt-3 text-center text-[11px] text-slate-400">
+      ULTRON Enterprise Minimal Core
     </div>
   </div>
 

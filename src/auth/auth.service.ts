@@ -120,6 +120,7 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        employeeId: user.employeeId,
         groups: groupNames,
         permissions: Array.from(permissionSet),
       },
