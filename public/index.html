@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise Multi-Group RBAC / PBAC</title>
+  <title>Enterprise Multi-Group RBAC & Comprehensive Action Matrix</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,8 +22,8 @@
   <!-- Top Navigation Bar -->
   <header class="border-b border-neutral-200 px-8 py-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-6">
-      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // MULTI-GROUP PBAC</span>
-      <span class="text-xs font-mono text-neutral-400">MANY-TO-MANY ARCHITECTURE</span>
+      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // ENTERPRISE PERMISSIONS TAXONOMY</span>
+      <span class="text-xs font-mono text-neutral-400">CRUD + WORKFLOW + FILE I/O + AUDIT</span>
     </div>
     <div class="flex items-center gap-4 text-xs font-mono">
       <div id="authStatus" class="flex items-center gap-2">
@@ -38,13 +38,13 @@
 
   <!-- User Grants Banner (Visible When Logged In) -->
   <div id="grantsBanner" class="hidden border-b border-neutral-200 bg-neutral-50 px-8 py-3 text-xs font-mono">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-neutral-400 uppercase">ACTIVE GROUPS:</span>
+        <span class="text-neutral-400 uppercase">GROUPS:</span>
         <span id="activeGroupsList" class="flex gap-1.5 flex-wrap"></span>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
-        <span class="text-neutral-400 uppercase">AGGREGATED PERMISSIONS:</span>
+        <span class="text-neutral-400 uppercase">PERMISSIONS GRANTED:</span>
         <span id="activePermsCount" class="font-bold text-neutral-900">0</span>
       </div>
     </div>
@@ -57,23 +57,30 @@
     <section class="lg:col-span-5 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-neutral-200 flex flex-col justify-start">
       <div class="max-w-md w-full">
         
-        <!-- Header Text -->
         <div class="mb-6">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS DELEGATION</p>
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS CONTROL ENGINE</p>
           <h2 id="formTitle" class="text-2xl font-semibold tracking-tight text-neutral-900">Sign in to workspace</h2>
         </div>
 
         <!-- Quick Demo Profiles -->
         <div class="mb-6 p-3 border border-neutral-200 bg-neutral-50 text-xs font-mono">
-          <div class="text-[11px] uppercase tracking-wider text-neutral-400 mb-2">QUICK TEST IDENTITIES (PRE-SEEDED)</div>
-          <div class="flex flex-col gap-2">
-            <button onclick="fillAndLogin('alex_ops_audit', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
-              <span>alex_ops_audit</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">GROUPS: [OPERATIONS + AUDIT]</span>
+          <div class="text-[11px] uppercase tracking-wider text-neutral-400 mb-2 font-semibold">PRE-SEEDED ENTERPRISE IDENTITIES (PASS: 123456)</div>
+          <div class="grid grid-cols-1 gap-1.5">
+            <button onclick="fillAndLogin('approver_ellen', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
+              <span>approver_ellen</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">EXECUTIVE APPROVER (Confirm, Cancel, Download)</span>
+            </button>
+            <button onclick="fillAndLogin('auditor_arthur', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
+              <span>auditor_arthur</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">COMPLIANCE AUDITOR (Audit Read, Audit Download)</span>
+            </button>
+            <button onclick="fillAndLogin('hybrid_harry', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
+              <span>hybrid_harry</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">HYBRID MULTI-GROUP (Operator + Auditor)</span>
             </button>
             <button onclick="fillAndLogin('root_admin', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
               <span>root_admin</span>
-              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">GROUP: [SUPER_ADMIN]</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">SUPER_ADMIN (All 16 Permissions)</span>
             </button>
           </div>
         </div>
@@ -91,15 +98,15 @@
         <!-- Sign-In Form -->
         <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
           <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Username</label>
+            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Username</label>
             <input type="text" id="loginUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Username">
           </div>
           <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Password</label>
+            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Password</label>
             <input type="password" id="loginPassword" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Password">
           </div>
           <button type="submit" class="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-widest transition-colors">
-            Authenticate Session
+            Authenticate Identity
           </button>
         </form>
 
@@ -107,179 +114,173 @@
         <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
           <div>
             <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Username</label>
-            <input type="text" id="regUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="New account identifier">
+            <input type="text" id="regUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Username">
           </div>
           <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Password (Min 6 chars)</label>
+            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Password</label>
             <input type="password" id="regPassword" minlength="6" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Password">
           </div>
           <div>
             <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Assign Groups (Select Multiple)</label>
-            <div id="groupCheckboxes" class="space-y-2 border border-neutral-200 p-3 bg-neutral-50 max-h-48 overflow-y-auto">
+            <div class="space-y-2 border border-neutral-200 p-3 bg-neutral-50 max-h-52 overflow-y-auto">
               <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
                 <input type="checkbox" value="SUPER_ADMIN" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
                 <span><strong>SUPER_ADMIN</strong> <span class="text-neutral-400 block text-[10px]">Unrestricted access</span></span>
               </label>
               <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
                 <input type="checkbox" value="OPERATIONS_MANAGER" name="regGroups" checked class="mt-0.5 rounded-none border-neutral-400">
-                <span><strong>OPERATIONS_MANAGER</strong> <span class="text-neutral-400 block text-[10px]">users:read, write, reports</span></span>
+                <span><strong>OPERATIONS_MANAGER</strong> <span class="text-neutral-400 block text-[10px]">Users, Docs, Reports, Confirm/Cancel</span></span>
               </label>
               <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
-                <input type="checkbox" value="AUDIT_TEAM" name="regGroups" checked class="mt-0.5 rounded-none border-neutral-400">
-                <span><strong>AUDIT_TEAM</strong> <span class="text-neutral-400 block text-[10px]">users:read, reports:view</span></span>
+                <input type="checkbox" value="EXECUTIVE_APPROVER" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>EXECUTIVE_APPROVER</strong> <span class="text-neutral-400 block text-[10px]">Confirm, Cancel, Download, Reports</span></span>
+              </label>
+              <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
+                <input type="checkbox" value="COMPLIANCE_AUDITOR" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>COMPLIANCE_AUDITOR</strong> <span class="text-neutral-400 block text-[10px]">Audit Read, Audit Download, Read</span></span>
+              </label>
+              <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
+                <input type="checkbox" value="STANDARD_OPERATOR" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>STANDARD_OPERATOR</strong> <span class="text-neutral-400 block text-[10px]">Upload, Download, Read Docs</span></span>
               </label>
               <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
                 <input type="checkbox" value="GENERAL_USER" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
-                <span><strong>GENERAL_USER</strong> <span class="text-neutral-400 block text-[10px]">reports:view</span></span>
+                <span><strong>GENERAL_USER</strong> <span class="text-neutral-400 block text-[10px]">Read Docs, View Reports</span></span>
               </label>
             </div>
-            <p class="text-[10px] text-neutral-400 font-mono mt-1">Users inherit the union of permissions from all selected groups.</p>
+            <p class="text-[10px] text-neutral-400 font-mono mt-1">Permissions automatically aggregate as a union across all checked groups.</p>
           </div>
           <button type="submit" class="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-widest transition-colors">
-            Provision Multi-Group Account
+            Provision Account
           </button>
         </form>
 
       </div>
     </section>
 
-    <!-- Right Column: Permission Matrix Inspector -->
+    <!-- Right Column: Comprehensive Action Matrix Inspector -->
     <section class="lg:col-span-7 p-8 lg:p-12 flex flex-col justify-between bg-neutral-50/50">
       <div>
         <div class="mb-6">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">FINE-GRAINED ENFORCEMENT</p>
-          <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">Permission Matrix Inspector</h2>
-          <p class="text-xs text-neutral-500 font-mono mt-1">Each endpoint tests atomic permission resolution against the user's aggregated groups.</p>
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">COMPREHENSIVE ACTION MATRIX</p>
+          <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">Fine-Grained Operation Inspector</h2>
+          <p class="text-xs text-neutral-500 font-mono mt-1">ทดสอบการสกัดกั้นตาม Action Taxonomy: อ่าน, เพิ่ม, ลบ, แก้ไข, ยืนยัน, ยกเลิก, อัปโหลด, ดาวน์โหลด, ตรวจสอบ</p>
         </div>
 
-        <!-- Endpoints Table -->
-        <div class="border border-neutral-200 bg-white mb-6">
-          <div class="grid grid-cols-12 text-xs font-mono uppercase tracking-wider text-neutral-400 p-2.5 border-b border-neutral-200 bg-neutral-50">
-            <span class="col-span-4">Method & Route</span>
-            <span class="col-span-5">Required Permission</span>
-            <span class="col-span-3 text-right">Action</span>
-          </div>
-
-          <!-- Row 1 -->
-          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">GET</span> /users/profile
+        <!-- 1. CRUD Category -->
+        <div class="mb-4">
+          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">1. CRUD ACTIONS (อ่าน / เพิ่ม / แก้ไข / ลบ)</div>
+          <div class="border border-neutral-200 bg-white">
+            <!-- Read -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/documents/read</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:read</span> (อ่าน)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/read', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-5 text-xs">
-              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-600">AUTHENTICATED</span>
+            <!-- Create -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/provision</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">users:create</span> (เพิ่ม)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/provision', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/profile', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
+            <!-- Update -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">PATCH</span> /users/profile/update</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">users:update</span> (แก้ไข)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/profile/update', 'PATCH')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-          </div>
-
-          <!-- Row 2 -->
-          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">GET</span> /users/reports
-            </div>
-            <div class="col-span-5 text-xs">
-              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">reports:view</span>
-            </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/reports', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
+            <!-- Delete -->
+            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">DELETE</span> /users/purge-account</span>
+              <span class="col-span-5"><span class="bg-neutral-900 text-white px-1 py-0.5 text-[10px]">users:delete</span> (ลบ)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/purge-account', 'DELETE')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
           </div>
+        </div>
 
-          <!-- Row 3 -->
-          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">GET</span> /users/reports/export
+        <!-- 2. Workflow & Approval Category -->
+        <div class="mb-4">
+          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">2. WORKFLOW ACTIONS (ยืนยัน / ยกเลิก)</div>
+          <div class="border border-neutral-200 bg-white">
+            <!-- Confirm -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/confirm</span>
+              <span class="col-span-5"><span class="border border-neutral-900 px-1 py-0.5 text-[10px] font-bold">documents:confirm</span> (ยืนยัน/อนุมัติ)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/confirm', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-5 text-xs">
-              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">reports:export</span>
-            </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/reports/export', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
+            <!-- Cancel -->
+            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/cancel</span>
+              <span class="col-span-5"><span class="border border-neutral-900 px-1 py-0.5 text-[10px] font-bold">documents:cancel</span> (ยกเลิก/ปฏิเสธ)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/cancel', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
           </div>
+        </div>
 
-          <!-- Row 4 -->
-          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">GET</span> /users/audit-log
+        <!-- 3. File I/O Category -->
+        <div class="mb-4">
+          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">3. FILE & DATA I/O (อัปโหลด / ดาวน์โหลด)</div>
+          <div class="border border-neutral-200 bg-white">
+            <!-- Upload -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/documents/upload</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:upload</span> (อัปโหลดไฟล์)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/upload', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-5 text-xs">
-              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">users:read</span>
+            <!-- Download Docs -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/documents/download</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">documents:download</span> (ดาวน์โหลดเอกสาร)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/documents/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/audit-log', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
+            <!-- Download Reports -->
+            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/reports/download</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">reports:download</span> (ดาวน์โหลดรายงาน)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/reports/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
           </div>
+        </div>
 
-          <!-- Row 5 -->
-          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">POST</span> /users/create-subaccount
+        <!-- 4. Governance & Audit Category -->
+        <div class="mb-6">
+          <div class="text-[11px] font-mono uppercase tracking-widest text-neutral-500 mb-1 font-semibold">4. GOVERNANCE & AUDIT (ตรวจสอบ / ตั้งค่าระบบ)</div>
+          <div class="border border-neutral-200 bg-white">
+            <!-- Audit Read -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/audit/read</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">audit:read</span> (ตรวจสอบประวัติ)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/audit/read', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-5 text-xs">
-              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">users:write</span>
+            <!-- Audit Download -->
+            <div class="grid grid-cols-12 items-center p-2 border-b border-neutral-100 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">GET</span> /users/audit/download</span>
+              <span class="col-span-5"><span class="border border-neutral-300 px-1 py-0.5 text-[10px]">audit:download</span> (ดาวน์โหลดประวัติ)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/audit/download', 'GET')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/create-subaccount', 'POST')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
-            </div>
-          </div>
-
-          <!-- Row 6 -->
-          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">DELETE</span> /users/purge-account
-            </div>
-            <div class="col-span-5 text-xs">
-              <span class="bg-neutral-900 text-white px-1.5 py-0.5 text-[10px] font-mono">users:delete</span>
-            </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/purge-account', 'DELETE')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
-            </div>
-          </div>
-
-          <!-- Row 7 -->
-          <div class="grid grid-cols-12 items-center p-2.5 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-4 text-xs font-mono text-neutral-900">
-              <span class="text-neutral-400">POST</span> /users/system/config
-            </div>
-            <div class="col-span-5 text-xs">
-              <span class="bg-neutral-900 text-white px-1.5 py-0.5 text-[10px] font-mono">system:configure</span>
-            </div>
-            <div class="col-span-3 text-right">
-              <button onclick="testApi('/users/system/config', 'POST')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                EXEC
-              </button>
+            <!-- System Configure -->
+            <div class="grid grid-cols-12 items-center p-2 hover:bg-neutral-50 text-xs font-mono">
+              <span class="col-span-4 text-neutral-900"><span class="text-neutral-400">POST</span> /users/system/config</span>
+              <span class="col-span-5"><span class="bg-neutral-900 text-white px-1 py-0.5 text-[10px]">system:configure</span> (ตั้งค่าระบบ)</span>
+              <span class="col-span-3 text-right"><button onclick="testApi('/users/system/config', 'POST')" class="px-2 py-0.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">TEST</button></span>
             </div>
           </div>
         </div>
 
         <!-- Telemetry / Console Output -->
         <div>
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-mono uppercase tracking-wider text-neutral-400">LIVE HTTP TELEMETRY</span>
-            <span id="responseStatus" class="text-xs font-mono uppercase tracking-widest text-neutral-500">IDLE</span>
+          <div class="flex items-center justify-between mb-1 text-xs font-mono uppercase tracking-wider text-neutral-400">
+            <span>LIVE HTTP TELEMETRY PAYLOAD</span>
+            <span id="responseStatus" class="font-semibold text-neutral-500">IDLE</span>
           </div>
-          <pre id="output" class="w-full p-4 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[140px] leading-relaxed">// Awaiting operation...</pre>
+          <pre id="output" class="w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[130px] leading-relaxed">// Awaiting operation...</pre>
         </div>
       </div>
 
       <!-- Footer Info -->
-      <div class="mt-6 pt-4 border-t border-neutral-200 flex justify-between items-center text-xs font-mono text-neutral-400">
-        <span>SECURITY: PASSPORT JWT BEARER</span>
-        <span>RESOLUTION: GROUP UNION PERMISSIONS</span>
+      <div class="mt-6 pt-3 border-t border-neutral-200 flex justify-between items-center text-xs font-mono text-neutral-400">
+        <span>SECURITY PROTOCOL: JWT PASSPORT</span>
+        <span>AUTHORIZATION: FINE-GRAINED ACTION RESOLVER</span>
       </div>
     </section>
 
@@ -311,7 +312,6 @@
 
       if (token) {
         try {
-          // Fetch current profile from /auth/me
           const res = await fetch(`${API_BASE}/auth/me`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -325,10 +325,10 @@
             grantsBanner.classList.remove('hidden');
 
             groupsList.innerHTML = user.groups.map(g => 
-              `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] text-neutral-800">${g}</span>`
+              `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] text-neutral-800 font-semibold">${g}</span>`
             ).join('');
 
-            permsCount.textContent = `${user.permissions.length} PERMISSION(S) GRANTED`;
+            permsCount.textContent = `${user.permissions.length} PERMISSION(S) ACTIVE`;
             return;
           }
         } catch (e) {
@@ -455,13 +455,13 @@
       statusEl.textContent = `STATUS // ${status}`;
       if (status >= 200 && status < 300) {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-900 font-semibold';
-        output.className = 'w-full p-4 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[140px] leading-relaxed';
+        output.className = 'w-full p-3 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[130px] leading-relaxed';
       } else if (status === 401 || status === 403) {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-        output.className = 'w-full p-4 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[140px] leading-relaxed';
+        output.className = 'w-full p-3 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[130px] leading-relaxed';
       } else {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-        output.className = 'w-full p-4 border border-neutral-300 bg-neutral-50 font-mono text-xs text-neutral-600 overflow-x-auto min-h-[140px] leading-relaxed';
+        output.className = 'w-full p-3 border border-neutral-300 bg-neutral-50 font-mono text-xs text-neutral-600 overflow-x-auto min-h-[130px] leading-relaxed';
       }
 
       output.textContent = JSON.stringify(data, null, 2);

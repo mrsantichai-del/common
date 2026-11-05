@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/guards/permissions.guard';
@@ -11,81 +11,170 @@ import { AppPermission } from '../auth/constants/permissions';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // 1. Base Identity Profile
   @Get('profile')
   getProfile(@CurrentUser() user: any) {
     return {
-      message: 'Access granted: Identity Profile verified',
+      message: 'Access granted: Identity Profile retrieved',
       user,
     };
   }
 
-  @Get('reports')
-  @RequirePermissions(AppPermission.REPORTS_VIEW)
-  viewReports(@CurrentUser() user: any) {
-    return {
-      message: 'Access granted: Analytics & Reports Dashboard',
-      permissionUsed: AppPermission.REPORTS_VIEW,
-      data: {
-        activeNodes: 14,
-        totalThroughput: '1.2 GB/s',
-        systemLoad: '12%',
-      },
-    };
-  }
-
-  @Get('reports/export')
-  @RequirePermissions(AppPermission.REPORTS_EXPORT)
-  exportReports(@CurrentUser() user: any) {
-    return {
-      message: 'Access granted: Data exported successfully as CSV/PDF stream',
-      permissionUsed: AppPermission.REPORTS_EXPORT,
-      exportedAt: new Date().toISOString(),
-    };
-  }
-
-  @Get('audit-log')
+  // 2. Read Actions (อ่าน)
+  @Get('list')
   @RequirePermissions(AppPermission.USERS_READ)
-  getAuditLog(@CurrentUser() user: any) {
+  listUsers() {
+    return this.usersService.findAll();
+  }
+
+  @Get('documents/read')
+  @RequirePermissions(AppPermission.DOCUMENTS_READ)
+  readDocument(@CurrentUser() user: any) {
     return {
-      message: 'Access granted: Audit Security Ledger accessed',
-      permissionUsed: AppPermission.USERS_READ,
-      userCount: 2,
+      action: 'READ (อ่าน)',
+      permission: AppPermission.DOCUMENTS_READ,
+      message: 'Access granted: Document metadata and content stream opened',
+      documentId: 'DOC-2026-X88',
+      accessedBy: user.username,
     };
   }
 
-  @Post('create-subaccount')
-  @RequirePermissions(AppPermission.USERS_WRITE)
-  createSubaccount(@CurrentUser() user: any) {
+  // 3. Create Action (เพิ่ม / สร้าง)
+  @Post('provision')
+  @RequirePermissions(AppPermission.USERS_CREATE)
+  createUser(@CurrentUser() user: any) {
     return {
-      message: 'Access granted: User Provisioning action executed',
-      permissionUsed: AppPermission.USERS_WRITE,
+      action: 'CREATE (เพิ่ม/สร้าง)',
+      permission: AppPermission.USERS_CREATE,
+      message: 'Access granted: User provisioning routine completed',
       operator: user.username,
     };
   }
 
+  // 4. Update Action (แก้ไข)
+  @Patch('profile/update')
+  @RequirePermissions(AppPermission.USERS_UPDATE)
+  updateProfile(@CurrentUser() user: any) {
+    return {
+      action: 'UPDATE (แก้ไข)',
+      permission: AppPermission.USERS_UPDATE,
+      message: 'Access granted: Target record parameters updated',
+      operator: user.username,
+    };
+  }
+
+  // 5. Delete Action (ลบ)
   @Delete('purge-account')
   @RequirePermissions(AppPermission.USERS_DELETE)
   purgeAccount(@CurrentUser() user: any) {
     return {
-      message: 'Access granted: High-impact User Purge action executed',
-      permissionUsed: AppPermission.USERS_DELETE,
+      action: 'DELETE (ลบ)',
+      permission: AppPermission.USERS_DELETE,
+      message: 'Access granted: Target entity purged from database',
       operator: user.username,
     };
   }
 
+  // 6. Confirm / Approve Action (ยืนยัน / อนุมัติ)
+  @Post('documents/confirm')
+  @RequirePermissions(AppPermission.DOCUMENTS_CONFIRM)
+  confirmDocument(@CurrentUser() user: any) {
+    return {
+      action: 'CONFIRM / APPROVE (ยืนยัน / อนุมัติ)',
+      permission: AppPermission.DOCUMENTS_CONFIRM,
+      message: 'Access granted: Official signature and confirmation committed',
+      documentId: 'DOC-2026-X88',
+      confirmedBy: user.username,
+      confirmedAt: new Date().toISOString(),
+    };
+  }
+
+  // 7. Cancel / Reject Action (ยกเลิก / ปฏิเสธ)
+  @Post('documents/cancel')
+  @RequirePermissions(AppPermission.DOCUMENTS_CANCEL)
+  cancelDocument(@CurrentUser() user: any) {
+    return {
+      action: 'CANCEL / REJECT (ยกเลิก / ปฏิเสธ)',
+      permission: AppPermission.DOCUMENTS_CANCEL,
+      message: 'Access granted: Document processing revoked and flagged cancelled',
+      documentId: 'DOC-2026-X88',
+      cancelledBy: user.username,
+      cancelledAt: new Date().toISOString(),
+    };
+  }
+
+  // 8. Upload Action (อัปโหลด)
+  @Post('documents/upload')
+  @RequirePermissions(AppPermission.DOCUMENTS_UPLOAD)
+  uploadDocument(@CurrentUser() user: any) {
+    return {
+      action: 'UPLOAD (อัปโหลด)',
+      permission: AppPermission.DOCUMENTS_UPLOAD,
+      message: 'Access granted: File payload validated and stored in storage buffer',
+      fileName: 'invoice-2026-q4.pdf',
+      fileSize: '4.8 MB',
+      uploadedBy: user.username,
+    };
+  }
+
+  // 9. Download Actions (ดาวน์โหลด)
+  @Get('documents/download')
+  @RequirePermissions(AppPermission.DOCUMENTS_DOWNLOAD)
+  downloadDocument(@CurrentUser() user: any) {
+    return {
+      action: 'DOWNLOAD (ดาวน์โหลด)',
+      permission: AppPermission.DOCUMENTS_DOWNLOAD,
+      message: 'Access granted: Secure signed URL generated for binary download',
+      fileUri: '/storage/payloads/DOC-2026-X88.bin',
+      downloadInitiatedBy: user.username,
+    };
+  }
+
+  @Get('reports/download')
+  @RequirePermissions(AppPermission.REPORTS_DOWNLOAD)
+  downloadReport(@CurrentUser() user: any) {
+    return {
+      action: 'DOWNLOAD REPORT (ดาวน์โหลดรายงาน)',
+      permission: AppPermission.REPORTS_DOWNLOAD,
+      message: 'Access granted: Analytical metrics compiled into Excel/CSV stream',
+      format: 'xlsx',
+      downloadInitiatedBy: user.username,
+    };
+  }
+
+  // 10. Audit Actions (ตรวจสอบประวัติ)
+  @Get('audit/read')
+  @RequirePermissions(AppPermission.AUDIT_READ)
+  readAuditLogs(@CurrentUser() user: any) {
+    return {
+      action: 'AUDIT READ (ตรวจสอบประวัติ)',
+      permission: AppPermission.AUDIT_READ,
+      message: 'Access granted: Immutable activity ledger loaded for inspection',
+      recentEventsLogged: 128,
+      auditedBy: user.username,
+    };
+  }
+
+  @Get('audit/download')
+  @RequirePermissions(AppPermission.AUDIT_DOWNLOAD)
+  downloadAuditLogs(@CurrentUser() user: any) {
+    return {
+      action: 'AUDIT DOWNLOAD (ดาวน์โหลดประวัติ)',
+      permission: AppPermission.AUDIT_DOWNLOAD,
+      message: 'Access granted: Cryptographically hashed audit ledger exported',
+      operator: user.username,
+    };
+  }
+
+  // 11. System Kernel Configuration
   @Post('system/config')
   @RequirePermissions(AppPermission.SYSTEM_CONFIGURE)
   configureSystem(@CurrentUser() user: any) {
     return {
-      message: 'Access granted: Core System Kernel Configuration modified',
-      permissionUsed: AppPermission.SYSTEM_CONFIGURE,
+      action: 'CONFIGURE (ตั้งค่าระบบระดับลึก)',
+      permission: AppPermission.SYSTEM_CONFIGURE,
+      message: 'Access granted: Kernel parameters reloaded successfully',
       operator: user.username,
     };
-  }
-
-  @Get('all')
-  @RequirePermissions(AppPermission.USERS_READ)
-  getAllUsers() {
-    return this.usersService.findAll();
   }
 }
