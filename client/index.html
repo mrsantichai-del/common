@@ -8,10 +8,6 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Leaflet.js CSS & JS CDN -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  
   <!-- CryptoJS CDN for AES-256 Symmetric Payload Encryption -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 
@@ -24,14 +20,10 @@
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
-    .leaflet-popup-content-wrapper {
-      border-radius: 8px;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    }
 
     /* Print Stylesheet */
     @media print {
-      header, nav, #viewLogin, .no-print, #devDrawer, #toastContainer,
+      header, nav, aside, #viewLogin, .no-print, #toastContainer,
       .action-buttons, #masterToolbar, #masterTableTabs, #authProfileBar {
         display: none !important;
       }
@@ -155,15 +147,6 @@
           />
         </div>
 
-        <!-- Hidden / Subtle AES indicator -->
-        <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
-          <label class="flex items-center space-x-2 cursor-pointer select-none">
-            <input type="checkbox" id="cryptoToggle" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
-            <span>เปิดระบบรักษาความปลอดภัย AES-256</span>
-          </label>
-          <span id="cryptoStateBadge" class="text-[10px] bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-full">ACTIVE</span>
-        </div>
-
         <button 
           type="submit" 
           id="btnLoginSubmit"
@@ -195,81 +178,191 @@
 
 
   <!-- ============================================================== -->
-  <!-- VIEW 2: MODERN CLEAN DASHBOARD & ENTERPRISE WORKSPACE          -->
+  <!-- VIEW 2: ENTERPRISE WORKSPACE WITH LEFT SIDEBAR FOR SUPER ADMIN -->
   <!-- ============================================================== -->
-  <div id="viewApp" class="hidden min-h-screen flex flex-col bg-slate-50">
+  <div id="viewApp" class="hidden min-h-screen flex bg-slate-100">
     
-    <!-- TOP MODERN NAVIGATION BAR -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs no-print">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        
-        <!-- Brand Logo & System Name -->
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            🛡️
-          </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <span class="font-bold text-slate-900 text-base tracking-tight">ULTRON SYSTEM</span>
-              <span class="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">ออนไลน์ (Online)</span>
+    <!-- Mobile Backdrop for Sidebar -->
+    <div id="sidebarBackdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/50 z-40 hidden md:hidden"></div>
+
+    <!-- LEFT SIDEBAR NAVIGATION (SUPER ADMIN & APPLICATION MENU) -->
+    <aside id="sidebarNav" class="fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-300 flex flex-col justify-between transition-transform transform -translate-x-full md:translate-x-0 md:static md:inset-auto border-r border-slate-800 shadow-xl md:shadow-none select-none flex-shrink-0 min-h-screen">
+      
+      <!-- Top Branding Section -->
+      <div>
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
+              🛡️
             </div>
-            <div class="text-xs text-slate-400">ระบบบริหารจัดการเอกสารและข้อมูลมาสเตอร์เทเบิล</div>
+            <div>
+              <div class="font-bold text-white text-base tracking-tight">
+                ULTRON CORE
+              </div>
+              <div class="text-[11px] text-slate-400">ระบบจัดการฐานข้อมูล</div>
+            </div>
+          </div>
+          <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-400 hover:text-white p-1 text-lg leading-none">&times;</button>
+        </div>
+
+        <!-- Super Admin Role Banner -->
+        <div id="sidebarAdminBadge" class="mx-3 mt-3 px-3 py-2 rounded-xl bg-blue-950/60 border border-blue-800/50 flex items-center space-x-2">
+          <span class="text-base">👑</span>
+          <div class="leading-tight">
+            <div class="text-xs font-bold text-blue-300">โหมดผู้ดูแลระบบ</div>
+            <div class="text-[10px] text-blue-400 font-mono">SUPER ADMIN WORKSPACE</div>
           </div>
         </div>
 
-        <!-- Navigation Tabs Bar -->
-        <nav class="hidden md:flex items-center space-x-1">
-          <button id="tabBtn_overview" onclick="switchAppTab('overview')" class="px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-blue-600 bg-blue-50 font-semibold">
-            📊 ภาพรวม (Dashboard)
-          </button>
-          <button id="tabBtn_documents" onclick="switchAppTab('documents')" class="px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-            📑 จัดการเอกสาร (Documents)
-          </button>
-          <button id="tabBtn_masterTable" onclick="switchAppTab('masterTable')" class="px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-            📁 ตารางข้อมูลทั้งหมด (Master Tables)
-          </button>
-          <button id="navAdminTab" onclick="switchAppTab('governance')" class="hidden px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100">
-            👥 ผู้ใช้งาน &amp; สิทธิ์ (Admin)
-          </button>
-        </nav>
-
-        <!-- User Profile Pill & Actions -->
-        <div class="flex items-center space-x-3">
+        <!-- Navigation Menu List -->
+        <nav class="p-3 space-y-4 text-xs">
           
-          <!-- Identity Info -->
-          <div class="flex items-center space-x-2 bg-slate-100 border border-slate-200/80 px-3 py-1.5 rounded-full">
-            <div class="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-              👤
+          <!-- Section 1: Main Menu -->
+          <div>
+            <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+              เมนูหลัก (MAIN)
             </div>
-            <div class="text-xs">
-              <span class="font-semibold text-slate-800" id="currentUsernameDisplay">User</span>
-              <span class="text-slate-400 text-[10px] ml-1" id="currentUserRoleDisplay">(Role)</span>
+            <div class="space-y-1">
+              <button 
+                id="sidebarBtn_overview" 
+                onclick="switchAppTab('overview')" 
+                class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all text-white bg-blue-600 shadow-sm"
+              >
+                <span class="text-base">📊</span>
+                <span class="flex-1 text-left">ภาพรวมระบบ (Dashboard)</span>
+              </button>
+              <button 
+                id="sidebarBtn_documents" 
+                onclick="switchAppTab('documents')" 
+                class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-base">📑</span>
+                <span class="flex-1 text-left">จัดการเอกสาร (Documents)</span>
+              </button>
             </div>
           </div>
 
-          <!-- Dev Mode Drawer Toggle Button -->
-          <button onclick="toggleDevDrawer()" class="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg text-xs" title="เปิด/ปิด โหมดนักพัฒนา (Developer Tools)">
-            ⚙️
-          </button>
+          <!-- Section 2: Master Tables (Direct One-Click Access for Super Admin) -->
+          <div id="sidebarSectionMasterTables">
+            <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-500 uppercase flex items-center justify-between">
+              <span>มาสเตอร์เทเบิล (MASTER TABLES)</span>
+              <span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-mono">5 ตาราง</span>
+            </div>
+            <div class="space-y-1">
+              <button 
+                id="sidebarBtn_master_Document" 
+                onclick="navigateToMasterTable('Document')" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-sm">📄</span>
+                <span class="flex-1 text-left">ตารางเอกสาร (Document)</span>
+              </button>
+              <button 
+                id="sidebarBtn_master_User" 
+                onclick="navigateToMasterTable('User')" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-sm">👤</span>
+                <span class="flex-1 text-left">ตารางผู้ใช้งาน (User)</span>
+              </button>
+              <button 
+                id="sidebarBtn_master_Group" 
+                onclick="navigateToMasterTable('Group')" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-sm">🏢</span>
+                <span class="flex-1 text-left">ตารางกลุ่มบทบาท (Group)</span>
+              </button>
+              <button 
+                id="sidebarBtn_master_Permission" 
+                onclick="navigateToMasterTable('Permission')" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-sm">🔑</span>
+                <span class="flex-1 text-left">ตารางสิทธิ์ (Permission)</span>
+              </button>
+              <button 
+                id="sidebarBtn_master_AuditLog" 
+                onclick="navigateToMasterTable('AuditLog')" 
+                class="w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-sm">📜</span>
+                <span class="flex-1 text-left">ตารางประวัติ (AuditLog)</span>
+              </button>
+            </div>
+          </div>
 
-          <!-- Logout Button -->
-          <button onclick="handleLogout()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg transition-colors border border-rose-200">
-            ออกจากระบบ
+          <!-- Section 3: Governance & Security (Super Admin Only) -->
+          <div id="sidebarSectionGovernance">
+            <div class="px-3 pb-1.5 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+              ความปลอดภัย &amp; สิทธิ์ (PBAC)
+            </div>
+            <div class="space-y-1">
+              <button 
+                id="sidebarBtn_governance" 
+                onclick="switchAppTab('governance')" 
+                class="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <span class="text-base">🛡️</span>
+                <span class="flex-1 text-left">กำหนดสิทธิ์บทบาท (Governance)</span>
+              </button>
+            </div>
+          </div>
+
+        </nav>
+      </div>
+
+      <!-- Bottom User Profile & Sign Out Section -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950/50">
+        <div class="flex items-center space-x-2.5 px-2 py-2">
+          <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            👤
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-white text-xs truncate" id="sidebarUsername">root_admin</div>
+            <div class="text-[10px] text-blue-400 font-mono truncate" id="sidebarUserRole">SUPER_ADMIN</div>
+          </div>
+        </div>
+        <button 
+          onclick="handleLogout()" 
+          class="w-full mt-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-400 text-slate-400 text-xs font-semibold transition-colors flex items-center justify-center space-x-1.5 border border-slate-700/60 hover:border-rose-900 cursor-pointer"
+        >
+          <span>🚪</span>
+          <span>ออกจากระบบ (Logout)</span>
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- RIGHT MAIN CONTENT WORKSPACE -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
+      
+      <!-- Top Clean Header Bar -->
+      <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex items-center justify-between no-print shadow-2xs">
+        <div class="flex items-center space-x-3">
+          <button onclick="toggleMobileSidebar()" class="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 text-lg leading-none">
+            ☰
           </button>
+          <div>
+            <h1 id="headerViewTitle" class="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <span>📊 ภาพรวมระบบ (System Overview)</span>
+            </h1>
+            <p id="headerViewSubtitle" class="text-xs text-slate-500">
+              สถานะภาพรวมและรายการที่ต้องดำเนินการในระบบ
+            </p>
+          </div>
         </div>
 
-      </div>
+        <div class="flex items-center space-x-3 text-xs">
+          <div class="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium text-[11px]">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Local SQLite ออนไลน์</span>
+          </div>
+        </div>
+      </header>
 
-      <!-- Mobile Navigation Sub-bar -->
-      <div class="md:hidden flex items-center justify-around py-2 border-t border-slate-200 bg-slate-50 text-xs font-medium">
-        <button onclick="switchAppTab('overview')" class="p-1 text-blue-600 font-bold">ภาพรวม</button>
-        <button onclick="switchAppTab('documents')" class="p-1 text-slate-600">เอกสาร</button>
-        <button onclick="switchAppTab('masterTable')" class="p-1 text-slate-600">มาสเตอร์เทเบิล</button>
-      </div>
-    </header>
-
-    <!-- MAIN VIEWPORT CONTAINER -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+      <!-- MAIN VIEWPORT CONTAINER -->
+      <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-1 w-full space-y-6">
 
       <!-- ============================================================ -->
       <!-- TAB 1: USER-FRIENDLY DASHBOARD OVERVIEW                      -->
@@ -537,20 +630,6 @@
           <div id="dashboardPendingList" class="divide-y divide-slate-100">
             <!-- Dynamically populated pending items -->
           </div>
-        </div>
-
-        <!-- System Topology & Map (Collapsible & Friendly) -->
-        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 space-y-3">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center space-x-2">
-              <span class="text-lg">🗺️</span>
-              <div>
-                <h3 class="font-bold text-slate-900 text-sm">พิกัดเครือข่ายโหนดปฏิบัติการ (Node Telemetry)</h3>
-                <p class="text-xs text-slate-400">ตรวจพบ 4 โหนดเชื่อมต่อภายในเครื่อง (Local Sovereignty)</p>
-              </div>
-            </div>
-          </div>
-          <div id="operationalMap" class="w-full h-72 rounded-xl border border-slate-200 z-0"></div>
         </div>
 
       </section>
@@ -824,47 +903,11 @@
 
     </main>
 
-    <!-- ============================================================== -->
-    <!-- SLIDE-OUT DEVELOPER TOOLS DRAWER (AES WIRE SNIFFER & CONSOLE)  -->
-    <!-- ============================================================== -->
-    <div id="devDrawer" class="hidden bg-slate-900 text-slate-200 border-t border-slate-700 p-4 no-print shadow-2xl transition-all">
-      <div class="max-w-7xl mx-auto flex flex-col space-y-3">
-        <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-          <div class="flex items-center space-x-2">
-            <span class="text-xs font-mono font-bold text-emerald-400">⚙️ DEVELOPER WIRE TELEMETRY &amp; CONSOLE</span>
-            <span id="wireStatus" class="text-[11px] font-mono text-slate-400">IDLE</span>
-          </div>
-          <button onclick="toggleDevDrawer()" class="text-slate-400 hover:text-white font-bold text-sm">&times; ปิด</button>
-        </div>
+  </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-          <div>
-            <span class="text-[10px] text-slate-400 block mb-1">OUTGOING CIPHERTEXT REQUEST:</span>
-            <div id="wireOut" class="p-2 bg-slate-950 rounded-lg border border-slate-800 text-emerald-400 break-all text-[11px] max-h-20 overflow-y-auto">
-              None
-            </div>
-          </div>
-          <div>
-            <span class="text-[10px] text-slate-400 block mb-1">INCOMING CIPHERTEXT RESPONSE:</span>
-            <div id="wireIn" class="p-2 bg-slate-950 rounded-lg border border-slate-800 text-emerald-400 break-all text-[11px] max-h-20 overflow-y-auto">
-              None
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <span id="consoleTitle" class="text-[10px] text-slate-400 font-bold uppercase">SYSTEM CONSOLE</span>
-            <button onclick="logConsole('CONSOLE CLEARED', { status: 'ready' })" class="text-[10px] text-slate-500 hover:text-slate-300">ล้างข้อความ</button>
-          </div>
-          <pre id="consoleOutput" class="w-full p-2 bg-slate-950 rounded-lg border border-slate-800 font-mono text-[11px] text-slate-300 overflow-x-auto max-h-24 leading-relaxed">System ready.</pre>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============================================================== -->
-    <!-- MODALS: ADD/EDIT, IMPORT, PRINT, DELEGATION                    -->
-    <!-- ============================================================== -->
+  <!-- ============================================================== -->
+  <!-- MODALS: ADD/EDIT, IMPORT, PRINT, DELEGATION                    -->
+  <!-- ============================================================== -->
 
     <!-- USER DELEGATION MODAL -->
     <div id="modalUserDelegation" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">

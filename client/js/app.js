@@ -6,74 +6,17 @@
 // Initialize SDK instance with explicit backend base URL
 const api = new ApiClient({
   baseUrl: 'http://localhost:3000',
-  onWireTelemetry: (telemetry) => {
-    renderWireTelemetry(telemetry);
-  },
 });
-
-let leafletMap = null;
-let mapMarkers = [];
 
 // App Startup
 document.addEventListener('DOMContentLoaded', async () => {
-  initUIEventHandlers();
   initDemoMode();
   initAdminJourneyState();
   await refreshAuthStatus();
 });
 
-function initUIEventHandlers() {
-  const cryptoToggle = document.getElementById('cryptoToggle');
-  if (cryptoToggle) {
-    cryptoToggle.addEventListener('change', (e) => {
-      api.setEncryption(e.target.checked);
-      updateCryptoBadge(e.target.checked);
-    });
-  }
-}
-
-function updateCryptoBadge(enabled) {
-  const badge = document.getElementById('cryptoStateBadge');
-  if (!badge) return;
-  if (enabled) {
-    badge.textContent = 'AES-256 ACTIVE';
-    badge.className = 'bg-neutral-900 text-white px-1.5 py-0.2 text-[10px] font-semibold';
-  } else {
-    badge.textContent = 'ข้อความธรรมดา (PLAINTEXT)';
-    badge.className = 'bg-neutral-300 text-neutral-800 px-1.5 py-0.2 text-[10px]';
-  }
-}
-
-function renderWireTelemetry(telemetry) {
-  const wireOut = document.getElementById('wireOut');
-  const wireIn = document.getElementById('wireIn');
-  const wireStatus = document.getElementById('wireStatus');
-
-  if (wireOut) wireOut.textContent = telemetry.outgoingWire || 'ไม่มีข้อมูล (None)';
-  if (wireIn) wireIn.textContent = telemetry.incomingWire || 'ไม่มีข้อมูล (None)';
-  if (wireStatus) {
-    wireStatus.textContent = `${telemetry.method} ${telemetry.endpoint} // รหัสสถานะ ${telemetry.status}`;
-    wireStatus.className =
-      telemetry.status >= 200 && telemetry.status < 300
-        ? 'font-semibold text-neutral-900 font-mono text-xs'
-        : 'font-semibold text-rose-600 font-mono text-xs';
-  }
-}
-
-function logConsole(title, data, isError = false) {
-  const output = document.getElementById('consoleOutput');
-  const consoleTitle = document.getElementById('consoleTitle');
-  if (consoleTitle) consoleTitle.textContent = title;
-  if (output) {
-    output.className = isError
-      ? 'w-full p-3 border border-rose-300 bg-rose-50/50 font-mono text-xs text-rose-800 overflow-x-auto min-h-[110px] leading-relaxed'
-      : 'w-full p-3 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[110px] leading-relaxed';
-    output.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-  }
-}
-
 // ----------------------------------------------------
-// UI Notification & Dev Drawer Handlers
+// UI Notification Handlers
 // ----------------------------------------------------
 
 function showToast(message, type = 'success') {
@@ -103,10 +46,12 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
-function toggleDevDrawer() {
-  const drawer = document.getElementById('devDrawer');
-  if (!drawer) return;
-  drawer.classList.toggle('hidden');
+function logConsole(title, data, isError = false) {
+  if (isError) {
+    console.error(`[ULTRON ${title}]`, data);
+  } else {
+    console.log(`[ULTRON ${title}]`, data);
+  }
 }
 
 // ----------------------------------------------------
@@ -307,8 +252,10 @@ function toggleDemoAccountsPanel() {
 async function refreshAuthStatus() {
   const viewLogin = document.getElementById('viewLogin');
   const viewApp = document.getElementById('viewApp');
-  const navAdminTab = document.getElementById('navAdminTab');
   const setupCard = document.getElementById('adminSetupJourneyCard');
+  const adminBadge = document.getElementById('sidebarAdminBadge');
+  const masterSection = document.getElementById('sidebarSectionMasterTables');
+  const govSection = document.getElementById('sidebarSectionGovernance');
 
   if (api.isAuthenticated()) {
     try {
@@ -318,27 +265,28 @@ async function refreshAuthStatus() {
       if (viewLogin) viewLogin.classList.add('hidden');
       if (viewApp) viewApp.classList.remove('hidden');
 
-      // Update User profile pill
-      const nameDisp = document.getElementById('currentUsernameDisplay');
-      const roleDisp = document.getElementById('currentUserRoleDisplay');
+      // Update Sidebar user profile pill
+      const nameDisp = document.getElementById('sidebarUsername');
+      const roleDisp = document.getElementById('sidebarUserRole');
       if (nameDisp) nameDisp.textContent = user.username;
-      if (roleDisp) roleDisp.textContent = `(${user.groups[0] || 'User'})`;
+      if (roleDisp) roleDisp.textContent = user.groups[0] || 'USER';
 
-      if (user.groups.includes('SUPER_ADMIN')) {
-        if (navAdminTab) navAdminTab.classList.remove('hidden');
+      const isSuperAdmin = user.groups.includes('SUPER_ADMIN');
+
+      if (isSuperAdmin) {
+        if (adminBadge) adminBadge.classList.remove('hidden');
+        if (masterSection) masterSection.classList.remove('hidden');
+        if (govSection) govSection.classList.remove('hidden');
         if (setupCard) setupCard.classList.remove('hidden');
         await updateAdminSetupJourney();
       } else {
-        if (navAdminTab) navAdminTab.classList.add('hidden');
+        if (adminBadge) adminBadge.classList.add('hidden');
+        if (govSection) govSection.classList.add('hidden');
         if (setupCard) setupCard.classList.add('hidden');
       }
 
-      // Re-render map after container becomes visible
-      if (!leafletMap) {
-        initLeafletMap();
-      } else {
-        setTimeout(() => leafletMap.invalidateSize(), 150);
-      }
+      // Initialize default active tab and button styling
+      updateSidebarActiveButtons('overview');
 
       // Load initial Dashboard metrics
       await loadDashboardStats();
@@ -433,36 +381,109 @@ function handleLogout() {
 // Navigation Tab Switching
 // ----------------------------------------------------
 
-function switchAppTab(tab) {
-  const tabs = ['overview', 'documents', 'masterTable', 'governance'];
-  tabs.forEach((t) => {
-    const section = document.getElementById(`tabSection_${t}`);
-    const btn = document.getElementById(`tabBtn_${t}`);
-    if (section) section.classList.add('hidden');
-    if (btn) {
-      btn.className = 'px-3.5 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-100';
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('sidebarNav');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  if (!sidebar) return;
+  const isClosed = sidebar.classList.contains('-translate-x-full');
+  if (isClosed) {
+    sidebar.classList.remove('-translate-x-full');
+    if (backdrop) backdrop.classList.remove('hidden');
+  } else {
+    sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
+}
+
+function navigateToMasterTable(tableName) {
+  selectMasterTable(tableName);
+  switchAppTab('masterTable', tableName);
+  // Auto close mobile sidebar if open
+  if (window.innerWidth < 768) {
+    const sidebar = document.getElementById('sidebarNav');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
+}
+
+function updateSidebarActiveButtons(activeTab, subTable = null) {
+  const mainButtons = [
+    { id: 'sidebarBtn_overview', tab: 'overview' },
+    { id: 'sidebarBtn_documents', tab: 'documents' },
+    { id: 'sidebarBtn_governance', tab: 'governance' },
+  ];
+
+  mainButtons.forEach(({ id, tab }) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (tab === activeTab && activeTab !== 'masterTable') {
+      btn.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all text-white bg-blue-600 shadow-sm';
+    } else {
+      btn.className = 'w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800';
     }
   });
 
+  const masterTables = ['Document', 'User', 'Group', 'Permission', 'AuditLog'];
+  const targetSubTable = subTable || (typeof activeMasterTable !== 'undefined' ? activeMasterTable : 'Document');
+  masterTables.forEach((t) => {
+    const btn = document.getElementById(`sidebarBtn_master_${t}`);
+    if (!btn) return;
+    if (activeTab === 'masterTable' && t === targetSubTable) {
+      btn.className = 'w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-white bg-blue-600 shadow-sm font-semibold';
+    } else {
+      btn.className = 'w-full flex items-center space-x-3 px-3 py-2 rounded-xl font-medium transition-all text-slate-400 hover:text-white hover:bg-slate-800';
+    }
+  });
+}
+
+function switchAppTab(tab, subTable = null) {
+  const tabs = ['overview', 'documents', 'masterTable', 'governance'];
+  tabs.forEach((t) => {
+    const section = document.getElementById(`tabSection_${t}`);
+    if (section) section.classList.add('hidden');
+  });
+
   const activeSection = document.getElementById(`tabSection_${tab}`);
-  const activeBtn = document.getElementById(`tabBtn_${tab}`);
   if (activeSection) activeSection.classList.remove('hidden');
-  if (activeBtn) {
-    activeBtn.className = 'px-3.5 py-2 rounded-lg text-sm font-semibold transition-all text-blue-600 bg-blue-50';
-  }
+
+  updateSidebarActiveButtons(tab, subTable);
+
+  const headerTitle = document.getElementById('headerViewTitle');
+  const headerSubtitle = document.getElementById('headerViewSubtitle');
 
   if (tab === 'overview') {
+    if (headerTitle) headerTitle.innerHTML = '<span>📊 ภาพรวมระบบ (System Overview)</span>';
+    if (headerSubtitle) headerSubtitle.textContent = 'สถานะภาพรวมและรายการที่ต้องดำเนินการในระบบ';
     loadDashboardStats();
-    if (leafletMap) setTimeout(() => leafletMap.invalidateSize(), 200);
-  }
-  if (tab === 'documents') {
+  } else if (tab === 'documents') {
+    if (headerTitle) headerTitle.innerHTML = '<span>📑 จัดการเอกสารปฏิบัติการ (Document Management)</span>';
+    if (headerSubtitle) headerSubtitle.textContent = 'สร้าง, ค้นหา, ยืนยันอนุมัติ, ยกเลิก และพิมพ์เอกสารราชการ/โครงการ';
     loadDocumentsData();
-  }
-  if (tab === 'masterTable') {
+  } else if (tab === 'masterTable') {
+    const currentTable = subTable || activeMasterTable || 'Document';
+    const thNames = {
+      Document: 'เอกสาร (Document)',
+      User: 'ผู้ใช้งาน (User)',
+      Group: 'กลุ่มบทบาท (Group)',
+      Permission: 'สิทธิ์การใช้งาน (Permission)',
+      AuditLog: 'ประวัติการใช้งาน (AuditLog)',
+    };
+    if (headerTitle) headerTitle.innerHTML = `<span>📁 มาสเตอร์เทเบิล: ${thNames[currentTable] || currentTable}</span>`;
+    if (headerSubtitle) headerSubtitle.textContent = 'จัดการข้อมูล เพิ่ม ลบ แก้ไข ค้นหา ยืนยัน นำเข้า และส่งออก';
     loadMasterTableData();
-  }
-  if (tab === 'governance') {
+  } else if (tab === 'governance') {
+    if (headerTitle) headerTitle.innerHTML = '<span>🛡️ กำหนดสิทธิ์บทบาทและผู้ใช้งาน (Governance & PBAC)</span>';
+    if (headerSubtitle) headerSubtitle.textContent = 'กำหนดนโยบายความปลอดภัยและจัดสรรสิทธิ์แก่ผู้ใช้งานตามโครงสร้าง Many-to-Many';
     loadGovernanceData();
+  }
+
+  // Auto close mobile sidebar
+  if (window.innerWidth < 768) {
+    const sidebar = document.getElementById('sidebarNav');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    if (sidebar) sidebar.classList.add('-translate-x-full');
+    if (backdrop) backdrop.classList.add('hidden');
   }
 }
 
@@ -680,54 +701,6 @@ function openMasterCreateModalFor(table) {
 function openMasterImportModalFor(table) {
   selectMasterTable(table);
   openMasterImportModal();
-}
-
-// ----------------------------------------------------
-// Leaflet.js Interactive Geospatial Map (Tech Stack)
-// ----------------------------------------------------
-
-function initLeafletMap() {
-  if (leafletMap) return;
-  const mapElement = document.getElementById('operationalMap');
-  if (!mapElement || !window.L) return;
-
-  leafletMap = L.map('operationalMap', {
-    zoomControl: true,
-  }).setView([13.7563, 100.5018], 11);
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18,
-    attribution: '&copy; OpenStreetMap contributors',
-  }).addTo(leafletMap);
-
-  const stations = [
-    { id: 'NODE-01', name: 'ศูนย์ปฏิบัติการกลาง (Bangkok Central Core)', lat: 13.7563, lng: 100.5018, status: 'ONLINE', cluster: 'Kernel A' },
-    { id: 'NODE-02', name: 'เกตเวย์สุวรรณภูมิ (Suvarnabhumi Gateway)', lat: 13.6900, lng: 100.7501, status: 'ONLINE', cluster: 'Secure Edge' },
-    { id: 'NODE-03', name: 'โหนดคลังข้อมูลชลบุรี (Chonburi Logistics Node)', lat: 13.3611, lng: 100.9847, status: 'STANDBY', cluster: 'Data Vault' },
-    { id: 'NODE-04', name: 'ศูนย์สำรองอยุธยา (Ayutthaya Backup Hub)', lat: 14.3532, lng: 100.5684, status: 'ONLINE', cluster: 'Kernel B' },
-  ];
-
-  stations.forEach((st) => {
-    const marker = L.circleMarker([st.lat, st.lng], {
-      radius: 8,
-      fillColor: st.status === 'ONLINE' ? '#171717' : '#737373',
-      color: '#ffffff',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.9,
-    }).addTo(leafletMap);
-
-    marker.bindPopup(`
-      <div class="text-xs">
-        <strong class="font-mono">${st.name}</strong><br>
-        <span class="text-neutral-500">รหัสโหนด (Node ID): ${st.id}</span><br>
-        <span class="text-neutral-500">สถานะ (Status): ${st.status === 'ONLINE' ? 'ออนไลน์ (ONLINE)' : 'สแตนด์บาย (STANDBY)'}</span><br>
-        <span class="text-neutral-500">กลุ่มคลัสเตอร์ (Cluster): ${st.cluster}</span>
-      </div>
-    `);
-
-    mapMarkers.push(marker);
-  });
 }
 
 // ----------------------------------------------------
@@ -1010,6 +983,20 @@ function selectMasterTable(tableName) {
   const btnImport = document.getElementById('masterBtnImport');
   if (btnAdd) btnAdd.style.display = tableName === 'AuditLog' ? 'none' : 'inline-flex';
   if (btnImport) btnImport.style.display = tableName === 'AuditLog' ? 'none' : 'inline-flex';
+
+  // Synchronize Left Sidebar highlights and Header Title
+  updateSidebarActiveButtons('masterTable', tableName);
+  const headerTitle = document.getElementById('headerViewTitle');
+  if (headerTitle) {
+    const thNames = {
+      Document: 'เอกสาร (Document)',
+      User: 'ผู้ใช้งาน (User)',
+      Group: 'กลุ่มบทบาท (Group)',
+      Permission: 'สิทธิ์การใช้งาน (Permission)',
+      AuditLog: 'ประวัติการใช้งาน (AuditLog)',
+    };
+    headerTitle.innerHTML = `<span>📁 มาสเตอร์เทเบิล: ${thNames[tableName] || tableName}</span>`;
+  }
 
   loadMasterTableData();
 }
