@@ -190,7 +190,85 @@ export async function seedDatabase(client: PrismaClient = prisma) {
     await client.userGroup.create({ data: { userId: hybridUser.id, groupId: groupAuditor.id } });
   }
 
-  console.log('[Seed] Enterprise Permission Matrix & Identities seeded successfully.');
+  // 4. Sample Master Documents
+  const sampleDocs = [
+    {
+      docNumber: 'DOC-2026-001',
+      title: 'สัญญาการเชื่อมต่อเครือข่ายความปลอดภัยขั้นสูง (Advanced Mesh Agreement)',
+      category: 'TECHNICAL',
+      status: 'CONFIRMED',
+      content: 'ข้อกำหนดทางเทคนิคว่าด้วยการรักษาความปลอดภัยของข้อมูลแบบ Symmetric Cipher AES-256 ระหว่าง Edge Node และ Core Database',
+      authorId: adminUser.id,
+      confirmedById: approverUser.id,
+      confirmedAt: new Date(),
+    },
+    {
+      docNumber: 'DOC-2026-002',
+      title: 'รายงานการตรวจสอบสิทธิ์และนโยบายความสอดคล้อง (PBAC Compliance Audit)',
+      category: 'COMPLIANCE',
+      status: 'CONFIRMED',
+      content: 'รายงานสรุปผลการจัดสรรและมอบหมายสิทธิ์ให้กับผู้ใช้งานทั้งหมด 4 บัญชีหลักตามมาตรฐานความมั่นคงปลอดภัยไซเบอร์',
+      authorId: auditorUser.id,
+      confirmedById: adminUser.id,
+      confirmedAt: new Date(),
+    },
+    {
+      docNumber: 'DOC-2026-003',
+      title: 'คำขออนุมัติงบประมาณปรับปรุงฮาร์ดแวร์ศูนย์กลาง (Core Cluster Upgrade)',
+      category: 'FINANCIAL',
+      status: 'DRAFT',
+      content: 'ประมาณการค่าใช้จ่ายสำหรับการติดตั้ง Secure Local Server Node ประจำสาขาสุวรรณภูมิและชลบุรี',
+      authorId: hybridUser.id,
+    },
+    {
+      docNumber: 'DOC-2026-004',
+      title: 'แบบร่างข้อตกลงการแลกเปลี่ยนกุญแจเข้ารหัส (Key Rotation Policy)',
+      category: 'TECHNICAL',
+      status: 'CANCELLED',
+      content: 'ข้อเสนอนโยบายการหมุนเวียนกุญแจเข้ารหัสลับทุก 30 วัน (ถูกยกเลิกเนื่องจากเปลี่ยนไปใช้แบบ Dynamic Ephemeral)',
+      authorId: adminUser.id,
+      cancelledAt: new Date(),
+    },
+  ];
+
+  for (const doc of sampleDocs) {
+    await client.document.upsert({
+      where: { docNumber: doc.docNumber },
+      update: {},
+      create: doc,
+    });
+  }
+
+  // 5. Initial Audit Trail Logs
+  const auditEntries = [
+    {
+      action: 'SYSTEM_BOOT',
+      target: 'Kernel',
+      details: 'Ultron Sovereign Mesh System initialized on local environment',
+      ipAddress: '127.0.0.1',
+      userId: adminUser.id,
+    },
+    {
+      action: 'ROLE_ASSIGN',
+      target: 'UserGroup',
+      details: 'Granted SUPER_ADMIN authority to root_admin',
+      ipAddress: '127.0.0.1',
+      userId: adminUser.id,
+    },
+    {
+      action: 'DOC_CONFIRM',
+      target: 'Document',
+      details: 'Document DOC-2026-001 confirmed by approver_ellen',
+      ipAddress: '127.0.0.1',
+      userId: approverUser.id,
+    },
+  ];
+
+  for (const log of auditEntries) {
+    await client.auditLog.create({ data: log });
+  }
+
+  console.log('[Seed] Enterprise Permission Matrix, Identities & Master Documents seeded successfully.');
 }
 
 if (require.main === module) {

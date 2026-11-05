@@ -230,7 +230,7 @@ function handleLogout() {
 // ----------------------------------------------------
 
 function switchAppTab(tab) {
-  const tabs = ['overview', 'workflows', 'governance'];
+  const tabs = ['overview', 'workflows', 'governance', 'masterTable'];
   tabs.forEach((t) => {
     const section = document.getElementById(`tabSection_${t}`);
     const btn = document.getElementById(`tabBtn_${t}`);
@@ -252,6 +252,9 @@ function switchAppTab(tab) {
   }
   if (tab === 'governance') {
     loadGovernanceData();
+  }
+  if (tab === 'masterTable') {
+    loadMasterTableData();
   }
 }
 
@@ -539,4 +542,761 @@ function renderAdminPermissionCatalog() {
   `
     )
     .join('');
+}
+
+// ============================================================================
+// MASTER TABLE MANAGEMENT MODULE LOGIC (FULL ENTERPRISE DATA LIFECYCLE)
+// ============================================================================
+
+let activeMasterTable = 'Document';
+let masterCurrentPage = 1;
+const masterPageLimit = 20;
+let masterTotalRecords = 0;
+let masterTableRecords = [];
+let parsedImportData = [];
+
+function selectMasterTable(tableName) {
+  activeMasterTable = tableName;
+  masterCurrentPage = 1;
+
+  // Update Table Selection Tabs Style
+  const tableNames = ['Document', 'User', 'Group', 'Permission', 'AuditLog'];
+  tableNames.forEach((t) => {
+    const btn = document.getElementById(`masterTabBtn_${t}`);
+    if (btn) {
+      if (t === tableName) {
+        btn.className = 'px-3 py-1.5 border border-neutral-900 bg-neutral-900 text-white text-xs font-mono font-semibold transition-colors';
+      } else {
+        btn.className = 'px-3 py-1.5 border border-neutral-300 hover:border-neutral-900 bg-white text-neutral-700 text-xs font-mono font-semibold transition-colors';
+      }
+    }
+  });
+
+  const nameEl = document.getElementById('masterActiveTableName');
+  if (nameEl) nameEl.textContent = tableName;
+
+  // Configure Status Filter Visibility (Only Document has Status)
+  const statusFilter = document.getElementById('masterStatusFilter');
+  if (statusFilter) {
+    statusFilter.style.display = tableName === 'Document' ? 'inline-block' : 'none';
+  }
+
+  // AuditLog is read-only: hide Add and Import buttons
+  const btnAdd = document.getElementById('masterBtnAdd');
+  const btnImport = document.getElementById('masterBtnImport');
+  if (btnAdd) btnAdd.style.display = tableName === 'AuditLog' ? 'none' : 'inline-flex';
+  if (btnImport) btnImport.style.display = tableName === 'AuditLog' ? 'none' : 'inline-flex';
+
+  loadMasterTableData();
+}
+
+function executeMasterSearch() {
+  masterCurrentPage = 1;
+  loadMasterTableData();
+}
+
+async function loadMasterTableData() {
+  const thead = document.getElementById('masterTableThead');
+  const tbody = document.getElementById('masterTableTbody');
+  if (!thead || !tbody) return;
+
+  const searchInput = document.getElementById('masterSearchInput');
+  const statusFilter = document.getElementById('masterStatusFilter');
+
+  const search = searchInput ? searchInput.value.trim() : '';
+  const status = statusFilter ? statusFilter.value : 'ALL';
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="p-8 text-center text-neutral-400 font-mono text-xs">
+        กำลังโหลดข้อมูลจากฐานข้อมูล... (CONNECTING TO REST API: PORT 3000)
+      </td>
+    </tr>
+  `;
+
+  try {
+    const res = await api.masterTable.findAll(activeMasterTable, {
+      search,
+      status: status !== 'ALL' ? status : undefined,
+      page: masterCurrentPage,
+      limit: masterPageLimit,
+    });
+
+    masterTableRecords = res.data || [];
+    masterTotalRecords = res.total || 0;
+
+    renderMasterTableHeader();
+    renderMasterTableRows();
+    updateMasterPagination();
+  } catch (err) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-8 text-center text-rose-600 font-mono text-xs">
+          เกิดข้อผิดพลาดในการโหลดข้อมูล: ${err.message || 'Access Denied'}
+        </td>
+      </tr>
+    `;
+    logConsole('MASTER TABLE QUERY FAILED', err.data || err.message, true);
+  }
+}
+
+function renderMasterTableHeader() {
+  const thead = document.getElementById('masterTableThead');
+  if (!thead) return;
+
+  let headers = [];
+  switch (activeMasterTable) {
+    case 'Document':
+      headers = ['รหัสเอกสาร (DOC NUMBER)', 'ชื่อเอกสาร (TITLE)', 'หมวดหมู่ (CATEGORY)', 'สถานะ (STATUS)', 'ผู้จัดทำ (AUTHOR)', 'ผู้อนุมัติ (CONFIRMED BY)', 'การจัดการ (OPERATIONS)'];
+      break;
+    case 'User':
+      headers = ['ชื่อผู้ใช้ (USERNAME)', 'กลุ่มสิทธิ์ที่ได้รับ (GROUPS)', 'สถานะบัญชี (ACTIVE)', 'วันที่สร้าง (CREATED AT)', 'การจัดการ (OPERATIONS)'];
+      break;
+    case 'Group':
+      headers = ['ชื่อกลุ่ม (GROUP NAME)', 'คำอธิบายบทบาท (DESCRIPTION)', 'จำนวนผู้ใช้ (USERS)', 'สิทธิ์ที่ครอบครอง (PERMISSIONS)', 'การจัดการ (OPERATIONS)'];
+      break;
+    case 'Permission':
+      headers = ['รหัสสิทธิ์ (PERMISSION CODE)', 'คำอธิบาย (DESCRIPTION)', 'กลุ่มที่ผูกไว้ (ATTACHED GROUPS)', 'การจัดการ (OPERATIONS)'];
+      break;
+    case 'AuditLog':
+      headers = ['การกระทำ (ACTION)', 'เป้าหมาย (TARGET)', 'รายละเอียดบันทึก (DETAILS)', 'ผู้ใช้งาน (USER)', 'IP HOST', 'เวลา (TIMESTAMP)'];
+      break;
+  }
+
+  thead.innerHTML = `
+    <tr>
+      ${headers
+        .map(
+          (h, i) =>
+            `<th class="p-3 ${i === headers.length - 1 && activeMasterTable !== 'AuditLog' ? 'text-right' : ''}">${h}</th>`
+        )
+        .join('')}
+    </tr>
+  `;
+}
+
+function renderMasterTableRows() {
+  const tbody = document.getElementById('masterTableTbody');
+  if (!tbody) return;
+
+  if (masterTableRecords.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="p-8 text-center text-neutral-400 font-mono text-xs">
+          ไม่พบข้อมูลในตารางนี้ (NO RECORDS FOUND)
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = masterTableRecords
+    .map((row) => {
+      switch (activeMasterTable) {
+        case 'Document': {
+          let statusBadge = '<span class="px-2 py-0.5 bg-neutral-100 text-neutral-700 font-bold border border-neutral-300">DRAFT</span>';
+          if (row.status === 'CONFIRMED') {
+            statusBadge = '<span class="px-2 py-0.5 bg-emerald-50 text-emerald-800 font-bold border border-emerald-300">CONFIRMED</span>';
+          } else if (row.status === 'CANCELLED') {
+            statusBadge = '<span class="px-2 py-0.5 bg-rose-50 text-rose-800 font-bold border border-rose-300">CANCELLED</span>';
+          }
+
+          return `
+            <tr class="hover:bg-neutral-50 transition-colors">
+              <td class="p-3 font-bold font-mono text-neutral-900">${row.docNumber}</td>
+              <td class="p-3 font-semibold text-neutral-900">${row.title}</td>
+              <td class="p-3 font-mono text-neutral-600">${row.category}</td>
+              <td class="p-3 font-mono text-xs">${statusBadge}</td>
+              <td class="p-3 font-mono text-neutral-600">${row.author}</td>
+              <td class="p-3 font-mono text-neutral-600">${row.confirmedBy || '-'}</td>
+              <td class="p-3 text-right space-x-1 no-print">
+                ${
+                  row.status === 'DRAFT'
+                    ? `<button onclick="confirmMasterDocument('${row.id}', '${row.docNumber}')" class="px-2 py-1 bg-neutral-900 text-white hover:bg-neutral-800 font-semibold text-[11px]" title="อนุมัติและยืนยันเอกสาร">
+                        ✅ ยืนยัน (Confirm)
+                      </button>
+                      <button onclick="cancelMasterDocument('${row.id}', '${row.docNumber}')" class="px-2 py-1 border border-neutral-400 hover:bg-neutral-200 text-neutral-800 text-[11px]" title="ยกเลิกเอกสารนี้">
+                        🚫 ยกเลิก (Cancel)
+                      </button>
+                      <button onclick="openMasterEditModal('${row.id}')" class="px-2 py-1 border border-neutral-300 hover:bg-neutral-100 text-[11px]">
+                        ✏️ แก้ไข
+                      </button>`
+                    : row.status === 'CONFIRMED'
+                    ? `<button onclick="openDocPrintModal('${row.id}')" class="px-2 py-1 bg-neutral-900 text-white hover:bg-neutral-800 font-semibold text-[11px]">
+                        🖨️ พิมพ์เอกสาร
+                      </button>
+                      <button onclick="cancelMasterDocument('${row.id}', '${row.docNumber}')" class="px-2 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 text-[11px]">
+                        🚫 ยกเลิก (Cancel)
+                      </button>`
+                    : `<button onclick="openDocPrintModal('${row.id}')" class="px-2 py-1 border border-neutral-300 hover:bg-neutral-100 text-[11px]">
+                        📄 ดูรายละเอียด
+                      </button>`
+                }
+                <button onclick="deleteMasterRecord('${row.id}', '${row.docNumber}')" class="px-2 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 text-[11px]">
+                  ลบ
+                </button>
+              </td>
+            </tr>
+          `;
+        }
+
+        case 'User': {
+          return `
+            <tr class="hover:bg-neutral-50 transition-colors">
+              <td class="p-3 font-bold font-mono text-neutral-900">${row.username}</td>
+              <td class="p-3">
+                <div class="flex gap-1 flex-wrap font-mono">
+                  ${(row.groups || []).map((g) => `<span class="border border-neutral-300 px-1.5 py-0.2 bg-white text-[10px]">${g}</span>`).join('')}
+                </div>
+              </td>
+              <td class="p-3 font-mono">
+                ${row.isActive ? '<span class="text-emerald-700 font-bold">ACTIVE</span>' : '<span class="text-neutral-400">INACTIVE</span>'}
+              </td>
+              <td class="p-3 font-mono text-neutral-500 text-[11px]">${new Date(row.createdAt).toLocaleString('th-TH')}</td>
+              <td class="p-3 text-right space-x-1 no-print">
+                <button onclick="openMasterEditModal('${row.id}')" class="px-2 py-1 border border-neutral-300 hover:bg-neutral-100 text-[11px]">
+                  ✏️ แก้ไข
+                </button>
+                ${
+                  row.username !== 'root_admin'
+                    ? `<button onclick="deleteMasterRecord('${row.id}', '${row.username}')" class="px-2 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 text-[11px]">
+                        ลบ
+                      </button>`
+                    : ''
+                }
+              </td>
+            </tr>
+          `;
+        }
+
+        case 'Group': {
+          return `
+            <tr class="hover:bg-neutral-50 transition-colors">
+              <td class="p-3 font-bold font-mono text-neutral-900">${row.name}</td>
+              <td class="p-3 text-neutral-700">${row.description || '-'}</td>
+              <td class="p-3 font-mono">${row.userCount || 0} บัญชี</td>
+              <td class="p-3 font-mono text-neutral-500 text-[11px]">${(row.permissions || []).length} สิทธิ์</td>
+              <td class="p-3 text-right space-x-1 no-print">
+                <button onclick="openMasterEditModal('${row.id}')" class="px-2 py-1 border border-neutral-300 hover:bg-neutral-100 text-[11px]">
+                  ✏️ แก้ไข
+                </button>
+                ${
+                  row.name !== 'SUPER_ADMIN'
+                    ? `<button onclick="deleteMasterRecord('${row.id}', '${row.name}')" class="px-2 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 text-[11px]">
+                        ลบ
+                      </button>`
+                    : ''
+                }
+              </td>
+            </tr>
+          `;
+        }
+
+        case 'Permission': {
+          return `
+            <tr class="hover:bg-neutral-50 transition-colors">
+              <td class="p-3 font-bold font-mono text-neutral-900">${row.code}</td>
+              <td class="p-3 text-neutral-700">${row.description || '-'}</td>
+              <td class="p-3 font-mono">
+                <div class="flex gap-1 flex-wrap">
+                  ${(row.attachedGroups || []).map((g) => `<span class="border border-neutral-300 px-1 py-0.2 bg-white text-[10px]">${g}</span>`).join('')}
+                </div>
+              </td>
+              <td class="p-3 text-right space-x-1 no-print">
+                <button onclick="openMasterEditModal('${row.id}')" class="px-2 py-1 border border-neutral-300 hover:bg-neutral-100 text-[11px]">
+                  ✏️ แก้ไข
+                </button>
+                <button onclick="deleteMasterRecord('${row.id}', '${row.code}')" class="px-2 py-1 border border-rose-300 text-rose-700 hover:bg-rose-50 text-[11px]">
+                  ลบ
+                </button>
+              </td>
+            </tr>
+          `;
+        }
+
+        case 'AuditLog': {
+          return `
+            <tr class="hover:bg-neutral-50 transition-colors">
+              <td class="p-3 font-bold font-mono text-neutral-900">${row.action}</td>
+              <td class="p-3 font-mono text-neutral-700">${row.target}</td>
+              <td class="p-3 text-neutral-800">${row.details || '-'}</td>
+              <td class="p-3 font-mono font-bold text-neutral-800">${row.username}</td>
+              <td class="p-3 font-mono text-neutral-500">${row.ipAddress || '127.0.0.1'}</td>
+              <td class="p-3 font-mono text-neutral-500 text-[11px]">${new Date(row.createdAt).toLocaleString('th-TH')}</td>
+            </tr>
+          `;
+        }
+      }
+    })
+    .join('');
+}
+
+function updateMasterPagination() {
+  const metricsEl = document.getElementById('masterTableMetrics');
+  const pageDispEl = document.getElementById('masterCurrentPageDisplay');
+  const btnPrev = document.getElementById('btnMasterPrevPage');
+  const btnNext = document.getElementById('btnMasterNextPage');
+
+  const totalPages = Math.max(1, Math.ceil(masterTotalRecords / masterPageLimit));
+
+  if (metricsEl) {
+    metricsEl.textContent = `แสดง ${masterTableRecords.length} รายการ จากทั้งหมด ${masterTotalRecords} รายการ`;
+  }
+  if (pageDispEl) {
+    pageDispEl.textContent = `หน้า ${masterCurrentPage} / ${totalPages}`;
+  }
+  if (btnPrev) btnPrev.disabled = masterCurrentPage <= 1;
+  if (btnNext) btnNext.disabled = masterCurrentPage >= totalPages;
+}
+
+function changeMasterPage(delta) {
+  const totalPages = Math.max(1, Math.ceil(masterTotalRecords / masterPageLimit));
+  const newPage = masterCurrentPage + delta;
+  if (newPage >= 1 && newPage <= totalPages) {
+    masterCurrentPage = newPage;
+    loadMasterTableData();
+  }
+}
+
+// ----------------------------------------------------
+// Confirm & Cancel Operations
+// ----------------------------------------------------
+
+async function confirmMasterDocument(id, docNumber) {
+  if (!confirm(`Maker ต้องการยืนยันและอนุมัติเอกสาร '${docNumber}' ใช่หรือไม่?`)) return;
+
+  try {
+    const res = await api.masterTable.confirmDocument(id);
+    logConsole('DOCUMENT CONFIRMED', res);
+    loadMasterTableData();
+  } catch (err) {
+    logConsole('CONFIRM FAILED', err.data || err.message, true);
+    alert('ไม่สามารถยืนยันเอกสารได้: ' + (err.data?.message || err.message));
+  }
+}
+
+async function cancelMasterDocument(id, docNumber) {
+  const reason = prompt(`กรุณาระบุเหตุผลในการยกเลิกเอกสาร '${docNumber}':`, 'ยกเลิกตามคำสั่งของผู้บริหาร');
+  if (reason === null) return;
+
+  try {
+    const res = await api.masterTable.cancelDocument(id, reason);
+    logConsole('DOCUMENT CANCELLED', res);
+    loadMasterTableData();
+  } catch (err) {
+    logConsole('CANCEL FAILED', err.data || err.message, true);
+    alert('ไม่สามารถยกเลิกเอกสารได้: ' + (err.data?.message || err.message));
+  }
+}
+
+// ----------------------------------------------------
+// Delete Record Operation
+// ----------------------------------------------------
+
+async function deleteMasterRecord(id, identifier) {
+  if (!confirm(`Maker ต้องการลบข้อมูลรายการ '${identifier}' จากตาราง ${activeMasterTable} ใช่หรือไม่?`)) return;
+
+  try {
+    const res = await api.masterTable.delete(activeMasterTable, id);
+    logConsole('RECORD DELETED', res);
+    loadMasterTableData();
+  } catch (err) {
+    logConsole('DELETE FAILED', err.data || err.message, true);
+    alert('ไม่สามารถลบข้อมูลได้: ' + (err.data?.message || err.message));
+  }
+}
+
+// ----------------------------------------------------
+// Add & Edit Record Modal
+// ----------------------------------------------------
+
+function openMasterCreateModal() {
+  const modal = document.getElementById('modalMasterForm');
+  const title = document.getElementById('masterFormTitle');
+  const subtitle = document.getElementById('masterFormSubtitle');
+  const recordIdInput = document.getElementById('masterFormRecordId');
+  const container = document.getElementById('masterFormFieldsContainer');
+
+  if (!modal || !container) return;
+
+  recordIdInput.value = '';
+  title.textContent = `ADD NEW ${activeMasterTable.toUpperCase()} RECORD`;
+  subtitle.textContent = `สร้างรายการใหม่ในตาราง ${activeMasterTable}`;
+
+  renderMasterFormFields(container, activeMasterTable, null);
+  modal.classList.remove('hidden');
+}
+
+async function openMasterEditModal(id) {
+  const modal = document.getElementById('modalMasterForm');
+  const title = document.getElementById('masterFormTitle');
+  const subtitle = document.getElementById('masterFormSubtitle');
+  const recordIdInput = document.getElementById('masterFormRecordId');
+  const container = document.getElementById('masterFormFieldsContainer');
+
+  if (!modal || !container) return;
+
+  try {
+    const record = await api.masterTable.findOne(activeMasterTable, id);
+    recordIdInput.value = id;
+    title.textContent = `EDIT ${activeMasterTable.toUpperCase()} RECORD`;
+    subtitle.textContent = `แก้ไขข้อมูลรหัส ID: ${id}`;
+
+    renderMasterFormFields(container, activeMasterTable, record);
+    modal.classList.remove('hidden');
+  } catch (err) {
+    alert('ไม่สามารถเปิดข้อมูลสำหรับแก้ไขได้: ' + err.message);
+  }
+}
+
+function closeMasterFormModal() {
+  const modal = document.getElementById('modalMasterForm');
+  if (modal) modal.classList.add('hidden');
+}
+
+function renderMasterFormFields(container, table, current) {
+  switch (table) {
+    case 'Document': {
+      container.innerHTML = `
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">ชื่อเอกสาร (Title)</label>
+          <input type="text" id="mField_title" required value="${current ? current.title || '' : ''}" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">หมวดหมู่ (Category)</label>
+          <select id="mField_category" class="w-full p-2 border border-neutral-300 text-xs bg-white outline-none">
+            <option value="GENERAL" ${current && current.category === 'GENERAL' ? 'selected' : ''}>ทั่วไป (GENERAL)</option>
+            <option value="FINANCIAL" ${current && current.category === 'FINANCIAL' ? 'selected' : ''}>การเงิน/งบประมาณ (FINANCIAL)</option>
+            <option value="TECHNICAL" ${current && current.category === 'TECHNICAL' ? 'selected' : ''}>เทคนิคและวิศวกรรม (TECHNICAL)</option>
+            <option value="COMPLIANCE" ${current && current.category === 'COMPLIANCE' ? 'selected' : ''}>การกำกับดูแล (COMPLIANCE)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">เนื้อหาเอกสาร (Content)</label>
+          <textarea id="mField_content" rows="4" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">${current ? current.content || '' : ''}</textarea>
+        </div>
+      `;
+      break;
+    }
+
+    case 'User': {
+      container.innerHTML = `
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">ชื่อผู้ใช้ (Username)</label>
+          <input type="text" id="mField_username" required ${current ? 'disabled' : ''} value="${current ? current.username || '' : ''}" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900 ${current ? 'bg-neutral-100' : ''}">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">${current ? 'รหัสผ่านใหม่ (ปล่อยว่างถ้าไม่ต้องการเปลี่ยน)' : 'รหัสผ่าน (Password)'}</label>
+          <input type="password" id="mField_password" ${current ? '' : 'required'} class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">กลุ่มสิทธิ์ที่สังกัด (Roles)</label>
+          <div class="space-y-1 max-h-32 overflow-y-auto border border-neutral-200 p-2 text-xs">
+            ${['SUPER_ADMIN', 'OPERATIONS_MANAGER', 'EXECUTIVE_APPROVER', 'COMPLIANCE_AUDITOR', 'STANDARD_OPERATOR', 'GENERAL_USER']
+              .map(
+                (g) => `
+              <label class="flex items-center space-x-2">
+                <input type="checkbox" value="${g}" class="mField_userGroups rounded-none border-neutral-400" ${current && current.groups && current.groups.some((ug) => (ug.group ? ug.group.name : ug) === g) ? 'checked' : ''}>
+                <span>${g}</span>
+              </label>
+            `
+              )
+              .join('')}
+          </div>
+        </div>
+      `;
+      break;
+    }
+
+    case 'Group': {
+      container.innerHTML = `
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">ชื่อกลุ่มบทบาท (Group Name)</label>
+          <input type="text" id="mField_groupName" required ${current ? 'disabled' : ''} value="${current ? current.name || '' : ''}" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900 ${current ? 'bg-neutral-100' : ''}">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">คำอธิบาย (Description)</label>
+          <textarea id="mField_groupDesc" rows="3" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">${current ? current.description || '' : ''}</textarea>
+        </div>
+      `;
+      break;
+    }
+
+    case 'Permission': {
+      container.innerHTML = `
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">รหัสสิทธิ์ (Code)</label>
+          <input type="text" id="mField_permCode" required ${current ? 'disabled' : ''} value="${current ? current.code || '' : ''}" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900 ${current ? 'bg-neutral-100' : ''}">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">คำอธิบายสิทธิ์ (Description)</label>
+          <textarea id="mField_permDesc" rows="3" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">${current ? current.description || '' : ''}</textarea>
+        </div>
+      `;
+      break;
+    }
+  }
+}
+
+async function handleMasterFormSubmit(event) {
+  event.preventDefault();
+  const recordId = document.getElementById('masterFormRecordId').value;
+  const btnSubmit = document.getElementById('btnMasterFormSubmit');
+  if (btnSubmit) btnSubmit.disabled = true;
+
+  const payload = {};
+
+  switch (activeMasterTable) {
+    case 'Document': {
+      payload.title = document.getElementById('mField_title').value.trim();
+      payload.category = document.getElementById('mField_category').value;
+      payload.content = document.getElementById('mField_content').value.trim();
+      break;
+    }
+    case 'User': {
+      const uEl = document.getElementById('mField_username');
+      const pEl = document.getElementById('mField_password');
+      if (uEl) payload.username = uEl.value.trim();
+      if (pEl && pEl.value) payload.password = pEl.value;
+      const groupChks = document.querySelectorAll('.mField_userGroups:checked');
+      payload.groups = Array.from(groupChks).map((c) => c.value);
+      break;
+    }
+    case 'Group': {
+      const gEl = document.getElementById('mField_groupName');
+      const dEl = document.getElementById('mField_groupDesc');
+      if (gEl) payload.name = gEl.value.trim();
+      if (dEl) payload.description = dEl.value.trim();
+      break;
+    }
+    case 'Permission': {
+      const cEl = document.getElementById('mField_permCode');
+      const dEl = document.getElementById('mField_permDesc');
+      if (cEl) payload.code = cEl.value.trim();
+      if (dEl) payload.description = dEl.value.trim();
+      break;
+    }
+  }
+
+  try {
+    if (recordId) {
+      const res = await api.masterTable.update(activeMasterTable, recordId, payload);
+      logConsole('RECORD UPDATED', res);
+    } else {
+      const res = await api.masterTable.create(activeMasterTable, payload);
+      logConsole('RECORD CREATED', res);
+    }
+
+    closeMasterFormModal();
+    loadMasterTableData();
+  } catch (err) {
+    logConsole('FORM SUBMIT FAILED', err.data || err.message, true);
+    alert('บันทึกข้อมูลไม่สำเร็จ: ' + (err.data?.message || err.message));
+  } finally {
+    if (btnSubmit) btnSubmit.disabled = false;
+  }
+}
+
+// ----------------------------------------------------
+// Bulk Import Operations
+// ----------------------------------------------------
+
+function openMasterImportModal() {
+  const modal = document.getElementById('modalMasterImport');
+  const targetEl = document.getElementById('importTargetTableName');
+  const fileInput = document.getElementById('masterImportFileInput');
+  const textInput = document.getElementById('masterImportTextInput');
+  const previewContainer = document.getElementById('importPreviewContainer');
+
+  if (!modal) return;
+  if (targetEl) targetEl.textContent = activeMasterTable;
+  if (fileInput) fileInput.value = '';
+  if (textInput) textInput.value = '';
+  if (previewContainer) previewContainer.classList.add('hidden');
+  parsedImportData = [];
+
+  modal.classList.remove('hidden');
+}
+
+function closeMasterImportModal() {
+  const modal = document.getElementById('modalMasterImport');
+  if (modal) modal.classList.add('hidden');
+}
+
+function handleImportFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('masterImportTextInput').value = e.target.result;
+    parseAndPreviewImportData();
+  };
+  reader.readAsText(file);
+}
+
+function parseAndPreviewImportData() {
+  const raw = document.getElementById('masterImportTextInput').value.trim();
+  const previewContainer = document.getElementById('importPreviewContainer');
+  const previewCount = document.getElementById('importPreviewCount');
+  const previewTable = document.getElementById('importPreviewTable');
+
+  if (!raw) {
+    alert('กรุณาเลือกไฟล์หรือวางข้อความข้อมูล CSV หรือ JSON');
+    return;
+  }
+
+  parsedImportData = [];
+
+  try {
+    if (raw.startsWith('[') || raw.startsWith('{')) {
+      const parsed = JSON.parse(raw);
+      parsedImportData = Array.isArray(parsed) ? parsed : [parsed];
+    } else {
+      // Parse CSV
+      const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length > 1) {
+        const headers = lines[0].split(',').map((h) => h.replace(/^["']|["']$/g, '').trim());
+        for (let i = 1; i < lines.length; i++) {
+          const cells = lines[i].split(',').map((c) => c.replace(/^["']|["']$/g, '').trim());
+          const obj = {};
+          headers.forEach((h, idx) => {
+            obj[h] = cells[idx] || '';
+          });
+          parsedImportData.push(obj);
+        }
+      }
+    }
+
+    if (parsedImportData.length === 0) {
+      alert('ไม่สามารถประมวลผลข้อมูลได้ กรุณาตรวจสอบรูปแบบข้อมูล');
+      return;
+    }
+
+    previewCount.textContent = `พบข้อมูลที่เตรียมนำเข้า ${parsedImportData.length} แถว (Preview แสดงสูงสุด 5 แถวแรก):`;
+    const previewHeaders = Object.keys(parsedImportData[0]);
+
+    previewTable.innerHTML = `
+      <thead class="bg-neutral-200">
+        <tr>${previewHeaders.map((h) => `<th class="p-1 border">${h}</th>`).join('')}</tr>
+      </thead>
+      <tbody>
+        ${parsedImportData
+          .slice(0, 5)
+          .map(
+            (r) =>
+              `<tr>${previewHeaders.map((h) => `<td class="p-1 border">${r[h] || ''}</td>`).join('')}</tr>`
+          )
+          .join('')}
+      </tbody>
+    `;
+
+    previewContainer.classList.remove('hidden');
+  } catch (err) {
+    alert('เกิดข้อผิดพลาดในการแปลงข้อมูล: ' + err.message);
+  }
+}
+
+async function executeBulkImport() {
+  if (parsedImportData.length === 0) {
+    alert('กรุณากดตรวจสอบข้อมูล (Parse & Preview) ก่อนเริ่มการนำเข้า');
+    return;
+  }
+
+  const btn = document.getElementById('btnExecuteImport');
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await api.masterTable.bulkImport(activeMasterTable, parsedImportData);
+    logConsole('IMPORT COMMITTED', res);
+    alert(res.message || 'นำเข้าข้อมูลเรียบร้อยแล้ว');
+    closeMasterImportModal();
+    loadMasterTableData();
+  } catch (err) {
+    logConsole('IMPORT FAILED', err.data || err.message, true);
+    alert('การนำเข้าข้อมูลล้มเหลว: ' + (err.data?.message || err.message));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ----------------------------------------------------
+// Export Operations (CSV / JSON)
+// ----------------------------------------------------
+
+async function exportMasterData(format) {
+  try {
+    const res = await api.masterTable.exportFile(activeMasterTable, format);
+
+    if (format === 'json') {
+      const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(res.data, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', dataStr);
+      downloadAnchor.setAttribute('download', `${activeMasterTable}_export_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } else if (format === 'csv') {
+      const blob = new Blob([res.content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', url);
+      downloadAnchor.setAttribute('download', res.filename || `${activeMasterTable}_export_${Date.now()}.csv`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    logConsole(`DATA EXPORTED (${format.toUpperCase()})`, { table: activeMasterTable });
+  } catch (err) {
+    logConsole('EXPORT FAILED', err.data || err.message, true);
+    alert('ไม่สามารถส่งออกข้อมูลได้: ' + (err.data?.message || err.message));
+  }
+}
+
+// ----------------------------------------------------
+// Print Operations
+// ----------------------------------------------------
+
+function printMasterTable() {
+  const metaEl = document.getElementById('printReportMeta');
+  if (metaEl) {
+    metaEl.textContent = `ตาราง: ${activeMasterTable} // วันที่พิมพ์: ${new Date().toLocaleString('th-TH')} // ผู้พิมพ์: ${api.getCurrentUser()?.username || 'Authenticated Operator'}`;
+  }
+  window.print();
+}
+
+async function openDocPrintModal(id) {
+  const modal = document.getElementById('modalDocPrint');
+  if (!modal) return;
+
+  try {
+    const doc = await api.masterTable.findOne('Document', id);
+
+    document.getElementById('printDocNumber').textContent = doc.docNumber;
+    document.getElementById('printDocTitle').textContent = doc.title;
+    document.getElementById('printDocCategory').textContent = doc.category;
+    document.getElementById('printDocAuthor').textContent = doc.author ? doc.author.username : 'System';
+    document.getElementById('printDocConfirmedBy').textContent = doc.confirmedBy ? doc.confirmedBy.username : 'ยังไม่ได้รับการอนุมัติ';
+    document.getElementById('printDocConfirmedAt').textContent = doc.confirmedAt ? new Date(doc.confirmedAt).toLocaleString('th-TH') : '-';
+    document.getElementById('printDocContent').textContent = doc.content || '(ไม่มีเนื้อหาเอกสาร)';
+
+    const badge = document.getElementById('printDocStatusBadge');
+    if (badge) {
+      badge.textContent = doc.status;
+      badge.className = doc.status === 'CONFIRMED'
+        ? 'px-2 py-0.5 border border-emerald-800 bg-emerald-50 text-emerald-900 font-mono text-xs font-bold'
+        : 'px-2 py-0.5 border border-neutral-400 bg-neutral-100 text-neutral-800 font-mono text-xs font-bold';
+    }
+
+    modal.classList.remove('hidden');
+  } catch (err) {
+    alert('ไม่สามารถเปิดเอกสารได้: ' + err.message);
+  }
+}
+
+function closeDocPrintModal() {
+  const modal = document.getElementById('modalDocPrint');
+  if (modal) modal.classList.add('hidden');
 }

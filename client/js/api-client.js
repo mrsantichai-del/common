@@ -17,6 +17,7 @@ class ApiClient {
     this.auth = this._createAuthModule();
     this.users = this._createUsersModule();
     this.admin = this._createAdminModule();
+    this.masterTable = this._createMasterTableModule();
   }
 
   setEncryption(enabled) {
@@ -228,6 +229,31 @@ class ApiClient {
       getPermissions: () => this.request('/admin/permissions'),
       createPermission: (code, description = '') =>
         this.request('/admin/permissions', { method: 'POST', body: { code, description } }),
+    };
+  }
+
+  _createMasterTableModule() {
+    return {
+      findAll: (table, params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        const url = `/master-table/${table}${qs ? '?' + qs : ''}`;
+        return this.request(url);
+      },
+      findOne: (table, id) => this.request(`/master-table/${table}/${id}`),
+      create: (table, data) =>
+        this.request(`/master-table/${table}`, { method: 'POST', body: data }),
+      update: (table, id, data) =>
+        this.request(`/master-table/${table}/${id}`, { method: 'PATCH', body: data }),
+      delete: (table, id) =>
+        this.request(`/master-table/${table}/${id}`, { method: 'DELETE' }),
+      confirmDocument: (id) =>
+        this.request(`/master-table/documents/${id}/confirm`, { method: 'POST' }),
+      cancelDocument: (id, reason = 'Cancelled by user') =>
+        this.request(`/master-table/documents/${id}/cancel`, { method: 'POST', body: { reason } }),
+      bulkImport: (table, items) =>
+        this.request(`/master-table/${table}/import`, { method: 'POST', body: { items } }),
+      exportFile: (table, format = 'csv') =>
+        this.request(`/master-table/${table}/export/file?format=${format}`),
     };
   }
 }

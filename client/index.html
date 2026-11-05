@@ -32,6 +32,36 @@
     .leaflet-container {
       background-color: #f5f5f5;
     }
+
+    /* Print Stylesheet for Master Table & Official Documents */
+    @media print {
+      header, nav, #viewLogin, .no-print, .wire-sniffer-panel, .console-panel,
+      #masterToolbar, #masterTableTabs, #authStatus, #logoutBtn {
+        display: none !important;
+      }
+      body, #viewApp, #tabSection_masterTable {
+        background: white !important;
+        color: black !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+      }
+      .print-only-header {
+        display: block !important;
+      }
+      table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+      }
+      th, td {
+        border: 1px solid #333 !important;
+        padding: 6px !important;
+        font-size: 10pt !important;
+      }
+    }
+    .print-only-header {
+      display: none;
+    }
   </style>
 </head>
 <body class="bg-neutral-100 text-neutral-900 min-h-screen flex flex-col selection:bg-neutral-900 selection:text-white">
@@ -176,7 +206,7 @@
   <div id="viewApp" class="hidden min-h-screen flex flex-col">
     
     <!-- TOP APPLICATION HEADER / STATUS BAR -->
-    <header class="bg-white border-b border-neutral-300 sticky top-0 z-50">
+    <header class="bg-white border-b border-neutral-300 sticky top-0 z-50 no-print">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         <!-- Logo & Architecture Indicator -->
@@ -231,13 +261,18 @@
         <button id="navAdminTab" onclick="switchAppTab('governance')" class="hidden text-neutral-400 hover:text-neutral-900 pb-1 font-mono text-xs transition-colors">
           [03] GOVERNANCE &amp; ACCESS CONTROL
         </button>
+        <button id="tabBtn_masterTable" onclick="switchAppTab('masterTable')" class="text-neutral-400 hover:text-neutral-900 pb-1 font-mono text-xs transition-colors">
+          [04] MASTER TABLE MANAGEMENT
+        </button>
       </nav>
     </header>
 
     <!-- MAIN VIEWPORT -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
 
+      <!-- ============================================================ -->
       <!-- TAB 1: OVERVIEW & MAP -->
+      <!-- ============================================================ -->
       <section id="tabSection_overview" class="space-y-6">
         
         <!-- Geospatial Grid & Operational Nodes -->
@@ -288,7 +323,9 @@
         </div>
       </section>
 
+      <!-- ============================================================ -->
       <!-- TAB 2: WORKFLOW ACTIONS TESTBED -->
+      <!-- ============================================================ -->
       <section id="tabSection_workflows" class="hidden space-y-6">
         <div class="bg-white border border-neutral-300 p-4 shadow-sm">
           <div class="text-xs font-bold text-neutral-800 uppercase mb-1 font-mono">
@@ -384,7 +421,9 @@
         </div>
       </section>
 
+      <!-- ============================================================ -->
       <!-- TAB 3: GOVERNANCE & ACCESS CONTROL -->
+      <!-- ============================================================ -->
       <section id="tabSection_governance" class="hidden space-y-6">
         
         <!-- Top Section: Group & Permission Matrix -->
@@ -458,11 +497,128 @@
         </div>
       </section>
 
+      <!-- ============================================================ -->
+      <!-- TAB 4: MASTER TABLE MANAGEMENT (COMPLETE DATA LIFECYCLE)     -->
+      <!-- ============================================================ -->
+      <section id="tabSection_masterTable" class="hidden space-y-4">
+        
+        <!-- Print Only Header -->
+        <div class="print-only-header mb-4">
+          <h1 class="text-lg font-bold font-mono uppercase">ULTRON SOVEREIGN CORE // MASTER TABLE REPORT</h1>
+          <p class="text-xs text-neutral-600" id="printReportMeta">รายงานข้อมูลตารางมาสเตอร์เทเบิล วันที่พิมพ์: -</p>
+          <hr class="my-2 border-neutral-400">
+        </div>
+
+        <!-- Master Table Selector Tabs -->
+        <div class="bg-white border border-neutral-300 p-3 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold font-mono text-neutral-700 uppercase mr-2">SELECT TABLE:</span>
+            <div id="masterTableTabs" class="flex flex-wrap gap-1">
+              <button onclick="selectMasterTable('Document')" id="masterTabBtn_Document" class="px-3 py-1.5 border border-neutral-900 bg-neutral-900 text-white text-xs font-mono font-semibold transition-colors">
+                📄 Document (เอกสาร)
+              </button>
+              <button onclick="selectMasterTable('User')" id="masterTabBtn_User" class="px-3 py-1.5 border border-neutral-300 hover:border-neutral-900 bg-white text-neutral-700 text-xs font-mono font-semibold transition-colors">
+                📁 User (ผู้ใช้งาน)
+              </button>
+              <button onclick="selectMasterTable('Group')" id="masterTabBtn_Group" class="px-3 py-1.5 border border-neutral-300 hover:border-neutral-900 bg-white text-neutral-700 text-xs font-mono font-semibold transition-colors">
+                🛡️ Group (กลุ่มบทบาท)
+              </button>
+              <button onclick="selectMasterTable('Permission')" id="masterTabBtn_Permission" class="px-3 py-1.5 border border-neutral-300 hover:border-neutral-900 bg-white text-neutral-700 text-xs font-mono font-semibold transition-colors">
+                🔑 Permission (สิทธิ์)
+              </button>
+              <button onclick="selectMasterTable('AuditLog')" id="masterTabBtn_AuditLog" class="px-3 py-1.5 border border-neutral-300 hover:border-neutral-900 bg-white text-neutral-700 text-xs font-mono font-semibold transition-colors">
+                📜 AuditLog (ประวัติ)
+              </button>
+            </div>
+          </div>
+
+          <div class="text-xs text-neutral-500 font-mono">
+            ACTIVE TABLE: <strong id="masterActiveTableName" class="text-neutral-900 font-bold uppercase">Document</strong>
+          </div>
+        </div>
+
+        <!-- Master Table Control Toolbar -->
+        <div id="masterToolbar" class="bg-white border border-neutral-300 p-3 shadow-sm flex flex-wrap items-center justify-between gap-3 no-print">
+          
+          <!-- Search & Filters -->
+          <div class="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
+            <div class="relative flex-1 min-w-[180px] max-w-sm">
+              <input 
+                type="text" 
+                id="masterSearchInput" 
+                placeholder="ค้นหาข้อมูลทุกคอลัมน์ (Search...)" 
+                onkeyup="if(event.key==='Enter') executeMasterSearch()"
+                class="w-full p-2 pl-3 border border-neutral-300 text-xs outline-none focus:border-neutral-900 bg-neutral-50"
+              />
+            </div>
+            <button onclick="executeMasterSearch()" class="px-3 py-2 bg-neutral-900 text-white text-xs font-semibold hover:bg-neutral-800">
+              ค้นหา (Search)
+            </button>
+
+            <!-- Document Status Filter -->
+            <select id="masterStatusFilter" onchange="loadMasterTableData()" class="p-2 border border-neutral-300 text-xs bg-white outline-none">
+              <option value="ALL">ทุกสถานะ (All Status)</option>
+              <option value="DRAFT">ร่างเอกสาร (DRAFT)</option>
+              <option value="CONFIRMED">ยืนยันแล้ว (CONFIRMED)</option>
+              <option value="CANCELLED">ยกเลิกแล้ว (CANCELLED)</option>
+            </select>
+          </div>
+
+          <!-- Enterprise Operations Toolbar -->
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="masterBtnAdd" onclick="openMasterCreateModal()" class="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-semibold flex items-center space-x-1">
+              <span>&plus;</span> <span>เพิ่มข้อมูล (Add)</span>
+            </button>
+            <button id="masterBtnImport" onclick="openMasterImportModal()" class="px-3 py-2 border border-neutral-300 hover:bg-neutral-100 text-xs font-semibold">
+              📥 นำเข้า (Import)
+            </button>
+            <button id="masterBtnExportCsv" onclick="exportMasterData('csv')" class="px-3 py-2 border border-neutral-300 hover:bg-neutral-100 text-xs font-semibold">
+              📤 ส่งออก CSV
+            </button>
+            <button id="masterBtnExportJson" onclick="exportMasterData('json')" class="px-3 py-2 border border-neutral-300 hover:bg-neutral-100 text-xs font-semibold">
+              📤 ส่งออก JSON
+            </button>
+            <button id="masterBtnPrint" onclick="printMasterTable()" class="px-3 py-2 border border-neutral-300 hover:bg-neutral-100 text-xs font-semibold">
+              🖨️ พิมพ์ (Print)
+            </button>
+            <button id="masterBtnRefresh" onclick="loadMasterTableData()" class="px-3 py-2 border border-neutral-300 hover:bg-neutral-100 text-xs font-semibold">
+              🔄 รีเฟรช
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Master Data Table View -->
+        <div class="bg-white border border-neutral-300 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead id="masterTableThead" class="bg-neutral-100 text-neutral-700 border-b border-neutral-300 font-mono">
+                <!-- Dynamically Populated Headers -->
+              </thead>
+              <tbody id="masterTableTbody" class="divide-y divide-neutral-200">
+                <!-- Dynamically Populated Rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Table Pagination & Metrics Footer -->
+          <div class="p-3 border-t border-neutral-200 bg-neutral-50 flex items-center justify-between text-xs text-neutral-500 font-mono no-print">
+            <div id="masterTableMetrics">แสดง 0 รายการ จากทั้งหมด 0 รายการ</div>
+            <div class="flex items-center space-x-2">
+              <button onclick="changeMasterPage(-1)" class="px-2 py-1 border border-neutral-300 bg-white hover:bg-neutral-100 font-semibold disabled:opacity-50" id="btnMasterPrevPage">&larr; ก่อนหน้า</button>
+              <span id="masterCurrentPageDisplay" class="font-bold text-neutral-800">หน้า 1 / 1</span>
+              <button onclick="changeMasterPage(1)" class="px-2 py-1 border border-neutral-300 bg-white hover:bg-neutral-100 font-semibold disabled:opacity-50" id="btnMasterNextPage">ถัดไป &rarr;</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
       <!-- LIVE WIRE TELEMETRY & CONSOLE INSPECTOR (VISIBLE AT BOTTOM OF DASHBOARD) -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 no-print">
         
         <!-- AES Wire Sniffer -->
-        <div class="bg-white border border-neutral-300 shadow-sm p-4">
+        <div class="bg-white border border-neutral-300 shadow-sm p-4 wire-sniffer-panel">
           <div class="flex items-center justify-between border-b border-neutral-200 pb-2 mb-2">
             <div class="text-xs font-bold uppercase text-neutral-800 font-mono">
               WIRE TELEMETRY SNIFFER
@@ -487,7 +643,7 @@
         </div>
 
         <!-- Structured Log Console -->
-        <div class="bg-white border border-neutral-300 shadow-sm p-4">
+        <div class="bg-white border border-neutral-300 shadow-sm p-4 console-panel">
           <div class="flex items-center justify-between border-b border-neutral-200 pb-2 mb-2">
             <div id="consoleTitle" class="text-xs font-bold uppercase text-neutral-800 font-mono">
               SYSTEM CONSOLE
@@ -504,7 +660,7 @@
     </main>
 
     <!-- USER DELEGATION MODAL -->
-    <div id="modalUserDelegation" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+    <div id="modalUserDelegation" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">
       <div class="bg-white border border-neutral-900 w-full max-w-md p-6 shadow-2xl">
         <div class="flex justify-between items-center border-b border-neutral-200 pb-3 mb-4">
           <div>
@@ -520,6 +676,152 @@
           </button>
           <button onclick="saveUserDelegation()" class="px-4 py-1.5 bg-neutral-900 text-white font-bold hover:bg-neutral-800 text-xs">
             บันทึกการมอบหมาย (APPLY)
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MASTER TABLE ADD / EDIT MODAL -->
+    <div id="modalMasterForm" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">
+      <div class="bg-white border border-neutral-900 w-full max-w-lg p-6 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-neutral-200 pb-3 mb-4">
+          <div>
+            <h3 id="masterFormTitle" class="font-bold text-sm font-mono uppercase">ADD NEW RECORD</h3>
+            <div id="masterFormSubtitle" class="text-xs text-neutral-500 mt-0.5">กรอกข้อมูลสำหรับตารางมาสเตอร์เทเบิล</div>
+          </div>
+          <button onclick="closeMasterFormModal()" class="text-neutral-400 hover:text-neutral-900 font-bold font-mono text-lg">&times;</button>
+        </div>
+        
+        <form onsubmit="handleMasterFormSubmit(event)" class="space-y-3">
+          <input type="hidden" id="masterFormRecordId">
+          <div id="masterFormFieldsContainer" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+            <!-- Dynamically populated form fields based on active table -->
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-3 border-t border-neutral-200">
+            <button type="button" onclick="closeMasterFormModal()" class="px-3 py-1.5 border border-neutral-300 hover:bg-neutral-100 text-xs">
+              ยกเลิก (CANCEL)
+            </button>
+            <button type="submit" id="btnMasterFormSubmit" class="px-4 py-1.5 bg-neutral-900 text-white font-bold hover:bg-neutral-800 text-xs">
+              บันทึกข้อมูล (SAVE)
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MASTER TABLE BULK IMPORT MODAL -->
+    <div id="modalMasterImport" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 no-print">
+      <div class="bg-white border border-neutral-900 w-full max-w-2xl p-6 shadow-2xl">
+        <div class="flex justify-between items-center border-b border-neutral-200 pb-3 mb-4">
+          <div>
+            <h3 class="font-bold text-sm font-mono uppercase">BULK IMPORT DATA</h3>
+            <div class="text-xs text-neutral-500 mt-0.5">นำเข้าข้อมูลจำนวนมากสู่ตาราง: <strong id="importTargetTableName" class="text-neutral-900 font-mono"></strong></div>
+          </div>
+          <button onclick="closeMasterImportModal()" class="text-neutral-400 hover:text-neutral-900 font-bold font-mono text-lg">&times;</button>
+        </div>
+        
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">
+              เลือกไฟล์ข้อมูล (CSV หรือ JSON)
+            </label>
+            <input type="file" id="masterImportFileInput" accept=".csv, .json" onchange="handleImportFileSelect(event)" class="w-full text-xs p-2 border border-neutral-300 bg-neutral-50">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">
+              หรือวางข้อความข้อมูล (Raw CSV / JSON Array)
+            </label>
+            <textarea id="masterImportTextInput" rows="5" placeholder='[{"title":"Doc 1","category":"GENERAL"}] หรือ CSV data' class="w-full p-2 border border-neutral-300 font-mono text-xs bg-neutral-50 outline-none"></textarea>
+          </div>
+
+          <div>
+            <button type="button" onclick="parseAndPreviewImportData()" class="px-3 py-1.5 border border-neutral-800 bg-neutral-100 hover:bg-neutral-200 text-xs font-semibold">
+              🔍 ตรวจสอบและแสดงตัวอย่างข้อมูล (Parse &amp; Preview)
+            </button>
+          </div>
+
+          <!-- Preview Table Container -->
+          <div id="importPreviewContainer" class="hidden border border-neutral-300 p-2 max-h-48 overflow-auto bg-neutral-50">
+            <div class="text-xs font-bold text-neutral-800 mb-1" id="importPreviewCount">พบข้อมูล 0 แถว</div>
+            <table class="w-full text-left text-[11px] font-mono border-collapse" id="importPreviewTable"></table>
+          </div>
+
+          <div class="flex justify-end space-x-2 pt-3 border-t border-neutral-200">
+            <button type="button" onclick="closeMasterImportModal()" class="px-3 py-1.5 border border-neutral-300 hover:bg-neutral-100 text-xs">
+              ยกเลิก (CANCEL)
+            </button>
+            <button type="button" id="btnExecuteImport" onclick="executeBulkImport()" class="px-4 py-1.5 bg-neutral-900 text-white font-bold hover:bg-neutral-800 text-xs disabled:opacity-50">
+              ยืนยันการนำเข้า (EXECUTE IMPORT)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MASTER TABLE DOCUMENT PRINT PREVIEW MODAL -->
+    <div id="modalDocPrint" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+      <div class="bg-white border border-neutral-900 w-full max-w-2xl p-8 shadow-2xl font-sans" id="printDocSheet">
+        <div class="border-b-2 border-neutral-900 pb-4 mb-4 flex justify-between items-start">
+          <div>
+            <h2 class="text-xl font-bold font-mono">ULTRON SOVEREIGN CORE</h2>
+            <div class="text-xs text-neutral-500 font-mono uppercase">Official Operational Document Record</div>
+          </div>
+          <div class="text-right">
+            <span id="printDocStatusBadge" class="px-2 py-0.5 border border-neutral-900 font-mono text-xs font-bold">CONFIRMED</span>
+            <div id="printDocNumber" class="text-xs font-mono font-bold mt-1 text-neutral-800">DOC-2026-001</div>
+          </div>
+        </div>
+
+        <div class="space-y-4 text-xs">
+          <div>
+            <div class="text-[10px] text-neutral-400 uppercase font-mono">DOCUMENT TITLE (ชื่อเอกสาร)</div>
+            <div id="printDocTitle" class="text-base font-bold text-neutral-900">-</div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 border-y border-neutral-200 py-3 font-mono">
+            <div>
+              <span class="text-neutral-500 text-[10px] block">หมวดหมู่ (Category):</span>
+              <strong id="printDocCategory">-</strong>
+            </div>
+            <div>
+              <span class="text-neutral-500 text-[10px] block">ผู้จัดทำ (Author):</span>
+              <strong id="printDocAuthor">-</strong>
+            </div>
+            <div>
+              <span class="text-neutral-500 text-[10px] block">ผู้อนุมัติ (Confirmed By):</span>
+              <strong id="printDocConfirmedBy">-</strong>
+            </div>
+            <div>
+              <span class="text-neutral-500 text-[10px] block">วันที่ยืนยัน (Confirmed Date):</span>
+              <strong id="printDocConfirmedAt">-</strong>
+            </div>
+          </div>
+
+          <div>
+            <div class="text-[10px] text-neutral-400 uppercase font-mono mb-1">CONTENT SPECIFICATION (เนื้อหาเอกสาร)</div>
+            <div id="printDocContent" class="p-3 bg-neutral-50 border border-neutral-200 leading-relaxed min-h-[120px] whitespace-pre-wrap">
+              -
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-neutral-300 flex justify-between items-center text-[11px] text-neutral-500 font-mono">
+            <div>
+              <span>SECURITY HASH: </span><span class="font-bold text-neutral-900">AES-256-SOVEREIGN-VERIFIED</span>
+            </div>
+            <div>
+              <span>STAMP: </span><strong class="text-neutral-900">SYSTEM LEVEL APPROVED</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-6 border-t border-neutral-200 mt-6 no-print">
+          <button type="button" onclick="closeDocPrintModal()" class="px-3 py-1.5 border border-neutral-300 hover:bg-neutral-100 text-xs">
+            ปิด (CLOSE)
+          </button>
+          <button type="button" onclick="window.print()" class="px-4 py-1.5 bg-neutral-900 text-white font-bold hover:bg-neutral-800 text-xs">
+            🖨️ สั่งพิมพ์เอกสารนี้ (PRINT)
           </button>
         </div>
       </div>

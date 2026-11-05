@@ -8,18 +8,23 @@ datasource db {
 }
 
 model User {
-  id        String      @id @default(uuid())
-  username  String      @unique
-  password  String
-  groups    UserGroup[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id            String      @id @default(uuid())
+  username      String      @unique
+  password      String
+  isActive      Boolean     @default(true)
+  groups        UserGroup[]
+  authoredDocs  Document[]  @relation("AuthorDocs")
+  confirmedDocs Document[]  @relation("ConfirmedDocs")
+  auditLogs     AuditLog[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model Group {
   id          String            @id @default(uuid())
   name        String            @unique
   description String?
+  isActive    Boolean           @default(true)
   permissions GroupPermission[]
   users       UserGroup[]
   createdAt   DateTime          @default(now())
@@ -51,4 +56,32 @@ model GroupPermission {
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
   @@id([groupId, permissionId])
+}
+
+model Document {
+  id            String    @id @default(uuid())
+  docNumber     String    @unique
+  title         String
+  category      String    @default("GENERAL") // GENERAL, FINANCIAL, TECHNICAL, COMPLIANCE
+  status        String    @default("DRAFT")   // DRAFT, CONFIRMED, CANCELLED
+  content       String?
+  authorId      String?
+  author        User?     @relation("AuthorDocs", fields: [authorId], references: [id], onDelete: SetNull)
+  confirmedById String?
+  confirmedBy   User?     @relation("ConfirmedDocs", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String   // CREATE, UPDATE, DELETE, CONFIRM, CANCEL, IMPORT, EXPORT
+  target    String   // User, Group, Permission, Document
+  details   String?
+  ipAddress String?  @default("127.0.0.1")
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
 }
