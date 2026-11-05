@@ -208,27 +208,20 @@ async function handleLoginSubmit(event) {
   }
 }
 
-async function quickLoginAs(username) {
+function quickLoginAs(username) {
   const usernameInput = document.getElementById('loginUsername');
   const passwordInput = document.getElementById('loginPassword');
+  const errorMsg = document.getElementById('loginErrorMsg');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+
+  // กรอกข้อมูลลงในฟอร์มเท่านั้น ไม่ยิง Request อัตโนมัติ
   if (usernameInput) usernameInput.value = username;
   if (passwordInput) passwordInput.value = 'Password123!';
-
-  const errorMsg = document.getElementById('loginErrorMsg');
   if (errorMsg) errorMsg.classList.add('hidden');
 
-  try {
-    await api.auth.login(username, 'Password123!');
-    showToast(`เข้าสู่ระบบสำเร็จ: ${username}`, 'success');
-    await refreshAuthStatus();
-  } catch (err) {
-    console.error('Quick login failed:', err);
-    if (errorMsg) {
-      errorMsg.textContent = err.message || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
-      errorMsg.classList.remove('hidden');
-    }
-    showToast('เข้าสู่ระบบไม่สำเร็จ', 'error');
-  }
+  // แสดงการแจ้งเตือนสั้นๆ และ Focus ที่ปุ่มเข้าสู่ระบบเพื่อให้ Maker หรือผู้ใช้กดเอง
+  showToast(`เลือกบัญชี ${username} แล้ว กรุณากดปุ่ม "เข้าสู่ระบบ"`, 'success');
+  if (btnSubmit) btnSubmit.focus();
 }
 
 function handleLogout() {
