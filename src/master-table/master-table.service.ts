@@ -47,7 +47,7 @@ export class MasterTableService {
       case 'user': {
         const where: any = search
           ? {
-              OR: [{ username: { contains: search } }],
+              OR: [{ username: { contains: search } }, { employeeId: { contains: search } }],
             }
           : {};
 
@@ -74,6 +74,7 @@ export class MasterTableService {
           data: records.map((u) => ({
             id: u.id,
             username: u.username,
+            employeeId: u.employeeId || null,
             isActive: u.isActive,
             groups: u.groups.map((g) => g.group.name),
             createdAt: u.createdAt,
@@ -301,7 +302,7 @@ export class MasterTableService {
     switch (tableName.toLowerCase()) {
       case 'users':
       case 'user': {
-        const { username, password, groups = ['GENERAL_USER'] } = payload;
+        const { username, password, employeeId, groups = ['GENERAL_USER'] } = payload;
         if (!username || !password) {
           throw new BadRequestException('Username and password are required');
         }
@@ -312,7 +313,12 @@ export class MasterTableService {
 
         const passwordHash = await bcrypt.hash(password, 10);
         const user = await this.prisma.user.create({
-          data: { username, password: passwordHash, isActive: true },
+          data: {
+            username,
+            password: passwordHash,
+            employeeId: employeeId ? employeeId.trim() : null,
+            isActive: true,
+          },
         });
 
         if (groups && groups.length > 0) {
@@ -411,6 +417,7 @@ export class MasterTableService {
         const updateData: any = {};
         if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
         if (payload.password) updateData.password = await bcrypt.hash(payload.password, 10);
+        if (payload.employeeId !== undefined) updateData.employeeId = payload.employeeId ? payload.employeeId.trim() : null;
 
         await this.prisma.user.update({ where: { id }, data: updateData });
 

@@ -887,7 +887,7 @@ function renderMasterTableHeader() {
       headers = ['รหัสเอกสาร (DOC NUMBER)', 'ชื่อเอกสาร (TITLE)', 'หมวดหมู่ (CATEGORY)', 'สถานะ (STATUS)', 'ผู้จัดทำ (AUTHOR)', 'ผู้อนุมัติ (CONFIRMED BY)', 'การจัดการ (OPERATIONS)'];
       break;
     case 'User':
-      headers = ['ชื่อผู้ใช้ (USERNAME)', 'กลุ่มสิทธิ์ที่ได้รับ (GROUPS)', 'สถานะบัญชี (ACTIVE)', 'วันที่สร้าง (CREATED AT)', 'การจัดการ (OPERATIONS)'];
+      headers = ['ชื่อผู้ใช้ (USERNAME)', 'รหัสพนักงาน (EMPLOYEE ID)', 'กลุ่มสิทธิ์ที่ได้รับ (GROUPS)', 'สถานะบัญชี (ACTIVE)', 'วันที่สร้าง (CREATED AT)', 'การจัดการ (OPERATIONS)'];
       break;
     case 'Group':
       headers = ['ชื่อกลุ่ม (GROUP NAME)', 'คำอธิบายบทบาท (DESCRIPTION)', 'จำนวนผู้ใช้ (USERS)', 'สิทธิ์ที่ครอบครอง (PERMISSIONS)', 'การจัดการ (OPERATIONS)'];
@@ -981,6 +981,9 @@ function renderMasterTableRows() {
           return `
             <tr class="hover:bg-neutral-50 transition-colors">
               <td class="p-3 font-bold font-mono text-neutral-900">${row.username}</td>
+              <td class="p-3 font-mono text-neutral-600">
+                ${row.employeeId ? `<span class="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded-md font-semibold text-[11px]">${row.employeeId}</span>` : '<span class="text-neutral-400 italic text-[11px]">ไม่ระบุ</span>'}
+              </td>
               <td class="p-3">
                 <div class="flex gap-1 flex-wrap font-mono">
                   ${(row.groups || []).map((g) => `<span class="border border-neutral-300 px-1.5 py-0.2 bg-white text-[10px]">${g}</span>`).join('')}
@@ -1232,6 +1235,10 @@ function renderMasterFormFields(container, table, current) {
           <input type="text" id="mField_username" required ${current ? 'disabled' : ''} value="${current ? current.username || '' : ''}" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900 ${current ? 'bg-neutral-100' : ''}">
         </div>
         <div>
+          <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">รหัสพนักงาน (Employee ID - ไม่บังคับ/เว้นว่างได้)</label>
+          <input type="text" id="mField_employeeId" placeholder="เช่น EMP-001 (ใส่หรือไม่ใส่ก็ได้)" value="${current ? current.employeeId || '' : ''}" class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">
+        </div>
+        <div>
           <label class="block text-xs font-semibold text-neutral-700 uppercase mb-1">${current ? 'รหัสผ่านใหม่ (ปล่อยว่างถ้าไม่ต้องการเปลี่ยน)' : 'รหัสผ่าน (Password)'}</label>
           <input type="password" id="mField_password" ${current ? '' : 'required'} class="w-full p-2 border border-neutral-300 text-xs outline-none focus:border-neutral-900">
         </div>
@@ -1302,8 +1309,10 @@ async function handleMasterFormSubmit(event) {
     case 'User': {
       const uEl = document.getElementById('mField_username');
       const pEl = document.getElementById('mField_password');
+      const empEl = document.getElementById('mField_employeeId');
       if (uEl) payload.username = uEl.value.trim();
       if (pEl && pEl.value) payload.password = pEl.value;
+      if (empEl) payload.employeeId = empEl.value.trim() || null;
       const groupChks = document.querySelectorAll('.mField_userGroups:checked');
       payload.groups = Array.from(groupChks).map((c) => c.value);
       break;
