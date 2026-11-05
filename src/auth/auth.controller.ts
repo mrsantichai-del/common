@@ -9,6 +9,11 @@ import { CurrentUser } from './decorators/current-user.decorator';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Get('groups')
+  async getGroups() {
+    return this.authService.getAvailableGroups();
+  }
+
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);

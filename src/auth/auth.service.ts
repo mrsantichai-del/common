@@ -12,6 +12,18 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  async getAvailableGroups() {
+    return this.prisma.group.findMany({
+      include: {
+        permissions: {
+          include: {
+            permission: true,
+          },
+        },
+      },
+    });
+  }
+
   async register(registerDto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({
       where: { username: registerDto.username },
@@ -28,25 +40,55 @@ export class AuthService {
       data: {
         username: registerDto.username,
         password: hashedPassword,
-        role: registerDto.role,
-      },
-      select: {
-        id: true,
-        username: true,
-        role: true,
-        createdAt: true,
       },
     });
 
+    const targetGroupNames =
+      registerDto.groups && registerDto.groups.length > 0
+        ? registerDto.groups
+        : ['GENERAL_USER'];
+
+    const groups = await this.prisma.group.findMany({
+      where: { name: { in: targetGroupNames } },
+    });
+
+    for (const group of groups) {
+      await this.prisma.userGroup.create({
+        data: {
+          userId: user.id,
+          groupId: group.id,
+        },
+      });
+    }
+
     return {
-      message: 'User registered successfully',
-      user,
+      message: 'User created successfully with assigned group memberships',
+      user: {
+        id: user.id,
+        username: user.username,
+        assignedGroups: groups.map((g) => g.name),
+      },
     };
   }
 
   async login(loginDto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { username: loginDto.username },
+      include: {
+        groups: {
+          include: {
+            group: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!user) {
@@ -58,10 +100,17 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const groupNames = user.groups.map((ug) => ug.group.name);
+    const permissionSet = new Set<string>();
+    for (const ug of user.groups) {
+      for (const gp of ug.group.permissions) {
+        permissionSet.add(gp.permission.code);
+      }
+    }
+
     const payload = {
       sub: user.id,
       username: user.username,
-      role: user.role,
     };
 
     const accessToken = await this.jwtService.signAsync(payload);
@@ -71,7 +120,8 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role,
+        groups: groupNames,
+        permissions: Array.from(permissionSet),
       },
     };
   }

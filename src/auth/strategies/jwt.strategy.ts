@@ -7,7 +7,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 export interface JwtPayload {
   sub: string;
   username: string;
-  role: string;
 }
 
 @Injectable()
@@ -26,13 +25,42 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, username: true, role: true },
+      include: {
+        groups: {
+          include: {
+            group: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found or token invalid');
+      throw new UnauthorizedException('User no longer exists or session is invalid');
     }
 
-    return user;
+    const groupNames = user.groups.map((ug) => ug.group.name);
+
+    // Aggregate/Union all permissions across all groups user belongs to
+    const permissionSet = new Set<string>();
+    for (const ug of user.groups) {
+      for (const gp of ug.group.permissions) {
+        permissionSet.add(gp.permission.code);
+      }
+    }
+
+    return {
+      id: user.id,
+      username: user.username,
+      groups: groupNames,
+      permissions: Array.from(permissionSet),
+    };
   }
 }

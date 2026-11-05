@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RBAC Access Management</title>
+  <title>Enterprise Multi-Group RBAC / PBAC</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,10 +20,10 @@
 <body class="bg-white text-neutral-900 min-h-screen flex flex-col antialiased">
 
   <!-- Top Navigation Bar -->
-  <header class="border-b border-neutral-200 px-8 py-4 flex items-center justify-between">
+  <header class="border-b border-neutral-200 px-8 py-4 flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-6">
-      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // RBAC</span>
-      <span class="text-xs font-mono text-neutral-400">BUILD 2.4.0 (NESTJS + PRISMA + SQLITE)</span>
+      <span class="font-bold text-sm tracking-tight uppercase">SYSTEM // MULTI-GROUP PBAC</span>
+      <span class="text-xs font-mono text-neutral-400">MANY-TO-MANY ARCHITECTURE</span>
     </div>
     <div class="flex items-center gap-4 text-xs font-mono">
       <div id="authStatus" class="flex items-center gap-2">
@@ -36,126 +36,231 @@
     </div>
   </header>
 
+  <!-- User Grants Banner (Visible When Logged In) -->
+  <div id="grantsBanner" class="hidden border-b border-neutral-200 bg-neutral-50 px-8 py-3 text-xs font-mono">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-neutral-400 uppercase">ACTIVE GROUPS:</span>
+        <span id="activeGroupsList" class="flex gap-1.5 flex-wrap"></span>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-neutral-400 uppercase">AGGREGATED PERMISSIONS:</span>
+        <span id="activePermsCount" class="font-bold text-neutral-900">0</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Main Split Layout -->
   <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 border-b border-neutral-200">
     
-    <!-- Left Column: Authentication Form -->
+    <!-- Left Column: Identity & Group Assignment -->
     <section class="lg:col-span-5 p-8 lg:p-12 border-b lg:border-b-0 lg:border-r border-neutral-200 flex flex-col justify-start">
       <div class="max-w-md w-full">
         
         <!-- Header Text -->
-        <div class="mb-8">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">IDENTITY VERIFICATION</p>
+        <div class="mb-6">
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS DELEGATION</p>
           <h2 id="formTitle" class="text-2xl font-semibold tracking-tight text-neutral-900">Sign in to workspace</h2>
         </div>
 
+        <!-- Quick Demo Profiles -->
+        <div class="mb-6 p-3 border border-neutral-200 bg-neutral-50 text-xs font-mono">
+          <div class="text-[11px] uppercase tracking-wider text-neutral-400 mb-2">QUICK TEST IDENTITIES (PRE-SEEDED)</div>
+          <div class="flex flex-col gap-2">
+            <button onclick="fillAndLogin('alex_ops_audit', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
+              <span>alex_ops_audit</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">GROUPS: [OPERATIONS + AUDIT]</span>
+            </button>
+            <button onclick="fillAndLogin('root_admin', '123456')" class="text-left px-2 py-1.5 border border-neutral-300 hover:bg-neutral-900 hover:text-white transition-colors flex justify-between items-center">
+              <span>root_admin</span>
+              <span class="text-[10px] text-neutral-500 hover:text-neutral-300">GROUP: [SUPER_ADMIN]</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Mode Toggle -->
-        <div class="flex gap-6 border-b border-neutral-200 mb-8 pb-3 text-xs font-mono uppercase tracking-wider">
+        <div class="flex gap-6 border-b border-neutral-200 mb-6 pb-3 text-xs font-mono uppercase tracking-wider">
           <button id="tabLogin" onclick="switchTab('login')" class="font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-3 -mb-3 transition-colors">
             01. SIGN IN
           </button>
           <button id="tabRegister" onclick="switchTab('register')" class="font-normal text-neutral-400 hover:text-neutral-900 transition-colors">
-            02. REGISTER
+            02. MULTI-GROUP REGISTRATION
           </button>
         </div>
 
         <!-- Sign-In Form -->
-        <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-6">
+        <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
           <div>
             <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Username</label>
-            <input type="text" id="loginUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Enter username">
+            <input type="text" id="loginUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Username">
           </div>
           <div>
             <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Password</label>
-            <input type="password" id="loginPassword" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Enter password">
+            <input type="password" id="loginPassword" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Password">
           </div>
           <button type="submit" class="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-widest transition-colors">
-            Authenticate
+            Authenticate Session
           </button>
         </form>
 
-        <!-- Register Form -->
-        <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-6 hidden">
+        <!-- Register Form (Multi-Group) -->
+        <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
           <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Username</label>
-            <input type="text" id="regUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Choose username">
+            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Username</label>
+            <input type="text" id="regUsername" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="New account identifier">
           </div>
           <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Password (Min 6 chars)</label>
-            <input type="password" id="regPassword" minlength="6" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Min. 6 characters">
+            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-1">Password (Min 6 chars)</label>
+            <input type="password" id="regPassword" minlength="6" required class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors" placeholder="Password">
           </div>
           <div>
-            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Assigned Role</label>
-            <select id="regRole" class="w-full px-3 py-2 text-sm border border-neutral-300 rounded-none bg-white text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors">
-              <option value="USER">USER (Standard Privileges)</option>
-              <option value="ADMIN">ADMIN (Elevated Privileges)</option>
-            </select>
+            <label class="block text-xs font-mono uppercase tracking-wider text-neutral-600 mb-2">Assign Groups (Select Multiple)</label>
+            <div id="groupCheckboxes" class="space-y-2 border border-neutral-200 p-3 bg-neutral-50 max-h-48 overflow-y-auto">
+              <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
+                <input type="checkbox" value="SUPER_ADMIN" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>SUPER_ADMIN</strong> <span class="text-neutral-400 block text-[10px]">Unrestricted access</span></span>
+              </label>
+              <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
+                <input type="checkbox" value="OPERATIONS_MANAGER" name="regGroups" checked class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>OPERATIONS_MANAGER</strong> <span class="text-neutral-400 block text-[10px]">users:read, write, reports</span></span>
+              </label>
+              <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
+                <input type="checkbox" value="AUDIT_TEAM" name="regGroups" checked class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>AUDIT_TEAM</strong> <span class="text-neutral-400 block text-[10px]">users:read, reports:view</span></span>
+              </label>
+              <label class="flex items-start gap-2 text-xs font-mono text-neutral-800 cursor-pointer">
+                <input type="checkbox" value="GENERAL_USER" name="regGroups" class="mt-0.5 rounded-none border-neutral-400">
+                <span><strong>GENERAL_USER</strong> <span class="text-neutral-400 block text-[10px]">reports:view</span></span>
+              </label>
+            </div>
+            <p class="text-[10px] text-neutral-400 font-mono mt-1">Users inherit the union of permissions from all selected groups.</p>
           </div>
           <button type="submit" class="w-full py-3 bg-neutral-900 hover:bg-neutral-800 text-white text-xs font-mono uppercase tracking-widest transition-colors">
-            Create Record
+            Provision Multi-Group Account
           </button>
         </form>
 
       </div>
     </section>
 
-    <!-- Right Column: RBAC Permission Inspector & Telemetry -->
+    <!-- Right Column: Permission Matrix Inspector -->
     <section class="lg:col-span-7 p-8 lg:p-12 flex flex-col justify-between bg-neutral-50/50">
       <div>
-        <div class="mb-8">
-          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">ACCESS CONTROL POLICY</p>
-          <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">Protected Route Inspector</h2>
+        <div class="mb-6">
+          <p class="text-xs font-mono uppercase tracking-widest text-neutral-400 mb-2">FINE-GRAINED ENFORCEMENT</p>
+          <h2 class="text-2xl font-semibold tracking-tight text-neutral-900">Permission Matrix Inspector</h2>
+          <p class="text-xs text-neutral-500 font-mono mt-1">Each endpoint tests atomic permission resolution against the user's aggregated groups.</p>
         </div>
 
         <!-- Endpoints Table -->
-        <div class="border border-neutral-200 bg-white mb-8">
-          <div class="grid grid-cols-12 text-xs font-mono uppercase tracking-wider text-neutral-400 p-3 border-b border-neutral-200 bg-neutral-50">
-            <span class="col-span-3">Method & Path</span>
-            <span class="col-span-5">Required Role</span>
-            <span class="col-span-4 text-right">Action</span>
+        <div class="border border-neutral-200 bg-white mb-6">
+          <div class="grid grid-cols-12 text-xs font-mono uppercase tracking-wider text-neutral-400 p-2.5 border-b border-neutral-200 bg-neutral-50">
+            <span class="col-span-4">Method & Route</span>
+            <span class="col-span-5">Required Permission</span>
+            <span class="col-span-3 text-right">Action</span>
           </div>
 
           <!-- Row 1 -->
-          <div class="grid grid-cols-12 items-center p-3 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-3 text-xs font-mono font-medium text-neutral-900">
-              <span class="text-neutral-400 font-normal">GET</span> /users/profile
+          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">GET</span> /users/profile
             </div>
-            <div class="col-span-5 text-xs text-neutral-600">
-              <span class="inline-block border border-neutral-300 px-2 py-0.5 text-[11px] font-mono uppercase text-neutral-700">USER | ADMIN</span>
+            <div class="col-span-5 text-xs">
+              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-600">AUTHENTICATED</span>
             </div>
-            <div class="col-span-4 text-right">
-              <button onclick="testEndpoint('/users/profile')" class="text-xs font-mono uppercase tracking-wider px-3 py-1.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                Inspect
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/profile', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
               </button>
             </div>
           </div>
 
           <!-- Row 2 -->
-          <div class="grid grid-cols-12 items-center p-3 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-3 text-xs font-mono font-medium text-neutral-900">
-              <span class="text-neutral-400 font-normal">GET</span> /users/admin-panel
+          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">GET</span> /users/reports
             </div>
-            <div class="col-span-5 text-xs text-neutral-600">
-              <span class="inline-block bg-neutral-900 text-white px-2 py-0.5 text-[11px] font-mono uppercase">ADMIN ONLY</span>
+            <div class="col-span-5 text-xs">
+              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">reports:view</span>
             </div>
-            <div class="col-span-4 text-right">
-              <button onclick="testEndpoint('/users/admin-panel')" class="text-xs font-mono uppercase tracking-wider px-3 py-1.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                Inspect
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/reports', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
               </button>
             </div>
           </div>
 
           <!-- Row 3 -->
-          <div class="grid grid-cols-12 items-center p-3 hover:bg-neutral-50 transition-colors">
-            <div class="col-span-3 text-xs font-mono font-medium text-neutral-900">
-              <span class="text-neutral-400 font-normal">GET</span> /users/all
+          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">GET</span> /users/reports/export
             </div>
-            <div class="col-span-5 text-xs text-neutral-600">
-              <span class="inline-block bg-neutral-900 text-white px-2 py-0.5 text-[11px] font-mono uppercase">ADMIN ONLY</span>
+            <div class="col-span-5 text-xs">
+              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">reports:export</span>
             </div>
-            <div class="col-span-4 text-right">
-              <button onclick="testEndpoint('/users/all')" class="text-xs font-mono uppercase tracking-wider px-3 py-1.5 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
-                Inspect
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/reports/export', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 4 -->
+          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">GET</span> /users/audit-log
+            </div>
+            <div class="col-span-5 text-xs">
+              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">users:read</span>
+            </div>
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/audit-log', 'GET')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 5 -->
+          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">POST</span> /users/create-subaccount
+            </div>
+            <div class="col-span-5 text-xs">
+              <span class="border border-neutral-300 px-1.5 py-0.5 text-[10px] font-mono text-neutral-700">users:write</span>
+            </div>
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/create-subaccount', 'POST')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 6 -->
+          <div class="grid grid-cols-12 items-center p-2.5 border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">DELETE</span> /users/purge-account
+            </div>
+            <div class="col-span-5 text-xs">
+              <span class="bg-neutral-900 text-white px-1.5 py-0.5 text-[10px] font-mono">users:delete</span>
+            </div>
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/purge-account', 'DELETE')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 7 -->
+          <div class="grid grid-cols-12 items-center p-2.5 hover:bg-neutral-50 transition-colors">
+            <div class="col-span-4 text-xs font-mono text-neutral-900">
+              <span class="text-neutral-400">POST</span> /users/system/config
+            </div>
+            <div class="col-span-5 text-xs">
+              <span class="bg-neutral-900 text-white px-1.5 py-0.5 text-[10px] font-mono">system:configure</span>
+            </div>
+            <div class="col-span-3 text-right">
+              <button onclick="testApi('/users/system/config', 'POST')" class="text-xs font-mono px-2.5 py-1 border border-neutral-900 hover:bg-neutral-900 hover:text-white transition-colors">
+                EXEC
               </button>
             </div>
           </div>
@@ -164,17 +269,17 @@
         <!-- Telemetry / Console Output -->
         <div>
           <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-mono uppercase tracking-wider text-neutral-400">HTTP TELEMETRY PAYLOAD</span>
+            <span class="text-xs font-mono uppercase tracking-wider text-neutral-400">LIVE HTTP TELEMETRY</span>
             <span id="responseStatus" class="text-xs font-mono uppercase tracking-widest text-neutral-500">IDLE</span>
           </div>
-          <pre id="output" class="w-full p-4 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[160px] leading-relaxed">// Ready for command execution.</pre>
+          <pre id="output" class="w-full p-4 border border-neutral-200 bg-white font-mono text-xs text-neutral-800 overflow-x-auto min-h-[140px] leading-relaxed">// Awaiting operation...</pre>
         </div>
       </div>
 
       <!-- Footer Info -->
-      <div class="mt-8 pt-4 border-t border-neutral-200 flex justify-between items-center text-xs font-mono text-neutral-400">
-        <span>SECURITY PROTOCOL: JWT BEARER</span>
-        <span>ENCRYPTION: BCRYPT (ROUNDS: 10)</span>
+      <div class="mt-6 pt-4 border-t border-neutral-200 flex justify-between items-center text-xs font-mono text-neutral-400">
+        <span>SECURITY: PASSPORT JWT BEARER</span>
+        <span>RESOLUTION: GROUP UNION PERMISSIONS</span>
       </div>
     </section>
 
@@ -196,34 +301,47 @@
       updateUI();
     }
 
-    function updateUI() {
+    async function updateUI() {
       const token = getToken();
       const statusEl = document.getElementById('authStatus');
       const logoutBtn = document.getElementById('logoutBtn');
+      const grantsBanner = document.getElementById('grantsBanner');
+      const groupsList = document.getElementById('activeGroupsList');
+      const permsCount = document.getElementById('activePermsCount');
 
       if (token) {
         try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          statusEl.innerHTML = `
-            <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
-            <span class="font-bold text-neutral-900 uppercase">${payload.username}</span>
-            <span class="border border-neutral-300 px-1.5 py-0.2 text-[10px] text-neutral-700 font-mono">${payload.role}</span>
-          `;
-          logoutBtn.classList.remove('hidden');
+          // Fetch current profile from /auth/me
+          const res = await fetch(`${API_BASE}/auth/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const user = await res.json();
+            statusEl.innerHTML = `
+              <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
+              <span class="font-bold text-neutral-900 uppercase">${user.username}</span>
+            `;
+            logoutBtn.classList.remove('hidden');
+            grantsBanner.classList.remove('hidden');
+
+            groupsList.innerHTML = user.groups.map(g => 
+              `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] text-neutral-800">${g}</span>`
+            ).join('');
+
+            permsCount.textContent = `${user.permissions.length} PERMISSION(S) GRANTED`;
+            return;
+          }
         } catch (e) {
-          statusEl.innerHTML = `
-            <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
-            <span class="text-neutral-900 uppercase">TOKEN ACTIVE</span>
-          `;
-          logoutBtn.classList.remove('hidden');
+          console.error(e);
         }
-      } else {
-        statusEl.innerHTML = `
-          <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
-          <span class="text-neutral-400 uppercase">UNAUTHENTICATED</span>
-        `;
-        logoutBtn.classList.add('hidden');
       }
+
+      statusEl.innerHTML = `
+        <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
+        <span class="text-neutral-400 uppercase">UNAUTHENTICATED</span>
+      `;
+      logoutBtn.classList.add('hidden');
+      grantsBanner.classList.add('hidden');
     }
 
     function switchTab(tab) {
@@ -242,7 +360,7 @@
       } else {
         loginForm.classList.add('hidden');
         regForm.classList.remove('hidden');
-        formTitle.textContent = 'Create identity record';
+        formTitle.textContent = 'Provision Multi-Group Account';
         tabRegister.className = 'font-semibold text-neutral-900 border-b-2 border-neutral-900 pb-3 -mb-3 transition-colors';
         tabLogin.className = 'font-normal text-neutral-400 hover:text-neutral-900 transition-colors';
       }
@@ -270,17 +388,28 @@
       }
     }
 
+    async function fillAndLogin(username, password) {
+      document.getElementById('loginUsername').value = username;
+      document.getElementById('loginPassword').value = password;
+      switchTab('login');
+      const fakeEvent = { preventDefault: () => {} };
+      await handleLogin(fakeEvent);
+    }
+
     async function handleRegister(e) {
       e.preventDefault();
       const username = document.getElementById('regUsername').value;
       const password = document.getElementById('regPassword').value;
-      const role = document.getElementById('regRole').value;
+
+      const checkedGroups = Array.from(
+        document.querySelectorAll('input[name="regGroups"]:checked')
+      ).map(cb => cb.value);
 
       try {
         const res = await fetch(`${API_BASE}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, role })
+          body: JSON.stringify({ username, password, groups: checkedGroups })
         });
         const data = await res.json();
         showResponse(res.status, data);
@@ -297,18 +426,21 @@
 
     function handleLogout() {
       setToken(null);
-      showResponse(200, { message: 'Session invalidated. Authenticate to proceed.' });
+      showResponse(200, { message: 'Session terminated. Token cleared.' });
     }
 
-    async function testEndpoint(endpoint) {
+    async function testApi(endpoint, method = 'GET') {
       const token = getToken();
-      const headers = {};
+      const headers = { 'Content-Type': 'application/json' };
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
       try {
-        const res = await fetch(`${API_BASE}${endpoint}`, { headers });
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+          method,
+          headers,
+        });
         const data = await res.json();
         showResponse(res.status, data);
       } catch (err) {
@@ -323,13 +455,13 @@
       statusEl.textContent = `STATUS // ${status}`;
       if (status >= 200 && status < 300) {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-900 font-semibold';
-        output.className = 'w-full p-4 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[160px] leading-relaxed';
+        output.className = 'w-full p-4 border border-neutral-900 bg-white font-mono text-xs text-neutral-900 overflow-x-auto min-h-[140px] leading-relaxed';
       } else if (status === 401 || status === 403) {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-        output.className = 'w-full p-4 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[160px] leading-relaxed';
+        output.className = 'w-full p-4 border border-neutral-400 bg-neutral-50 font-mono text-xs text-neutral-700 overflow-x-auto min-h-[140px] leading-relaxed';
       } else {
         statusEl.className = 'text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold';
-        output.className = 'w-full p-4 border border-neutral-300 bg-neutral-50 font-mono text-xs text-neutral-600 overflow-x-auto min-h-[160px] leading-relaxed';
+        output.className = 'w-full p-4 border border-neutral-300 bg-neutral-50 font-mono text-xs text-neutral-600 overflow-x-auto min-h-[140px] leading-relaxed';
       }
 
       output.textContent = JSON.stringify(data, null, 2);
