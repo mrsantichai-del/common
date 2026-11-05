@@ -18,7 +18,6 @@ let mapMarkers = [];
 document.addEventListener('DOMContentLoaded', async () => {
   initUIEventHandlers();
   await refreshAuthStatus();
-  initLeafletMap();
 });
 
 function initUIEventHandlers() {
@@ -72,33 +71,57 @@ function logConsole(title, data, isError = false) {
 }
 
 // ----------------------------------------------------
-// Authentication Handlers
+// Authentication & View State Handlers
 // ----------------------------------------------------
 
+function toggleDemoAccountsPanel() {
+  const panel = document.getElementById('demoAccountsPanel');
+  const icon = document.getElementById('demoAccountsToggleIcon');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    panel.classList.remove('hidden');
+    if (icon) icon.innerHTML = '&minus;';
+  } else {
+    panel.classList.add('hidden');
+    if (icon) icon.innerHTML = '&plus;';
+  }
+}
+
 async function refreshAuthStatus() {
+  const viewLogin = document.getElementById('viewLogin');
+  const viewApp = document.getElementById('viewApp');
   const authStatus = document.getElementById('authStatus');
-  const logoutBtn = document.getElementById('logoutBtn');
-  const loginModalBtn = document.getElementById('loginModalBtn');
   const grantsBanner = document.getElementById('grantsBanner');
   const navAdminTab = document.getElementById('navAdminTab');
 
   if (api.isAuthenticated()) {
     try {
       const user = await api.auth.getProfile();
+
+      // Show Application Dashboard, Hide Login Portal
+      if (viewLogin) viewLogin.classList.add('hidden');
+      if (viewApp) viewApp.classList.remove('hidden');
+
       if (authStatus) {
         authStatus.innerHTML = `
           <span class="w-2 h-2 bg-neutral-900 inline-block"></span>
           <span class="font-bold text-neutral-900 uppercase">${user.username}</span>
         `;
       }
-      if (logoutBtn) logoutBtn.classList.remove('hidden');
-      if (loginModalBtn) loginModalBtn.classList.add('hidden');
+
       if (grantsBanner) {
         grantsBanner.classList.remove('hidden');
-        document.getElementById('activeGroupsList').innerHTML = user.groups
-          .map((g) => `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] font-semibold">${g}</span>`)
-          .join('');
-        document.getElementById('activePermsCount').textContent = `${user.permissions.length} PERMISSION(S) ACTIVE`;
+        const groupsContainer = document.getElementById('activeGroupsList');
+        if (groupsContainer) {
+          groupsContainer.innerHTML = user.groups
+            .map((g) => `<span class="border border-neutral-400 px-1.5 py-0.2 bg-white text-[10px] font-semibold">${g}</span>`)
+            .join('');
+        }
+        const permsCount = document.getElementById('activePermsCount');
+        if (permsCount) {
+          permsCount.textContent = `${user.permissions.length} PERMISSION(S) ACTIVE`;
+        }
       }
 
       if (navAdminTab) {
@@ -109,65 +132,97 @@ async function refreshAuthStatus() {
         }
       }
 
+      // Re-render map after container becomes visible
+      if (!leafletMap) {
+        initLeafletMap();
+      } else {
+        setTimeout(() => leafletMap.invalidateSize(), 150);
+      }
+
       return user;
     } catch (e) {
-      console.warn('Session expired or invalid:', e.message);
+      console.warn('Session verification rejected:', e.message);
       api.auth.logout();
     }
   }
 
-  if (authStatus) {
-    authStatus.innerHTML = `
-      <span class="w-2 h-2 bg-neutral-300 inline-block"></span>
-      <span class="text-neutral-400 uppercase">UNAUTHENTICATED</span>
-    `;
-  }
-  if (logoutBtn) logoutBtn.classList.add('hidden');
-  if (loginModalBtn) loginModalBtn.classList.remove('hidden');
-  if (grantsBanner) grantsBanner.classList.add('hidden');
-  if (navAdminTab) navAdminTab.classList.add('hidden');
+  // Unauthenticated State: Show Login Portal, Hide Application Dashboard
+  if (viewLogin) viewLogin.classList.remove('hidden');
+  if (viewApp) viewApp.classList.add('hidden');
   return null;
 }
 
 async function handleLoginSubmit(event) {
   event.preventDefault();
-  const u = document.getElementById('inputUsername').value.trim();
-  const p = document.getElementById('inputPassword').value.trim();
+  const uInput = document.getElementById('loginUsername');
+  const pInput = document.getElementById('loginPassword');
+  const errBox = document.getElementById('loginErrorMsg');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+
+  if (!uInput || !pInput) return;
+  const username = uInput.value.trim();
+  const password = pInput.value.trim();
+
+  if (errBox) errBox.classList.add('hidden');
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'AUTHENTICATING...';
+  }
 
   try {
-    const res = await api.auth.login(u, p);
+    const res = await api.auth.login(username, password);
     logConsole('LOGIN SUCCESSFUL', res);
-    closeLoginModal();
     await refreshAuthStatus();
   } catch (err) {
+    const errMsg = err.data?.message || err.message || 'Invalid credentials or connection error';
+    if (errBox) {
+      errBox.textContent = `AUTHENTICATION FAILED: ${Array.isArray(errMsg) ? errMsg.join(', ') : errMsg}`;
+      errBox.classList.remove('hidden');
+    }
     logConsole('AUTHENTICATION REJECTED', err.data || err.message, true);
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'SIGN IN (ลงชื่อเข้าสู่ระบบ)';
+    }
   }
 }
 
 async function quickLoginAs(username) {
+  const uInput = document.getElementById('loginUsername');
+  const pInput = document.getElementById('loginPassword');
+  const errBox = document.getElementById('loginErrorMsg');
+  if (errBox) errBox.classList.add('hidden');
+
+  if (uInput) uInput.value = username;
+  if (pInput) pInput.value = '123456';
+
   try {
     const res = await api.auth.login(username, '123456');
     logConsole(`AUTHENTICATED AS ${username.toUpperCase()}`, res);
-    closeLoginModal();
     await refreshAuthStatus();
   } catch (err) {
+    const errMsg = err.data?.message || err.message || 'Login failed';
+    if (errBox) {
+      errBox.textContent = `QUICK LOGIN FAILED: ${errMsg}`;
+      errBox.classList.remove('hidden');
+    }
     logConsole('QUICK LOGIN FAILED', err.data || err.message, true);
   }
 }
 
 function handleLogout() {
   api.auth.logout();
+  const uInput = document.getElementById('loginUsername');
+  const pInput = document.getElementById('loginPassword');
+  if (uInput) uInput.value = '';
+  if (pInput) pInput.value = '';
+  const errBox = document.getElementById('loginErrorMsg');
+  if (errBox) errBox.classList.add('hidden');
+
   refreshAuthStatus();
   logConsole('SESSION TERMINATED', { message: 'Token cleared from local storage' });
   switchAppTab('overview');
-}
-
-function openLoginModal() {
-  document.getElementById('modalLogin').classList.remove('hidden');
-}
-
-function closeLoginModal() {
-  document.getElementById('modalLogin').classList.add('hidden');
 }
 
 // ----------------------------------------------------
@@ -205,6 +260,7 @@ function switchAppTab(tab) {
 // ----------------------------------------------------
 
 function initLeafletMap() {
+  if (leafletMap) return;
   const mapElement = document.getElementById('operationalMap');
   if (!mapElement || !window.L) return;
 
