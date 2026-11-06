@@ -54,6 +54,38 @@ export class MasterTableService {
     const skip = (page - 1) * limit;
 
     switch (tableName.toLowerCase()) {
+      case 'companies':
+      case 'company': {
+        const where: any = search
+          ? {
+              OR: [
+                { nameTh: { contains: search } },
+                { nameEn: { contains: search } },
+                { taxId: { contains: search } },
+                { branchCode: { contains: search } },
+              ],
+            }
+          : {};
+
+        const [total, records] = await Promise.all([
+          this.prisma.company.count({ where }),
+          this.prisma.company.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+          }),
+        ]);
+
+        return {
+          table: 'Company',
+          total,
+          page,
+          limit,
+          data: records,
+        };
+      }
+
       case 'users':
       case 'user': {
         const where: any = search
@@ -280,6 +312,9 @@ export class MasterTableService {
   // --------------------------------------------------------------------------
   async findOne(tableName: string, id: string) {
     switch (tableName.toLowerCase()) {
+      case 'companies':
+      case 'company':
+        return this.prisma.company.findUnique({ where: { id } });
       case 'users':
       case 'user':
         return this.prisma.user.findUnique({
@@ -314,6 +349,97 @@ export class MasterTableService {
   // --------------------------------------------------------------------------
   async create(tableName: string, payload: any, userId?: string) {
     switch (tableName.toLowerCase()) {
+      case 'companies':
+      case 'company': {
+        const {
+          taxId,
+          nameTh,
+          nameEn,
+          branchType = 'HEAD_OFFICE',
+          branchCode = '00000',
+          branchName = 'สำนักงานใหญ่',
+          commercialRegNo,
+          shortName,
+          addressTh,
+          addressEn,
+          postalCode,
+          telephone,
+          fax,
+          email,
+          website,
+          bankName,
+          bankBranch,
+          accountType,
+          accountName,
+          accountNumber,
+          logoUrl = '/assets/logo/logo.jpg',
+          stampUrl,
+          docFooterNotice,
+          isDefault = false,
+          isActive = true,
+        } = payload;
+
+        if (!taxId || !nameTh || !nameEn || !addressTh) {
+          throw new BadRequestException('taxId, nameTh, nameEn, and addressTh are required');
+        }
+
+        const existing = await this.prisma.company.findUnique({ where: { taxId } });
+        if (existing) {
+          throw new ConflictException(`Company with Tax ID '${taxId}' already exists`);
+        }
+
+        if (isDefault) {
+          await this.prisma.company.updateMany({
+            where: { isDefault: true },
+            data: { isDefault: false },
+          });
+        }
+
+        const company = await this.prisma.company.create({
+          data: {
+            taxId,
+            branchType,
+            branchCode,
+            branchName,
+            commercialRegNo,
+            nameTh,
+            nameEn,
+            shortName,
+            addressTh,
+            addressEn,
+            postalCode,
+            telephone,
+            fax,
+            email,
+            website,
+            bankName,
+            bankBranch,
+            accountType,
+            accountName,
+            accountNumber,
+            logoUrl,
+            stampUrl,
+            docFooterNotice,
+            isDefault: Boolean(isDefault),
+            isActive: isActive !== undefined ? Boolean(isActive) : true,
+            createdById: userId || null,
+            updatedById: userId || null,
+          },
+        });
+
+        await this.logAudit(
+          'COMPANY_CREATE',
+          'Company',
+          `Created company profile: ${nameTh} (${taxId})`,
+          userId,
+          company.id,
+          null,
+          { taxId, nameTh, branchCode },
+        );
+
+        return { message: `Company '${nameTh}' successfully created`, id: company.id };
+      }
+
       case 'users':
       case 'user': {
         const { username, password, employeeId, groups = ['GENERAL_USER'] } = payload;
@@ -438,6 +564,71 @@ export class MasterTableService {
   // --------------------------------------------------------------------------
   async update(tableName: string, id: string, payload: any, userId?: string) {
     switch (tableName.toLowerCase()) {
+      case 'companies':
+      case 'company': {
+        const company = await this.prisma.company.findUnique({ where: { id } });
+        if (!company) throw new NotFoundException('Company not found');
+
+        const updateData: any = { updatedById: userId || null };
+        const fields = [
+          'taxId',
+          'branchType',
+          'branchCode',
+          'branchName',
+          'commercialRegNo',
+          'nameTh',
+          'nameEn',
+          'shortName',
+          'addressTh',
+          'addressEn',
+          'postalCode',
+          'telephone',
+          'fax',
+          'email',
+          'website',
+          'bankName',
+          'bankBranch',
+          'accountType',
+          'accountName',
+          'accountNumber',
+          'logoUrl',
+          'stampUrl',
+          'docFooterNotice',
+        ];
+
+        for (const f of fields) {
+          if (payload[f] !== undefined) updateData[f] = payload[f];
+        }
+
+        if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
+        if (payload.isDefault !== undefined) {
+          updateData.isDefault = Boolean(payload.isDefault);
+          if (updateData.isDefault) {
+            await this.prisma.company.updateMany({
+              where: { id: { not: id }, isDefault: true },
+              data: { isDefault: false },
+            });
+          }
+        }
+
+        await this.prisma.company.update({
+          where: { id },
+          data: updateData,
+        });
+
+        await this.logAudit(
+          'COMPANY_UPDATE',
+          'Company',
+          `Updated company: ${company.nameTh}`,
+          userId,
+          id,
+          { nameTh: company.nameTh, taxId: company.taxId },
+          updateData,
+        );
+
+        return { message: `Company '${company.nameTh}' successfully updated` };
+      }
+
       case 'users':
       case 'user': {
         const user = await this.prisma.user.findUnique({ where: { id } });
@@ -534,6 +725,18 @@ export class MasterTableService {
   // --------------------------------------------------------------------------
   async delete(tableName: string, id: string, userId?: string) {
     switch (tableName.toLowerCase()) {
+      case 'companies':
+      case 'company': {
+        const company = await this.prisma.company.findUnique({ where: { id } });
+        if (!company) throw new NotFoundException('Company not found');
+        if (company.isDefault) {
+          throw new ConflictException('Cannot delete default primary company profile');
+        }
+        await this.prisma.company.delete({ where: { id } });
+        await this.logAudit('COMPANY_DELETE', 'Company', `Deleted company: ${company.nameTh}`, userId);
+        return { message: `Company '${company.nameTh}' deleted` };
+      }
+
       case 'users':
       case 'user': {
         const user = await this.prisma.user.findUnique({ where: { id } });

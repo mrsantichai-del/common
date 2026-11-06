@@ -397,9 +397,13 @@
           
           <!-- Table Selection Tabs -->
           <div class="border-b border-slate-200 flex items-center space-x-1 overflow-x-auto">
-            <button type="button" onclick="switchMasterTable('user')" id="masterTab_user" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-blue-600 text-blue-700 bg-white rounded-t transition-colors cursor-pointer flex items-center space-x-1.5 flex-shrink-0">
+            <button type="button" onclick="switchMasterTable('company')" id="masterTab_company" class="px-4 py-2.5 text-xs font-semibold border-b-2 border-blue-600 text-blue-700 bg-white rounded-t transition-colors cursor-pointer flex items-center space-x-1.5 flex-shrink-0">
+              <span>บริษัท (Company)</span>
+              <span id="tabCount_company" class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded-full font-mono">-</span>
+            </button>
+            <button type="button" onclick="switchMasterTable('user')" id="masterTab_user" class="px-4 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors cursor-pointer flex items-center space-x-1.5 flex-shrink-0">
               <span>ผู้ใช้งาน (User)</span>
-              <span id="tabCount_user" class="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.2 rounded-full font-mono">-</span>
+              <span id="tabCount_user" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded-full font-mono">-</span>
             </button>
             <button type="button" onclick="switchMasterTable('group')" id="masterTab_group" class="px-4 py-2.5 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition-colors cursor-pointer flex items-center space-x-1.5 flex-shrink-0">
               <span>กลุ่มสิทธิ์ (Group)</span>
@@ -492,7 +496,7 @@
 
   <!-- MODAL: ADD / EDIT MASTER RECORD -->
   <div id="modalMasterForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-    <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl border border-slate-200 space-y-4 relative overflow-visible my-auto">
+    <div class="bg-white rounded-xl w-full max-w-2xl p-6 shadow-2xl border border-slate-200 space-y-4 relative overflow-visible my-auto">
       <div class="flex justify-between items-center border-b border-slate-200 pb-3">
         <div>
           <h3 id="masterModalTitle" class="font-bold text-sm text-slate-900">เพิ่มข้อมูลในตาราง</h3>

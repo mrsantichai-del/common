@@ -98,3 +98,37 @@ model AuditLog {
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 }
+
+model Company {
+  id               String   @id @default(uuid())
+  taxId            String   @unique // เลขประจำตัวผู้เสียภาษี 13 หลัก
+  branchType       String   @default("HEAD_OFFICE") // HEAD_OFFICE, BRANCH
+  branchCode       String   @default("00000") // 00000 = สำนักงานใหญ่ หรือ 00001
+  branchName       String   @default("สำนักงานใหญ่")
+  commercialRegNo  String?  // เลขทะเบียนพาณิชย์
+  nameTh           String   // ชื่อบริษัทภาษาไทย
+  nameEn           String   // ชื่อบริษัทภาษาอังกฤษ
+  shortName        String?  // ตัวย่อ
+  addressTh        String   // ที่อยู่ภาษาไทย
+  addressEn        String?  // ที่อยู่ภาษาอังกฤษ
+  postalCode       String?  // รหัสไปรษณีย์
+  telephone        String?  // โทรศัพท์
+  fax              String?  // แฟกซ์
+  email            String?  // อีเมล
+  website          String?  // เว็บไซต์
+  bankName         String?  // ชื่อธนาคาร
+  bankBranch       String?  // สาขาธนาคาร
+  accountType      String?  // ประเภทบัญชี
+  accountName      String?  // ชื่อบัญชี
+  accountNumber    String?  // เลขที่บัญชี
+  logoUrl          String?  @default("/assets/logo/logo.jpg") // โลโก้บริษัท
+  stampUrl         String?  // ตรายางบริษัท
+  docFooterNotice  String?  // ข้อความท้ายเอกสาร
+  isDefault        Boolean  @default(true) // เป็นบริษัทหลักหรือไม่
+  isActive         Boolean  @default(true)
+  createdById      String?
+  updatedById      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+

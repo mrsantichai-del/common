@@ -17,7 +17,7 @@ window.APP_CONFIG = APP_CONFIG;
 
 let currentUser = null;
 let activeMenu = 'home';
-let activeMasterTable = 'user';
+let activeMasterTable = 'company';
 let masterTableRawData = [];
 
 // Menu Definitions with granular permission constraints and submenus
@@ -36,6 +36,7 @@ const MENU_DEFINITIONS = [
     requiredPermission: 'system:configure',
     adminOnly: true, // ปรากฏเฉพาะ Admin เท่านั้น
     submenus: [
+      { id: 'company', label: 'บริษัท (Company)' },
       { id: 'user', label: 'ผู้ใช้งาน (User)' },
       { id: 'group', label: 'กลุ่มสิทธิ์ (Group)' },
       { id: 'permission', label: 'สิทธิ์การใช้งาน (Permission)' },
@@ -389,7 +390,7 @@ function navigateToMasterTable(tableName) {
 // MasterData Management Engine (Admin Only)
 // ----------------------------------------------------
 
-const MASTER_TABLES = ['user', 'group', 'permission', 'document', 'auditlog'];
+const MASTER_TABLES = ['company', 'user', 'group', 'permission', 'document', 'auditlog'];
 
 function switchMasterTable(tableName) {
   activeMasterTable = tableName.toLowerCase();
@@ -493,6 +494,72 @@ function renderMasterTable(records) {
   let rowsHtml = '';
 
   switch (activeMasterTable) {
+    case 'company': {
+      headersHtml = `
+        <tr>
+          <th class="p-3 w-12 text-center">#</th>
+          <th class="p-3">ชื่อบริษัท (Company Name)</th>
+          <th class="p-3">เลขผู้เสียภาษี (Tax ID)</th>
+          <th class="p-3">สาขา (Branch)</th>
+          <th class="p-3">เบอร์โทรศัพท์ & ติดต่อ</th>
+          <th class="p-3">สถานะ</th>
+          <th class="p-3 text-right">การกระทำ</th>
+        </tr>
+      `;
+
+      if (records.length === 0) {
+        rowsHtml = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลบริษัท</td></tr>`;
+      } else {
+        rowsHtml = records
+          .map((c, i) => {
+            const defaultBadge = c.isDefault
+              ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-semibold font-mono mr-1">สำนักงานหลัก</span>'
+              : '';
+            const statusBadge = c.isActive !== false
+              ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-sans font-semibold">ใช้งานได้</span>'
+              : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-sans">ปิดใช้งาน</span>';
+
+            const branchDisplay = c.branchName
+              ? `${c.branchName} <span class="font-mono text-slate-400 text-[10px]">(${c.branchCode || '00000'})</span>`
+              : (c.branchCode || '-');
+
+            return `
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
+                <td class="p-3">
+                  <div class="font-semibold text-slate-900">${c.nameTh}</div>
+                  <div class="text-[11px] text-slate-500 font-sans">${c.nameEn}</div>
+                </td>
+                <td class="p-3 text-blue-700 font-mono font-medium">${c.taxId}</td>
+                <td class="p-3 font-sans text-xs">${branchDisplay}</td>
+                <td class="p-3 font-sans text-xs text-slate-600">
+                  <div>${c.telephone || '-'}</div>
+                  <div class="text-[10px] text-slate-400 truncate max-w-xs" title="${c.addressTh}">${c.addressTh}</div>
+                </td>
+                <td class="p-3">
+                  ${defaultBadge}
+                  ${statusBadge}
+                </td>
+                <td class="p-3 text-right font-sans space-x-1.5">
+                  <button type="button" onclick="openEditMasterRecordModal('${c.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
+                    แก้ไข
+                  </button>
+                  ${
+                    c.isDefault
+                      ? ''
+                      : `<button type="button" onclick="deleteMasterRecord('${c.id}', '${c.nameTh}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
+                          ลบ
+                        </button>`
+                  }
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+      }
+      break;
+    }
+
     case 'user': {
       headersHtml = `
         <tr>
@@ -949,6 +1016,179 @@ async function renderMasterFormFields(container, table, existing) {
   container.innerHTML = '';
 
   switch (table) {
+    case 'company': {
+      const isEdit = Boolean(existing);
+      const isDefault = existing ? Boolean(existing.isDefault) : true;
+      const isActive = existing ? existing.isActive !== false : true;
+      const branchType = existing ? (existing.branchType || 'HEAD_OFFICE') : 'HEAD_OFFICE';
+
+      container.innerHTML = `
+        <!-- ส่วนที่ 1: ข้อมูลนิติบุคคลและสาขา -->
+        <div class="border-b border-slate-200 pb-3">
+          <div class="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            <span>1. ข้อมูลนิติบุคคลและสาขา (Legal Entity & Branch)</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">เลขประจำตัวผู้เสียภาษี (Tax ID 13 หลัก) *</label>
+              <input type="text" id="f_company_taxId" required maxlength="13" value="${existing ? existing.taxId : ''}" placeholder="เช่น 0107548000451" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">เลขทะเบียนพาณิชย์ / เลขทะเบียนนิติบุคคล</label>
+              <input type="text" id="f_company_commercialRegNo" value="${existing && existing.commercialRegNo ? existing.commercialRegNo : ''}" placeholder="เช่น 0107548000451" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ประเภทสาขา</label>
+              <select id="f_company_branchType" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white">
+                <option value="HEAD_OFFICE" ${branchType === 'HEAD_OFFICE' ? 'selected' : ''}>สำนักงานใหญ่ (Head Office)</option>
+                <option value="BRANCH" ${branchType === 'BRANCH' ? 'selected' : ''}>สาขา (Branch)</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสสาขา</label>
+                <input type="text" id="f_company_branchCode" value="${existing ? existing.branchCode : '00000'}" placeholder="เช่น 00000" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อสาขา</label>
+                <input type="text" id="f_company_branchName" value="${existing ? existing.branchName : 'สำนักงานใหญ่'}" placeholder="เช่น สำนักงานใหญ่" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 2: ชื่อองค์กร -->
+        <div class="border-b border-slate-200 pb-3">
+          <div class="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            <span>2. ชื่อองค์กร (Corporate Names)</span>
+          </div>
+          <div class="space-y-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อบริษัทภาษาไทย *</label>
+              <input type="text" id="f_company_nameTh" required value="${existing ? existing.nameTh : ''}" placeholder="เช่น บริษัท ไพลอน จำกัด (มหาชน)" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div class="md:col-span-2">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อบริษัทภาษาอังกฤษ *</label>
+                <input type="text" id="f_company_nameEn" required value="${existing ? existing.nameEn : ''}" placeholder="เช่น PYLON PUBLIC COMPANY LIMITED" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อย่อ (Short Name)</label>
+                <input type="text" id="f_company_shortName" value="${existing && existing.shortName ? existing.shortName : ''}" placeholder="เช่น PYLON" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 3: ที่อยู่และช่องทางติดต่อ -->
+        <div class="border-b border-slate-200 pb-3">
+          <div class="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            <span>3. ที่อยู่และช่องทางติดต่อ (Address & Contact)</span>
+          </div>
+          <div class="space-y-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ที่อยู่ภาษาไทย *</label>
+              <textarea id="f_company_addressTh" rows="2" required placeholder="ระบุเลขที่ อาคาร ถนน แขวง/ตำบล เขต/อำเภอ จังหวัด" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">${existing ? existing.addressTh : ''}</textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ที่อยู่ภาษาอังกฤษ</label>
+              <textarea id="f_company_addressEn" rows="2" placeholder="Address in English..." class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">${existing && existing.addressEn ? existing.addressEn : ''}</textarea>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสไปรษณีย์</label>
+                <input type="text" id="f_company_postalCode" maxlength="5" value="${existing && existing.postalCode ? existing.postalCode : ''}" placeholder="เช่น 10400" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">เบอร์โทรศัพท์</label>
+                <input type="text" id="f_company_telephone" value="${existing && existing.telephone ? existing.telephone : ''}" placeholder="เช่น 02-615-1259" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">เบอร์แฟกซ์</label>
+                <input type="text" id="f_company_fax" value="${existing && existing.fax ? existing.fax : ''}" placeholder="เช่น 02-615-1258" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">อีเมลติดต่อ</label>
+                <input type="email" id="f_company_email" value="${existing && existing.email ? existing.email : ''}" placeholder="contact@domain.com" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">เว็บไซต์</label>
+              <input type="text" id="f_company_website" value="${existing && existing.website ? existing.website : ''}" placeholder="เช่น https://www.pylon.co.th" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 4: บัญชีธนาคารสำหรับเอกสารทางการเงิน -->
+        <div class="border-b border-slate-200 pb-3">
+          <div class="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            <span>4. บัญชีธนาคารสำหรับออกเอกสาร (Banking Information)</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อธนาคาร</label>
+              <input type="text" id="f_company_bankName" value="${existing && existing.bankName ? existing.bankName : ''}" placeholder="เช่น ธนาคารกสิกรไทย" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">สาขาธนาคาร</label>
+              <input type="text" id="f_company_bankBranch" value="${existing && existing.bankBranch ? existing.bankBranch : ''}" placeholder="เช่น สาขาสนามเป้า" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ประเภทบัญชี</label>
+              <input type="text" id="f_company_accountType" value="${existing && existing.accountType ? existing.accountType : ''}" placeholder="เช่น กระแสรายวัน / ออมทรัพย์" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">เลขที่บัญชี</label>
+              <input type="text" id="f_company_accountNumber" value="${existing && existing.accountNumber ? existing.accountNumber : ''}" placeholder="เช่น 029-1-08999-9" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อบัญชี</label>
+              <input type="text" id="f_company_accountName" value="${existing && existing.accountName ? existing.accountName : ''}" placeholder="เช่น บริษัท ไพลอน จำกัด (มหาชน)" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- ส่วนที่ 5: อัตลักษณ์และการตั้งค่า -->
+        <div>
+          <div class="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+            <span>5. อัตลักษณ์และการตั้งค่า (Branding & Settings)</span>
+          </div>
+          <div class="space-y-2.5">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ไฟล์โลโก้ (Logo URL)</label>
+                <input type="text" id="f_company_logoUrl" value="${existing && existing.logoUrl ? existing.logoUrl : '/assets/logo/logo.jpg'}" placeholder="/assets/logo/logo.jpg" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">ไฟล์ตรายาง (Stamp URL)</label>
+                <input type="text" id="f_company_stampUrl" value="${existing && existing.stampUrl ? existing.stampUrl : ''}" placeholder="เช่น /assets/stamp/stamp.png" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">ข้อความท้ายเอกสาร (Document Footer Notice)</label>
+              <input type="text" id="f_company_docFooterNotice" value="${existing && existing.docFooterNotice ? existing.docFooterNotice : ''}" placeholder="เช่น เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+            </div>
+            <div class="flex items-center space-x-6 pt-1">
+              <label class="inline-flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="f_company_isDefault" ${isDefault ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-0 cursor-pointer">
+                <span class="text-xs font-medium text-slate-700">ตั้งเป็นข้อมูลบริษัทหลัก (Default Company)</span>
+              </label>
+              <label class="inline-flex items-center space-x-2 cursor-pointer">
+                <input type="checkbox" id="f_company_isActive" ${isActive ? 'checked' : ''} class="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer">
+                <span class="text-xs font-medium text-slate-700">สถานะเปิดใช้งาน (Active)</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      `;
+      break;
+    }
+
     case 'user': {
       // ดึงข้อมูลกลุ่มสิทธิ์จากตาราง Group ที่สัมพันธ์กัน
       let groupOptions = [];
@@ -1184,6 +1424,35 @@ async function handleMasterFormSubmit(event) {
   const payload = {};
 
   switch (activeMasterTable) {
+    case 'company': {
+      payload.taxId = document.getElementById('f_company_taxId')?.value.trim();
+      payload.nameTh = document.getElementById('f_company_nameTh')?.value.trim();
+      payload.nameEn = document.getElementById('f_company_nameEn')?.value.trim();
+      payload.shortName = document.getElementById('f_company_shortName')?.value.trim() || null;
+      payload.branchType = document.getElementById('f_company_branchType')?.value || 'HEAD_OFFICE';
+      payload.branchCode = document.getElementById('f_company_branchCode')?.value.trim() || '00000';
+      payload.branchName = document.getElementById('f_company_branchName')?.value.trim() || 'สำนักงานใหญ่';
+      payload.commercialRegNo = document.getElementById('f_company_commercialRegNo')?.value.trim() || null;
+      payload.addressTh = document.getElementById('f_company_addressTh')?.value.trim();
+      payload.addressEn = document.getElementById('f_company_addressEn')?.value.trim() || null;
+      payload.postalCode = document.getElementById('f_company_postalCode')?.value.trim() || null;
+      payload.telephone = document.getElementById('f_company_telephone')?.value.trim() || null;
+      payload.fax = document.getElementById('f_company_fax')?.value.trim() || null;
+      payload.email = document.getElementById('f_company_email')?.value.trim() || null;
+      payload.website = document.getElementById('f_company_website')?.value.trim() || null;
+      payload.bankName = document.getElementById('f_company_bankName')?.value.trim() || null;
+      payload.bankBranch = document.getElementById('f_company_bankBranch')?.value.trim() || null;
+      payload.accountType = document.getElementById('f_company_accountType')?.value.trim() || null;
+      payload.accountName = document.getElementById('f_company_accountName')?.value.trim() || null;
+      payload.accountNumber = document.getElementById('f_company_accountNumber')?.value.trim() || null;
+      payload.logoUrl = document.getElementById('f_company_logoUrl')?.value.trim() || '/assets/logo/logo.jpg';
+      payload.stampUrl = document.getElementById('f_company_stampUrl')?.value.trim() || null;
+      payload.docFooterNotice = document.getElementById('f_company_docFooterNotice')?.value.trim() || null;
+      payload.isDefault = Boolean(document.getElementById('f_company_isDefault')?.checked);
+      payload.isActive = Boolean(document.getElementById('f_company_isActive')?.checked);
+      break;
+    }
+
     case 'user': {
       const u = document.getElementById('f_user_username').value.trim();
       const p = document.getElementById('f_user_password')?.value;

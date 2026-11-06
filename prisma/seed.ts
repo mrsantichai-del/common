@@ -268,7 +268,39 @@ export async function seedDatabase(client: PrismaClient = prisma) {
     await client.auditLog.create({ data: log });
   }
 
-  console.log('[Seed] Enterprise Permission Matrix, Identities & Master Documents seeded successfully.');
+  // 6. Master Company Profile (PYLON PUBLIC COMPANY LIMITED)
+  await client.company.upsert({
+    where: { taxId: '0107548000451' },
+    update: {},
+    create: {
+      taxId: '0107548000451',
+      branchType: 'HEAD_OFFICE',
+      branchCode: '00000',
+      branchName: 'สำนักงานใหญ่',
+      commercialRegNo: '0107548000451',
+      nameTh: 'บริษัท ไพลอน จำกัด (มหาชน)',
+      nameEn: 'PYLON PUBLIC COMPANY LIMITED',
+      shortName: 'PYLON',
+      addressTh: '252 อาคารเอสพีอี ทาวเวอร์ ชั้น 14 ถนนพหลโยธิน แขวงสามเสนใน เขตพญาไท กรุงเทพมหานคร 10400',
+      addressEn: '252 SPE Tower, 14th Floor, Phaholyothin Road, Samsennai, Phayathai, Bangkok 10400',
+      postalCode: '10400',
+      telephone: '02-615-1259',
+      fax: '02-615-1258',
+      email: 'contact@pylon.co.th',
+      website: 'https://www.pylon.co.th',
+      bankName: 'ธนาคารกสิกรไทย (KBANK)',
+      bankBranch: 'สาขาสนามเป้า',
+      accountType: 'กระแสรายวัน',
+      accountName: 'บริษัท ไพลอน จำกัด (มหาชน)',
+      accountNumber: '029-1-08999-9',
+      logoUrl: '/assets/logo/logo.jpg',
+      docFooterNotice: 'เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System',
+      isDefault: true,
+      isActive: true,
+    },
+  });
+
+  console.log('[Seed] Enterprise Permission Matrix, Identities, Master Documents & Company seeded successfully.');
 }
 
 if (require.main === module) {
