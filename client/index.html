@@ -245,74 +245,94 @@
       <!-- Main Workspace Content (NO DASHBOARD, JUST AUTHENTIC HOME) -->
       <div class="flex-1 p-6 overflow-y-auto">
         
-        <!-- SECTION 1: HOME PAGE (EVERYONE ARRIVES HERE FIRST) -->
-        <div id="sectionHome" class="max-w-4xl space-y-5">
+        <!-- SECTION 1: HOME PAGE (CLEAN, AIRY, GREETING & WHAT IT DOES) -->
+        <div id="sectionHome" class="max-w-3xl mx-auto py-8 space-y-8">
           
-          <!-- Welcome Banner Card -->
-          <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-2xs">
-            <div class="flex items-start justify-between">
-              <div>
-                <div class="text-xs text-slate-500 font-medium">เข้าสู่ระบบสำเร็จ</div>
-                <h2 class="text-lg font-bold text-slate-900 mt-0.5">
-                  ยินดีต้อนรับคุณ <span id="homeWelcomeUsername" class="text-blue-700 font-mono">-</span> สู่หน้าหลักของระบบ
-                </h2>
-                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                  ระบบได้ทำการยืนยันตัวตนและประเมินสิทธิ์การทำงานตามบทบาท (RBAC) เรียบร้อยแล้ว เมนูด้านซ้ายจะแสดงเฉพาะฟังก์ชันที่คุณมีสิทธิ์เข้าถึงตามหน้าที่ที่ได้รับมอบหมาย
-                </p>
-              </div>
-              <div class="px-2.5 py-1 rounded bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-700 text-right">
-                <span class="text-slate-400 block text-[9px] uppercase">Login Timestamp</span>
-                <span id="homeLoginTimestamp">-</span>
-              </div>
+          <!-- Greeting Section -->
+          <div class="space-y-2">
+            <div class="inline-flex items-center space-x-2 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1 rounded-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+              <span>ระบบพร้อมใช้งาน</span>
             </div>
+            <h2 class="text-2xl font-bold text-slate-900 tracking-tight">
+              สวัสดีครับ คุณ <span id="homeWelcomeUsername" class="text-blue-700 font-mono">-</span>
+            </h2>
+            <p class="text-sm text-slate-500 leading-relaxed">
+              ยินดีต้อนรับเข้าสู่ระบบงานหลัก ทุกหน้าที่เริ่มต้นการทำงานจากหน้านี้
+            </p>
           </div>
 
-          <!-- User Identity & Scope Details Card -->
-          <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-2xs space-y-4">
-            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center justify-between">
-              <span>ข้อมูลตัวตนและขอบเขตสิทธิ์การใช้งาน (Identity & Permissions Scope)</span>
-              <span class="text-[10px] text-slate-500 font-mono font-normal">SOVEREIGN CORE</span>
-            </h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div class="p-3 bg-slate-50 rounded border border-slate-200">
-                <span class="text-slate-400 text-[10px] block">ชื่อบัญชีผู้ใช้งาน:</span>
-                <strong id="homeCardUsername" class="text-sm font-mono text-slate-900 mt-0.5 block">-</strong>
-              </div>
-              <div class="p-3 bg-slate-50 rounded border border-slate-200">
-                <span class="text-slate-400 text-[10px] block">รหัสพนักงาน (Employee ID):</span>
-                <strong id="homeCardEmployeeId" class="text-sm font-mono text-slate-900 mt-0.5 block">-</strong>
-              </div>
-              <div class="p-3 bg-slate-50 rounded border border-slate-200">
-                <span class="text-slate-400 text-[10px] block">กลุ่มสิทธิ์หลัก (Primary Group):</span>
-                <strong id="homeCardRole" class="text-sm font-mono text-blue-700 mt-0.5 block">-</strong>
-              </div>
-            </div>
-
-            <!-- Authorized Permissions List -->
-            <div class="pt-2">
-              <div class="text-[11px] font-semibold text-slate-700 mb-2">
-                รายการสิทธิ์ทั้งหมดที่บัญชีนี้ได้รับอนุญาต (Authorized Permissions):
-              </div>
-              <div id="homePermissionsBadgesContainer" class="flex flex-wrap gap-1.5">
-                <!-- Badges dynamically inserted -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Architectural Note Card (Ready for Maker's Next Step) -->
-          <div class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-5 text-xs text-slate-600 flex items-start space-x-3">
-            <div class="w-8 h-8 rounded bg-slate-200 text-slate-700 flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <div class="space-y-1">
-              <div class="font-bold text-slate-900 text-xs">ระบบรากฐานพร้อมทำงาน (Architectural Foundation Ready)</div>
-              <p class="leading-relaxed text-[11px] text-slate-500">
-                ระบบถูกออกแบบให้ทุกคนเริ่มต้นที่ <strong>หน้าหลัก</strong> โดยมีเมนูด้านซ้ายกรองตามสิทธิ์อัตโนมัติ Maker สามารถระบุโมดูลถัดไปที่ต้องการเขียน (เช่น โมดูลพนักงาน, โมดูลผู้ใช้, หรือโมดูลเอกสาร) เพื่อสร้างทีละขั้นตอนต่อไปได้ทันทีครับ
+          <!-- What is this program & Capabilities -->
+          <div class="bg-white rounded-xl border border-slate-200 p-8 shadow-xs space-y-6">
+            
+            <!-- What is this program -->
+            <div class="space-y-2">
+              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider text-slate-400">
+                เกี่ยวกับระบบงานนี้ (About This System)
+              </h3>
+              <p class="text-sm text-slate-700 leading-relaxed">
+                <strong class="text-slate-950 font-semibold">ULTRON Core System</strong> คือระบบบริหารจัดการข้อมูลและเอกสารระดับองค์กร ทำงานแบบ Local Sovereignty ประมวลผลและจัดเก็บบนเซิร์ฟเวอร์ภายในเครื่องอย่างสมบูรณ์แบบเพื่อความปลอดภัยสูงสุดของข้อมูล
               </p>
             </div>
+
+            <div class="border-t border-slate-100"></div>
+
+            <!-- What can it do -->
+            <div class="space-y-4">
+              <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider text-slate-400">
+                ระบบนี้ทำอะไรได้บ้าง (Core Capabilities)
+              </h3>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                
+                <div class="p-4 rounded-lg bg-slate-50 border border-slate-100 space-y-1.5">
+                  <div class="font-bold text-slate-900 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span>การจัดการสิทธิ์ตามบทบาท (RBAC)</span>
+                  </div>
+                  <p class="text-slate-500 leading-relaxed">
+                    ควบคุมการเข้าถึงเมนูและฟังก์ชันงานตามกลุ่มสิทธิ์ของผู้ใช้แต่ละคนอย่างเคร่งครัด
+                  </p>
+                </div>
+
+                <div class="p-4 rounded-lg bg-slate-50 border border-slate-100 space-y-1.5">
+                  <div class="font-bold text-slate-900 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span>การจัดการเอกสารและการอนุมัติ</span>
+                  </div>
+                  <p class="text-slate-500 leading-relaxed">
+                    บันทึก จัดเก็บ ตรวจสอบ และอนุมัติเอกสารการทำงานในองค์กรอย่างเป็นระบบ
+                  </p>
+                </div>
+
+                <div class="p-4 rounded-lg bg-slate-50 border border-slate-100 space-y-1.5">
+                  <div class="font-bold text-slate-900 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-600"></span>
+                    <span>บันทึกประวัติการทำงาน (Audit Trail)</span>
+                  </div>
+                  <p class="text-slate-500 leading-relaxed">
+                    เก็บบันทึกทุกความเคลื่อนไหว การแก้ไข และการอนุมัติเพื่อความโปร่งใสและตรวจสอบย้อนหลังได้
+                  </p>
+                </div>
+
+                <div class="p-4 rounded-lg bg-slate-50 border border-slate-100 space-y-1.5">
+                  <div class="font-bold text-slate-900 flex items-center space-x-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                    <span>ความปลอดภัยข้อมูลระดับองค์กร</span>
+                  </div>
+                  <p class="text-slate-500 leading-relaxed">
+                    เข้ารหัสข้อมูลขณะรับส่ง (AES-256) และเก็บรหัสผ่านด้วยการ Hash (Bcrypt) อย่างปลอดภัย
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom guide hint -->
+          <div class="text-center text-xs text-slate-400">
+            เลือกเมนูการทำงานที่ต้องการได้จากแถบเมนูด้านซ้ายตามสิทธิ์ที่ได้รับมอบหมาย
           </div>
 
         </div>

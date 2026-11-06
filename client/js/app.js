@@ -196,48 +196,9 @@ async function refreshAuthStatus() {
     if (sidebarEmployeeIdText) sidebarEmployeeIdText.textContent = user.employeeId ? `ID: ${user.employeeId}` : 'ID: -';
     if (sidebarUserRoleBadge) sidebarUserRoleBadge.textContent = primaryGroup;
 
-    // Populate Home Page Content
+    // Populate Home Page Greeting
     const homeWelcomeUsername = document.getElementById('homeWelcomeUsername');
-    const homeCardUsername = document.getElementById('homeCardUsername');
-    const homeCardEmployeeId = document.getElementById('homeCardEmployeeId');
-    const homeCardRole = document.getElementById('homeCardRole');
-    const homeLoginTimestamp = document.getElementById('homeLoginTimestamp');
-    const homePermissionsBadgesContainer = document.getElementById('homePermissionsBadgesContainer');
-
     if (homeWelcomeUsername) homeWelcomeUsername.textContent = username;
-    if (homeCardUsername) homeCardUsername.textContent = username;
-    if (homeCardEmployeeId) {
-      homeCardEmployeeId.textContent = employeeId;
-      homeCardEmployeeId.className = user.employeeId ? 'text-sm font-mono text-blue-700 mt-0.5 block font-semibold' : 'text-sm font-mono text-slate-400 mt-0.5 block italic';
-    }
-    if (homeCardRole) homeCardRole.textContent = groups.join(', ');
-
-    if (homeLoginTimestamp) {
-      const now = new Date();
-      homeLoginTimestamp.textContent = now.toLocaleDateString('th-TH', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
-
-    // Render Authorized Permissions Tags on Home Page
-    if (homePermissionsBadgesContainer) {
-      homePermissionsBadgesContainer.innerHTML = '';
-      const permissions = Array.isArray(user.permissions) ? user.permissions : [];
-      if (permissions.length === 0) {
-        homePermissionsBadgesContainer.innerHTML = '<span class="text-xs text-slate-400 italic">ไม่มีสิทธิ์พิเศษ (พื้นฐานระดับ GENERAL_USER)</span>';
-      } else {
-        permissions.forEach((perm) => {
-          const badge = document.createElement('span');
-          badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200';
-          badge.textContent = perm;
-          homePermissionsBadgesContainer.appendChild(badge);
-        });
-      }
-    }
 
     // Render Dynamic Left Sidebar Menu based on permissions
     renderSidebarMenu(user);
