@@ -7,6 +7,13 @@ const api = new ApiClient({
   baseUrl: 'http://localhost:3000',
 });
 
+// Global Application Configuration & Asset Registry
+const APP_CONFIG = {
+  logoPath: '/assets/logo/logo.jpg',
+  companyName: 'PYLON PUBLIC COMPANY LIMITED',
+};
+window.APP_CONFIG = APP_CONFIG;
+
 let currentUser = null;
 let activeMenu = 'home';
 let activeMasterTable = 'user';
