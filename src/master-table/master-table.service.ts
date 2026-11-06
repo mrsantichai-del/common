@@ -418,7 +418,7 @@ export class MasterTableService {
             category,
             content,
             status: 'DRAFT',
-            authorId: userId || null,
+            authorId: payload.authorId || userId || null,
             createdById: userId || null,
             updatedById: userId || null,
           },
@@ -517,6 +517,7 @@ export class MasterTableService {
         if (payload.title) updateData.title = payload.title;
         if (payload.category) updateData.category = payload.category;
         if (payload.content !== undefined) updateData.content = payload.content;
+        if (payload.authorId !== undefined) updateData.authorId = payload.authorId || null;
 
         await this.prisma.document.update({ where: { id }, data: updateData });
         await this.logAudit('DOC_UPDATE', 'Document', `Updated document ${doc.docNumber}`, userId, id, { title: doc.title, category: doc.category }, updateData);
