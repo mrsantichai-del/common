@@ -540,7 +540,15 @@ function renderMasterTable(records) {
                   ${defaultBadge}
                   ${statusBadge}
                 </td>
-                <td class="p-3 text-right font-sans space-x-1.5">
+                <td class="p-3 text-right font-sans space-x-1.5 whitespace-nowrap">
+                  <button type="button" onclick="openCompanyPrintPreview('${c.id}')" title="พิมพ์ข้อมูลแบบทางการ / ส่งออก PDF" class="px-2 py-1 text-[11px] font-medium rounded bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 cursor-pointer inline-flex items-center space-x-1 shadow-2xs">
+                    <svg class="w-3 h-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                    <span>พิมพ์ / PDF</span>
+                  </button>
+                  <button type="button" onclick="exportSingleCompanyToExcel('${c.id}')" title="ส่งออกข้อมูลบริษัทนี้เป็นไฟล์ Excel (CSV UTF-8)" class="px-2 py-1 text-[11px] font-medium rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 cursor-pointer inline-flex items-center space-x-1 shadow-2xs">
+                    <svg class="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span>Excel</span>
+                  </button>
                   <button type="button" onclick="openEditMasterRecordModal('${c.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
                     แก้ไข
                   </button>
@@ -1591,3 +1599,343 @@ function handleLogout() {
   if (viewApp) viewApp.classList.add('hidden');
   if (viewLogin) viewLogin.classList.remove('hidden');
 }
+
+// ----------------------------------------------------
+// Formal Company Profile Print / PDF & Excel Engines
+// ----------------------------------------------------
+
+let currentPreviewCompany = null;
+
+function openCompanyPrintPreview(companyId) {
+  const company = masterTableRawData.find((c) => c.id === companyId);
+  if (!company) {
+    showToast('ไม่พบข้อมูลบริษัทที่ต้องการพิมพ์', 'error');
+    return;
+  }
+
+  currentPreviewCompany = company;
+  const container = document.getElementById('companyPrintDocument');
+  if (container) {
+    container.innerHTML = renderCompanyPrintDocumentHtml(company);
+  }
+
+  const modal = document.getElementById('modalCompanyPrintPreview');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeCompanyPrintPreview() {
+  const modal = document.getElementById('modalCompanyPrintPreview');
+  if (modal) modal.classList.add('hidden');
+}
+
+function printCompanyDocument() {
+  window.print();
+}
+
+function renderCompanyPrintDocumentHtml(company) {
+  const now = new Date();
+  const dateFormatted = now.toLocaleDateString('th-TH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+  const dateTimeFormatted = now.toLocaleDateString('th-TH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const logoSrc = company.logoUrl || '/assets/logo/logo.jpg';
+  const branchText =
+    company.branchType === 'HEAD_OFFICE'
+      ? `สำนักงานใหญ่ (รหัส ${company.branchCode || '00000'})`
+      : `${company.branchName || 'สาขา'} (รหัส ${company.branchCode || '-'})`;
+
+  return `
+    <div style="font-family: 'Sarabun', 'TH Sarabun New', sans-serif; font-size: 16px; line-height: 1.6; color: #0f172a;">
+      
+      <!-- 1. Corporate Official Letterhead Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 3px double #0f172a; padding-bottom: 16px; margin-bottom: 18px; gap: 20px;">
+        <!-- Corporate Logo -->
+        <div style="flex-shrink: 0; max-width: 220px; height: 65px; display: flex; align-items: center; justify-content: center;">
+          <img src="${logoSrc}" alt="Logo" style="max-height: 65px; max-width: 220px; object-fit: contain; display: block;" onerror="this.style.display='none';">
+        </div>
+
+        <!-- Corporate Header Text (Right Aligned or Centered) -->
+        <div style="flex: 1; text-align: right; min-width: 0;">
+          <div style="font-size: 20px; font-weight: 700; color: #0f172a; line-height: 1.25;">
+            ${company.nameTh}
+          </div>
+          <div style="font-size: 14px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.3; margin-top: 2px;">
+            ${company.nameEn}
+          </div>
+          <div style="font-size: 14px; color: #334155; margin-top: 4px;">
+            เลขประจำตัวผู้เสียภาษี: <strong style="font-family: 'JetBrains Mono', monospace; font-size: 15px;">${company.taxId}</strong> 
+            &nbsp;|&nbsp; สถานะ: <strong>${branchText}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Formal Document Title Banner -->
+      <div style="text-align: center; margin: 24px 0 20px 0;">
+        <div style="font-size: 22px; font-weight: 700; color: #0f172a; letter-spacing: 0.02em;">
+          แบบแสดงรายการข้อมูลนิติบุคคลและสถานประกอบการ
+        </div>
+        <div style="font-size: 15px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;">
+          Official Corporate Profile & Registered Legal Entity Details
+        </div>
+        <div style="font-size: 14px; color: #64748b; margin-top: 6px;">
+          เลขที่เอกสารอ้างอิง: <span style="font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #1e293b;">COMP-DOC-${company.taxId}-${now.getFullYear()}</span>
+          &nbsp;&nbsp;•&nbsp;&nbsp; วันที่ออกเอกสาร: <span style="color: #1e293b; font-weight: 500;">${dateFormatted}</span>
+        </div>
+      </div>
+
+      <!-- 3. Section 1: ข้อมูลทางทะเบียนนิติบุคคล -->
+      <div style="margin-bottom: 22px;">
+        <div style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>1. ข้อมูลการจดทะเบียนนิติบุคคล (Corporate Registration & Legal Status)</span>
+          <span style="font-size: 13px; font-weight: 400; color: #64748b;">หมวดที่ 1</span>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 16px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ชื่อบริษัท (ภาษาไทย)</td>
+              <td style="width: 75%; padding: 8px 12px; font-weight: 700; color: #0f172a;" colspan="3">${company.nameTh}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ชื่อบริษัท (ภาษาอังกฤษ)</td>
+              <td style="padding: 8px 12px; font-weight: 600; color: #334155;" colspan="3">${company.nameEn}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">เลขประจำตัวผู้เสียภาษี</td>
+              <td style="width: 25%; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.taxId}</td>
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">เลขทะเบียนพาณิชย์/นิติบุคคล</td>
+              <td style="width: 25%; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; color: #0f172a;">${company.commercialRegNo || company.taxId}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ประเภทสถานประกอบการ</td>
+              <td style="padding: 8px 12px; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.branchType === 'HEAD_OFFICE' ? 'สำนักงานใหญ่ (Head Office)' : 'สาขา (Branch)'}</td>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">รหัสและชื่อสาขา</td>
+              <td style="padding: 8px 12px; color: #0f172a;">${company.branchName} (${company.branchCode || '00000'})</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ชื่อย่อองค์กร (Short Name)</td>
+              <td style="padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.shortName || '-'}</td>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">สถานะในระบบ</td>
+              <td style="padding: 8px 12px; color: #0f172a;">${company.isDefault ? 'สำนักงานหลัก (Default Company)' : 'สาขา/บริษัทย่อย'} • ${company.isActive !== false ? 'เปิดใช้งาน (Active)' : 'ปิดใช้งาน'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 4. Section 2: ที่ตั้งสำนักงานและการติดต่อ -->
+      <div style="margin-bottom: 22px;">
+        <div style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>2. ที่ตั้งสำนักงานและการติดต่อสื่อสาร (Registered Office Address & Contacts)</span>
+          <span style="font-size: 13px; font-weight: 400; color: #64748b;">หมวดที่ 2</span>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 16px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ที่อยู่จดทะเบียน (ภาษาไทย)</td>
+              <td style="width: 75%; padding: 8px 12px; color: #0f172a; line-height: 1.5;" colspan="3">${company.addressTh}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ที่อยู่ (ภาษาอังกฤษ)</td>
+              <td style="padding: 8px 12px; color: #334155; line-height: 1.5;" colspan="3">${company.addressEn || '-'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">รหัสไปรษณีย์</td>
+              <td style="width: 25%; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.postalCode || '-'}</td>
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">หมายเลขโทรศัพท์</td>
+              <td style="width: 25%; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #0f172a;">${company.telephone || '-'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">หมายเลขโทรสาร (แฟกซ์)</td>
+              <td style="padding: 8px 12px; font-family: 'JetBrains Mono', monospace; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.fax || '-'}</td>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">จดหมายอิเล็กทรอนิกส์ (อีเมล)</td>
+              <td style="padding: 8px 12px; font-family: 'JetBrains Mono', monospace; color: #0f172a;">${company.email || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">เว็บไซต์ทางการ</td>
+              <td style="padding: 8px 12px; font-family: 'JetBrains Mono', monospace; color: #0f172a;" colspan="3">${company.website || '-'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 5. Section 3: ข้อมูลสถาบันการเงินสำหรับธุรกรรม -->
+      <div style="margin-bottom: 26px;">
+        <div style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between;">
+          <span>3. ข้อมูลบัญชีสถาบันการเงินสำหรับธุรกรรม (Corporate Banking Information)</span>
+          <span style="font-size: 13px; font-weight: 400; color: #64748b;">หมวดที่ 3</span>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 16px;">
+          <tbody>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">สถาบันการเงิน / ธนาคาร</td>
+              <td style="width: 25%; padding: 8px 12px; font-weight: 600; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.bankName || '-'}</td>
+              <td style="width: 25%; padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">สาขาธนาคาร</td>
+              <td style="width: 25%; padding: 8px 12px; color: #0f172a;">${company.bankBranch || '-'}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ประเภทบัญชี</td>
+              <td style="padding: 8px 12px; color: #0f172a; border-right: 1px solid #cbd5e1;">${company.accountType || '-'}</td>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">เลขที่บัญชี</td>
+              <td style="padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #0f172a;">${company.accountNumber || '-'}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 12px; background-color: #f8fafc; font-weight: 600; color: #334155; border-right: 1px solid #cbd5e1;">ชื่อบัญชี</td>
+              <td style="padding: 8px 12px; font-weight: 600; color: #0f172a;" colspan="3">${company.accountName || company.nameTh}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 6. Section 4: คำรับรองความถูกต้องและตรายางนิติบุคคล -->
+      <div style="margin-bottom: 24px;">
+        <div style="text-align: center; font-size: 16px; font-weight: 500; font-style: italic; color: #334155; margin-bottom: 18px;">
+          "ขอรับรองว่ารายการและข้อมูลตามที่ปรากฏในเอกสารฉบับนี้ ถูกต้องตรงตามทะเบียนประวัติของบริษัททุกประการ"
+        </div>
+
+        <div style="display: flex; gap: 24px; font-size: 16px;">
+          <!-- Signatory Box -->
+          <div style="flex: 1; border: 1px solid #cbd5e1; border-radius: 4px; padding: 18px; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; background-color: #fafafa;">
+            <div style="height: 50px;"></div>
+            <div style="width: 220px; border-bottom: 1px solid #0f172a; margin: 0 auto 8px auto;"></div>
+            <div style="font-weight: 700; color: #0f172a;">( .................................................................... )</div>
+            <div style="font-size: 15px; color: #334155; margin-top: 2px;">กรรมการผู้มีอำนาจลงนาม / ผู้รับมอบอำนาจ</div>
+            <div style="font-size: 14px; color: #64748b; margin-top: 4px;">วันที่ .......... / .......... / ................</div>
+          </div>
+
+          <!-- Official Stamp Box -->
+          <div style="flex: 1; border: 2px dashed #94a3b8; border-radius: 4px; padding: 18px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; background-color: #fafafa;">
+            ${
+              company.stampUrl
+                ? `<img src="${company.stampUrl}" alt="Corporate Seal" style="max-height: 85px; max-width: 130px; object-fit: contain; margin-bottom: 6px;">`
+                : `
+                <div style="color: #64748b; font-size: 15px; line-height: 1.4;">
+                  <div style="font-weight: 600; color: #475569;">( ประทับตราสำคัญของบริษัท )</div>
+                  <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">Official Corporate Seal</div>
+                </div>
+                `
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. Official Document Footer -->
+      <div style="border-top: 1px solid #cbd5e1; padding-top: 10px; margin-top: 24px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #64748b;">
+        <div>${company.docFooterNotice || 'เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System'}</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">พิมพ์เมื่อ: ${dateTimeFormatted} • Local Sovereignty Architecture</div>
+      </div>
+
+    </div>
+  `;
+}
+
+// ----------------------------------------------------
+// Excel Export Engines (Microsoft Excel UTF-8 BOM Compliant)
+// ----------------------------------------------------
+
+function downloadCsvFile(content, filename) {
+  const bomContent = content.startsWith('\uFEFF') ? content : '\uFEFF' + content;
+  const blob = new Blob([bomContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename || `company_export_${Date.now()}.csv`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function exportSingleCompanyToExcel(companyId) {
+  const company = masterTableRawData.find((c) => c.id === companyId);
+  if (!company) {
+    showToast('ไม่พบข้อมูลบริษัทที่ต้องการส่งออก', 'error');
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  // Escape CSV value helper
+  const esc = (val) => {
+    if (val === null || val === undefined) return '""';
+    const s = String(val).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+
+  // Text formula helper to preserve leading zeros in Excel (e.g. Tax ID, Branch Code, Postal Code, Tel)
+  const escText = (val) => {
+    if (val === null || val === undefined) return '""';
+    const s = String(val).replace(/"/g, '""');
+    return `="""${s}"""`;
+  };
+
+  const rows = [
+    ['แบบแสดงรายการข้อมูลนิติบุคคลและสถานประกอบการ (Official Corporate Profile)'],
+    [`บริษัท: ${company.nameTh} (${company.nameEn})`],
+    [`พิมพ์เมื่อ: ${dateStr}`],
+    [''],
+    ['ลำดับ', 'หมวดหมู่ข้อมูล', 'หัวข้อรายการ (Field Description)', 'รายละเอียดข้อมูล (Field Value)'],
+    ['1', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'ชื่อบริษัท (ภาษาไทย)', esc(company.nameTh)],
+    ['2', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'ชื่อบริษัท (ภาษาอังกฤษ)', esc(company.nameEn)],
+    ['3', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'ชื่อย่อองค์กร (Short Name)', esc(company.shortName || '-')],
+    ['4', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'เลขประจำตัวผู้เสียภาษีอากร (13 หลัก)', escText(company.taxId)],
+    ['5', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'เลขทะเบียนพาณิชย์ / เลขทะเบียนนิติบุคคล', escText(company.commercialRegNo || company.taxId)],
+    ['6', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'ประเภทสถานประกอบการ', esc(company.branchType === 'HEAD_OFFICE' ? 'สำนักงานใหญ่ (Head Office)' : 'สาขา (Branch)')],
+    ['7', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'รหัสสาขา', escText(company.branchCode || '00000')],
+    ['8', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'ชื่อสาขา', esc(company.branchName || 'สำนักงานใหญ่')],
+    ['9', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'สถานะบริษัทหลักในระบบ', esc(company.isDefault ? 'ใช่ (Default Company)' : 'ไม่ใช่')],
+    ['10', '1. ข้อมูลทางทะเบียนนิติบุคคล', 'สถานะการดำเนินงาน', esc(company.isActive !== false ? 'เปิดใช้งานตามปกติ (Active)' : 'ปิดใช้งาน')],
+    ['11', '2. ที่ตั้งและการติดต่อ', 'ที่อยู่จดทะเบียน (ภาษาไทย)', esc(company.addressTh)],
+    ['12', '2. ที่ตั้งและการติดต่อ', 'ที่อยู่ (ภาษาอังกฤษ)', esc(company.addressEn || '-')],
+    ['13', '2. ที่ตั้งและการติดต่อ', 'รหัสไปรษณีย์', escText(company.postalCode || '-')],
+    ['14', '2. ที่ตั้งและการติดต่อ', 'หมายเลขโทรศัพท์', escText(company.telephone || '-')],
+    ['15', '2. ที่ตั้งและการติดต่อ', 'หมายเลขโทรสาร (แฟกซ์)', escText(company.fax || '-')],
+    ['16', '2. ที่ตั้งและการติดต่อ', 'จดหมายอิเล็กทรอนิกส์ (อีเมล)', esc(company.email || '-')],
+    ['17', '2. ที่ตั้งและการติดต่อ', 'เว็บไซต์ทางการ', esc(company.website || '-')],
+    ['18', '3. บัญชีสถาบันการเงิน', 'ชื่อสถาบันการเงิน / ธนาคาร', esc(company.bankName || '-')],
+    ['19', '3. บัญชีสถาบันการเงิน', 'สาขาธนาคาร', esc(company.bankBranch || '-')],
+    ['20', '3. บัญชีสถาบันการเงิน', 'ประเภทบัญชี', esc(company.accountType || '-')],
+    ['21', '3. บัญชีสถาบันการเงิน', 'เลขที่บัญชี', escText(company.accountNumber || '-')],
+    ['22', '3. บัญชีสถาบันการเงิน', 'ชื่อบัญชี', esc(company.accountName || company.nameTh)],
+    ['23', '4. ท้ายเอกสาร', 'ข้อความท้ายเอกสาร (Footer Notice)', esc(company.docFooterNotice || '-')],
+  ];
+
+  const csvContent = rows.map((r) => r.join(',')).join('\r\n');
+  const filename = `Company_${company.shortName || company.taxId}_${Date.now()}.csv`;
+  downloadCsvFile(csvContent, filename);
+  showToast(`ส่งออกข้อมูลบริษัท ${company.nameTh} เป็นไฟล์ Excel สำเร็จ`, 'success');
+}
+
+function exportCurrentCompanyProfileToExcel() {
+  if (!currentPreviewCompany) {
+    showToast('ไม่พบข้อมูลบริษัทที่เปิดอยู่', 'error');
+    return;
+  }
+  exportSingleCompanyToExcel(currentPreviewCompany.id);
+}
+
+async function exportCurrentMasterTableToExcel() {
+  try {
+    showToast(`กำลังส่งออกข้อมูลตาราง ${activeMasterTable.toUpperCase()} เป็น Excel...`, 'success');
+    const res = await api.masterTable.exportFile(activeMasterTable, 'csv');
+    if (res && res.content) {
+      downloadCsvFile(res.content, res.filename || `${activeMasterTable}_export_${Date.now()}.csv`);
+      showToast(`ส่งออกข้อมูลตาราง ${activeMasterTable.toUpperCase()} สำเร็จ`, 'success');
+    } else {
+      throw new Error('No content returned from server');
+    }
+  } catch (err) {
+    console.error('Export error:', err);
+    showToast(`ส่งออกข้อมูลไม่สำเร็จ: ${err.message}`, 'error');
+  }
+}
+

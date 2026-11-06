@@ -47,23 +47,36 @@
       display: inline-block;
     }
 
-    /* Print Stylesheet Optimization */
+    /* Print Stylesheet Optimization for Formal Corporate Documents */
     @media print {
-      aside, #sidebarNav, #toastContainer, .no-print, button, #loginDemoAccountsPanel {
+      body * {
+        visibility: hidden !important;
+      }
+      #companyPrintDocument, #companyPrintDocument * {
+        visibility: visible !important;
+      }
+      #companyPrintDocument {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: white !important;
+        color: #0f172a !important;
+        font-family: 'Sarabun', 'TH Sarabun New', sans-serif !important;
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .no-print {
         display: none !important;
       }
-      body, main, #sectionHome, #sectionMasterData {
-        background: white !important;
-        color: black !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        width: 100% !important;
-      }
-      .print-brand-logo {
-        display: block !important;
-        max-height: 55px !important;
-        max-width: 220px !important;
-        object-fit: contain !important;
+      @page {
+        size: A4 portrait;
+        margin: 15mm 15mm 15mm 15mm;
       }
     }
   </style>
@@ -455,6 +468,18 @@
 
               <button 
                 type="button" 
+                onclick="exportCurrentMasterTableToExcel()" 
+                class="px-3 py-1.5 text-xs font-medium rounded border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-colors flex items-center space-x-1.5 cursor-pointer shadow-2xs"
+                title="ส่งออกข้อมูลตารางปัจจุบันเป็นไฟล์ Excel (CSV UTF-8)"
+              >
+                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span>ส่งออก Excel</span>
+              </button>
+
+              <button 
+                type="button" 
                 id="btnMasterCreate" 
                 onclick="openCreateMasterRecordModal()" 
                 class="px-3.5 py-1.5 text-xs font-medium rounded bg-slate-900 hover:bg-slate-800 text-white transition-colors flex items-center space-x-1.5 cursor-pointer shadow-xs"
@@ -520,6 +545,56 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: FORMAL COMPANY PROFILE PRINT & PDF PREVIEW -->
+  <div id="modalCompanyPrintPreview" class="hidden fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex flex-col z-50 p-2 md:p-6 overflow-y-auto">
+    <!-- Floating Action Toolbar (Non-printable) -->
+    <div class="max-w-4xl w-full mx-auto bg-slate-900 text-white rounded-t-xl px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-xl no-print border-b border-slate-800">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+        <div>
+          <div class="font-bold text-xs tracking-wide">แบบแสดงรายการข้อมูลนิติบุคคล (Official Corporate Profile)</div>
+          <div class="text-[11px] text-slate-400">ขนาดตัวอักษร 16px • ฟอนต์ TH Sarabun • รูปแบบทางการ เรียบหรู</div>
+        </div>
+      </div>
+      <div class="flex items-center space-x-2">
+        <button 
+          type="button" 
+          onclick="printCompanyDocument()" 
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded transition-colors flex items-center space-x-1.5 shadow cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          <span>พิมพ์เอกสาร / PDF</span>
+        </button>
+        <button 
+          type="button" 
+          onclick="exportCurrentCompanyProfileToExcel()" 
+          class="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs rounded transition-colors flex items-center space-x-1.5 shadow cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <span>ส่งออก Excel</span>
+        </button>
+        <button 
+          type="button" 
+          onclick="closeCompanyPrintPreview()" 
+          class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium rounded transition-colors cursor-pointer border border-slate-700"
+        >
+          ปิด
+        </button>
+      </div>
+    </div>
+
+    <!-- Paper Container (Rendered with pure 16px Sarabun typography) -->
+    <div class="max-w-4xl w-full mx-auto bg-slate-200/50 p-2 md:p-6 overflow-y-auto rounded-b-xl flex-1 flex justify-center">
+      <div id="companyPrintDocument" class="w-full bg-white text-slate-900 p-8 md:p-12 shadow-2xl rounded-sm border border-slate-300 font-['Sarabun'] text-[16px] leading-[1.6]">
+        <!-- Dynamic Document Content Injected by JavaScript -->
+      </div>
     </div>
   </div>
 

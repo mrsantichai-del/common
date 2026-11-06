@@ -892,15 +892,48 @@ export class MasterTableService {
       return { format: 'csv', content: '\uFEFF' };
     }
 
-    const headers = Object.keys(records[0]);
+    const fieldHeaderMaps: Record<string, Record<string, string>> = {
+      company: {
+        taxId: 'เลขประจำตัวผู้เสียภาษี (Tax ID)',
+        nameTh: 'ชื่อบริษัท (ภาษาไทย)',
+        nameEn: 'ชื่อบริษัท (ภาษาอังกฤษ)',
+        shortName: 'ชื่อย่อ',
+        branchType: 'ประเภทสาขา',
+        branchCode: 'รหัสสาขา',
+        branchName: 'ชื่อสาขา',
+        commercialRegNo: 'เลขทะเบียนพาณิชย์',
+        addressTh: 'ที่อยู่จดทะเบียน (ภาษาไทย)',
+        addressEn: 'ที่อยู่ (ภาษาอังกฤษ)',
+        postalCode: 'รหัสไปรษณีย์',
+        telephone: 'เบอร์โทรศัพท์',
+        fax: 'เบอร์โทรสาร',
+        email: 'อีเมลติดต่อ',
+        website: 'เว็บไซต์',
+        bankName: 'ชื่อธนาคาร',
+        bankBranch: 'สาขาธนาคาร',
+        accountType: 'ประเภทบัญชี',
+        accountName: 'ชื่อบัญชี',
+        accountNumber: 'เลขที่บัญชี',
+        isDefault: 'สำนักงานหลัก',
+        isActive: 'สถานะเปิดใช้งาน',
+        createdAt: 'วันที่สร้างในระบบ',
+        updatedAt: 'วันที่ปรับปรุงล่าสุด',
+      },
+    };
+
+    const map = fieldHeaderMaps[tableName.toLowerCase()] || {};
+    const rawKeys = Object.keys(records[0]);
+    const headers = rawKeys.map((k) => `"${map[k] || k}"`);
     const csvRows = [
       headers.join(','),
       ...records.map((row) =>
-        headers
+        rawKeys
           .map((h) => {
-            const val = row[h];
+            let val = row[h];
+            if (val === true) val = 'ใช่ (Active/Default)';
+            if (val === false) val = 'ไม่ใช่';
             if (val === null || val === undefined) return '""';
-            const strVal = Array.isArray(val) ? val.join(';') : String(val);
+            const strVal = Array.isArray(val) ? val.join('; ') : String(val);
             return `"${strVal.replace(/"/g, '""')}"`;
           })
           .join(','),
