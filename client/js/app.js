@@ -1,11 +1,54 @@
 /**
- * ULTRON Core System - Minimal Application Controller
- * Connects to NestJS Backend on Port 3000
+ * ULTRON Core System - Enterprise Application Controller
+ * Dynamic Role & Permission-based Navigation + Minimal Home Workspace
  */
 
 const api = new ApiClient({
   baseUrl: 'http://localhost:3000',
 });
+
+let currentUser = null;
+let activeMenu = 'home';
+
+// Menu Definitions with granular permission constraints
+const MENU_DEFINITIONS = [
+  {
+    id: 'home',
+    label: 'หน้าหลัก (Home)',
+    icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>',
+    requiredPermission: null, // เข้าได้ทุกคน ทุกบทบาทหน้าที่
+  },
+  {
+    id: 'users',
+    label: 'จัดการผู้ใช้งาน (Users)',
+    icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>',
+    requiredPermission: 'users:read',
+  },
+  {
+    id: 'roles',
+    label: 'จัดการกลุ่มและสิทธิ์ (Roles)',
+    icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
+    requiredPermission: 'system:configure',
+  },
+  {
+    id: 'documents',
+    label: 'จัดการเอกสาร (Documents)',
+    icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
+    requiredPermission: 'documents:read',
+  },
+  {
+    id: 'reports',
+    label: 'รายงานระบบ (Reports)',
+    icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
+    requiredPermission: 'reports:view',
+  },
+  {
+    id: 'audit',
+    label: 'บันทึกการทำงาน (Audit Trail)',
+    icon: '<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    requiredPermission: 'audit:read',
+  },
+];
 
 // App Startup
 document.addEventListener('DOMContentLoaded', async () => {
@@ -47,7 +90,7 @@ function showToast(message, type = 'success') {
 }
 
 // ----------------------------------------------------
-// Authentication & Environment Mode
+// Demo Accounts Helper (Developer Mode)
 // ----------------------------------------------------
 
 function initDemoMode() {
@@ -95,8 +138,23 @@ function applyDemoMode(enabled) {
   }
 }
 
+function quickLoginAs(username) {
+  const usernameInput = document.getElementById('loginUsername');
+  const passwordInput = document.getElementById('loginPassword');
+  const errorMsg = document.getElementById('loginErrorMsg');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+
+  // กรอกข้อมูลลงในฟอร์มเท่านั้น ไม่ยิง Request อัตโนมัติ (รหัสผ่านฐานข้อมูลตั้งต้นคือ 123456)
+  if (usernameInput) usernameInput.value = username;
+  if (passwordInput) passwordInput.value = '123456';
+  if (errorMsg) errorMsg.classList.add('hidden');
+
+  showToast(`เลือกบัญชี ${username} แล้ว กรุณากดปุ่ม "เข้าสู่ระบบ"`, 'success');
+  if (btnSubmit) btnSubmit.focus();
+}
+
 // ----------------------------------------------------
-// Auth State Management
+// Authentication Flow & Role-based Menu Rendering
 // ----------------------------------------------------
 
 async function refreshAuthStatus() {
@@ -104,6 +162,7 @@ async function refreshAuthStatus() {
   const viewApp = document.getElementById('viewApp');
 
   if (!api.isAuthenticated()) {
+    currentUser = null;
     if (viewLogin) viewLogin.classList.remove('hidden');
     if (viewApp) viewApp.classList.add('hidden');
     return null;
@@ -115,53 +174,163 @@ async function refreshAuthStatus() {
       throw new Error('ไม่พบข้อมูลผู้ใช้');
     }
 
-    // Switch View to Post-Login
+    currentUser = user;
+
+    // Switch View to Application Workspace
     if (viewLogin) viewLogin.classList.add('hidden');
     if (viewApp) viewApp.classList.remove('hidden');
 
-    // Populate Identity Card
+    // Populate Sidebar Identity
     const username = user.username || '-';
-    const groups = Array.isArray(user.groups) && user.groups.length > 0 ? user.groups.join(', ') : 'GENERAL_USER';
+    const groups = Array.isArray(user.groups) && user.groups.length > 0 ? user.groups : ['GENERAL_USER'];
+    const primaryGroup = groups[0];
     const employeeId = user.employeeId || 'ไม่มี (ยังไม่ได้ระบุ)';
 
-    const userAvatar = document.getElementById('userAvatar');
-    const currentUsernameDisplay = document.getElementById('currentUsernameDisplay');
-    const detailUsername = document.getElementById('detailUsername');
-    const detailRole = document.getElementById('detailRole');
-    const detailEmployeeId = document.getElementById('detailEmployeeId');
-    const detailLoginTime = document.getElementById('detailLoginTime');
+    const sidebarUserAvatar = document.getElementById('sidebarUserAvatar');
+    const sidebarUsernameText = document.getElementById('sidebarUsernameText');
+    const sidebarEmployeeIdText = document.getElementById('sidebarEmployeeIdText');
+    const sidebarUserRoleBadge = document.getElementById('sidebarUserRoleBadge');
 
-    if (userAvatar) userAvatar.textContent = username.charAt(0).toUpperCase();
-    if (currentUsernameDisplay) currentUsernameDisplay.textContent = username;
-    if (detailUsername) detailUsername.textContent = username;
-    if (detailRole) detailRole.textContent = groups;
-    if (detailEmployeeId) {
-      detailEmployeeId.textContent = employeeId;
-      if (user.employeeId) {
-        detailEmployeeId.className = 'font-mono font-semibold text-blue-700';
-      } else {
-        detailEmployeeId.className = 'font-mono text-slate-400 italic';
-      }
+    if (sidebarUserAvatar) sidebarUserAvatar.textContent = username.charAt(0).toUpperCase();
+    if (sidebarUsernameText) sidebarUsernameText.textContent = username;
+    if (sidebarEmployeeIdText) sidebarEmployeeIdText.textContent = user.employeeId ? `ID: ${user.employeeId}` : 'ID: -';
+    if (sidebarUserRoleBadge) sidebarUserRoleBadge.textContent = primaryGroup;
+
+    // Populate Home Page Content
+    const homeWelcomeUsername = document.getElementById('homeWelcomeUsername');
+    const homeCardUsername = document.getElementById('homeCardUsername');
+    const homeCardEmployeeId = document.getElementById('homeCardEmployeeId');
+    const homeCardRole = document.getElementById('homeCardRole');
+    const homeLoginTimestamp = document.getElementById('homeLoginTimestamp');
+    const homePermissionsBadgesContainer = document.getElementById('homePermissionsBadgesContainer');
+
+    if (homeWelcomeUsername) homeWelcomeUsername.textContent = username;
+    if (homeCardUsername) homeCardUsername.textContent = username;
+    if (homeCardEmployeeId) {
+      homeCardEmployeeId.textContent = employeeId;
+      homeCardEmployeeId.className = user.employeeId ? 'text-sm font-mono text-blue-700 mt-0.5 block font-semibold' : 'text-sm font-mono text-slate-400 mt-0.5 block italic';
     }
-    if (detailLoginTime) {
+    if (homeCardRole) homeCardRole.textContent = groups.join(', ');
+
+    if (homeLoginTimestamp) {
       const now = new Date();
-      detailLoginTime.textContent = now.toLocaleDateString('th-TH', {
+      homeLoginTimestamp.textContent = now.toLocaleDateString('th-TH', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
       });
     }
+
+    // Render Authorized Permissions Tags on Home Page
+    if (homePermissionsBadgesContainer) {
+      homePermissionsBadgesContainer.innerHTML = '';
+      const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+      if (permissions.length === 0) {
+        homePermissionsBadgesContainer.innerHTML = '<span class="text-xs text-slate-400 italic">ไม่มีสิทธิ์พิเศษ (พื้นฐานระดับ GENERAL_USER)</span>';
+      } else {
+        permissions.forEach((perm) => {
+          const badge = document.createElement('span');
+          badge.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200';
+          badge.textContent = perm;
+          homePermissionsBadgesContainer.appendChild(badge);
+        });
+      }
+    }
+
+    // Render Dynamic Left Sidebar Menu based on permissions
+    renderSidebarMenu(user);
+
+    // Default to Home View for every user role
+    navigateToMenu('home');
 
     return user;
   } catch (err) {
     console.error('Session validation failed:', err);
     api.auth.logout();
+    currentUser = null;
     if (viewLogin) viewLogin.classList.remove('hidden');
     if (viewApp) viewApp.classList.add('hidden');
     return null;
+  }
+}
+
+function hasPermission(user, requiredPermission) {
+  if (!requiredPermission) return true; // Accessible to all roles
+  if (!user) return false;
+
+  // Super Admin bypasses all checks
+  const isSuperAdmin = Array.isArray(user.groups) && user.groups.includes('SUPER_ADMIN');
+  if (isSuperAdmin) return true;
+
+  // Check granular permissions array
+  const perms = Array.isArray(user.permissions) ? user.permissions : [];
+  return perms.includes(requiredPermission);
+}
+
+function renderSidebarMenu(user) {
+  const container = document.getElementById('sidebarMenuContainer');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  MENU_DEFINITIONS.forEach((item) => {
+    // Only display menu item if user has the assigned permission
+    if (hasPermission(user, item.requiredPermission)) {
+      const btn = document.createElement('button');
+      btn.id = `sidebarBtn_${item.id}`;
+      btn.type = 'button';
+      btn.onclick = () => navigateToMenu(item.id);
+      btn.className =
+        item.id === activeMenu
+          ? 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium transition-colors text-white bg-blue-600 shadow-xs'
+          : 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800';
+
+      btn.innerHTML = `
+        <span class="flex-shrink-0">${item.icon}</span>
+        <span class="flex-1 text-left truncate">${item.label}</span>
+      `;
+
+      container.appendChild(btn);
+    }
+  });
+}
+
+function navigateToMenu(menuId) {
+  activeMenu = menuId;
+
+  // Update Sidebar active button styling
+  MENU_DEFINITIONS.forEach((item) => {
+    const btn = document.getElementById(`sidebarBtn_${item.id}`);
+    if (btn) {
+      if (item.id === menuId) {
+        btn.className = 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium transition-colors text-white bg-blue-600 shadow-xs';
+      } else {
+        btn.className = 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800';
+      }
+    }
+  });
+
+  const pageTitle = document.getElementById('pageTitle');
+  const sectionHome = document.getElementById('sectionHome');
+  const sectionPlaceholder = document.getElementById('sectionPlaceholder');
+  const placeholderModuleTitle = document.getElementById('placeholderModuleTitle');
+
+  const menuInfo = MENU_DEFINITIONS.find((m) => m.id === menuId);
+
+  if (menuId === 'home') {
+    if (pageTitle) pageTitle.textContent = 'หน้าหลัก (Home)';
+    if (sectionHome) sectionHome.classList.remove('hidden');
+    if (sectionPlaceholder) sectionPlaceholder.classList.add('hidden');
+  } else {
+    const titleText = menuInfo ? menuInfo.label : menuId;
+    if (pageTitle) pageTitle.textContent = titleText;
+    if (sectionHome) sectionHome.classList.add('hidden');
+    if (sectionPlaceholder) {
+      sectionPlaceholder.classList.remove('hidden');
+      if (placeholderModuleTitle) placeholderModuleTitle.textContent = titleText;
+    }
   }
 }
 
@@ -208,24 +377,10 @@ async function handleLoginSubmit(event) {
   }
 }
 
-function quickLoginAs(username) {
-  const usernameInput = document.getElementById('loginUsername');
-  const passwordInput = document.getElementById('loginPassword');
-  const errorMsg = document.getElementById('loginErrorMsg');
-  const btnSubmit = document.getElementById('btnLoginSubmit');
-
-  // กรอกข้อมูลลงในฟอร์มเท่านั้น ไม่ยิง Request อัตโนมัติ (รหัสผ่านฐานข้อมูลตั้งต้นคือ 123456)
-  if (usernameInput) usernameInput.value = username;
-  if (passwordInput) passwordInput.value = '123456';
-  if (errorMsg) errorMsg.classList.add('hidden');
-
-  // แสดงการแจ้งเตือนสั้นๆ และ Focus ที่ปุ่มเข้าสู่ระบบเพื่อให้ Maker หรือผู้ใช้กดเอง
-  showToast(`เลือกบัญชี ${username} แล้ว กรุณากดปุ่ม "เข้าสู่ระบบ"`, 'success');
-  if (btnSubmit) btnSubmit.focus();
-}
-
 function handleLogout() {
   api.auth.logout();
+  currentUser = null;
+  activeMenu = 'home';
   showToast('ลงชื่อออกจากระบบเรียบร้อยแล้ว', 'success');
 
   const viewLogin = document.getElementById('viewLogin');

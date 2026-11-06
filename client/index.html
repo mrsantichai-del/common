@@ -20,9 +20,25 @@
     .font-mono {
       font-family: 'JetBrains Mono', monospace;
     }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
   </style>
 </head>
-<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col justify-center items-center p-4 antialiased">
+<body class="bg-slate-100 text-slate-800 min-h-screen antialiased">
 
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
@@ -30,8 +46,8 @@
   <!-- ============================================================== -->
   <!-- VIEW 1: AUTHENTICATION / SIGN IN                               -->
   <!-- ============================================================== -->
-  <div id="viewLogin" class="w-full max-w-sm">
-    <div class="bg-white rounded-lg shadow-sm border border-slate-300 p-8">
+  <div id="viewLogin" class="min-h-screen flex flex-col justify-center items-center p-4">
+    <div class="w-full max-w-sm bg-white rounded-lg shadow-sm border border-slate-300 p-8">
       
       <!-- Brand Logo & Header -->
       <div class="text-center mb-6">
@@ -130,65 +146,204 @@
     </div>
   </div>
 
+
   <!-- ============================================================== -->
-  <!-- VIEW 2: POST-LOGIN MINIMAL VIEW (WHO LOGGED IN + SIGN OUT)     -->
+  <!-- VIEW 2: MAIN APPLICATION WORKSPACE WITH ROLE-BASED SIDEBAR     -->
   <!-- ============================================================== -->
-  <div id="viewApp" class="hidden w-full max-w-md">
-    <div class="bg-white rounded-lg shadow-sm border border-slate-300 p-8 space-y-6">
+  <div id="viewApp" class="hidden min-h-screen flex flex-col md:flex-row bg-slate-50">
+    
+    <!-- LEFT SIDEBAR NAVIGATION (ACCORDING TO PERMISSIONS) -->
+    <aside id="sidebarNav" class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col justify-between flex-shrink-0 md:min-h-screen border-r border-slate-800 select-none">
       
-      <!-- User Avatar & Status -->
-      <div class="text-center">
-        <div class="w-14 h-14 bg-slate-900 text-white rounded-full flex items-center justify-center mx-auto mb-3 text-lg font-mono font-bold shadow-xs" id="userAvatar">
-          U
-        </div>
-        <div class="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium mb-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>ลงชื่อเข้าสู่ระบบแล้ว</span>
-        </div>
-        <h2 class="text-xl font-bold text-slate-900 tracking-tight" id="currentUsernameDisplay">
-          -
-        </h2>
-      </div>
-
-      <!-- User Identity Details -->
-      <div class="bg-slate-50 rounded-md border border-slate-200 p-4 space-y-2.5 text-xs">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-500">ชื่อผู้ใช้งาน:</span>
-          <span class="font-mono font-semibold text-slate-800" id="detailUsername">-</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-500">กลุ่มสิทธิ์ / บทบาท:</span>
-          <span class="font-mono font-semibold text-slate-800" id="detailRole">-</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-500">รหัสพนักงาน (Employee ID):</span>
-          <span class="font-mono text-slate-700" id="detailEmployeeId">-</span>
-        </div>
-        <div class="flex items-center justify-between border-t border-slate-200 pt-2 text-[11px]">
-          <span class="text-slate-400">เวลาเข้าสู่ระบบ:</span>
-          <span class="font-mono text-slate-500" id="detailLoginTime">-</span>
-        </div>
-      </div>
-
-      <!-- Sign Out Button -->
+      <!-- Top Section: Branding & Role & Dynamic Menu -->
       <div>
+        <!-- Brand Header -->
+        <div class="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="w-7 h-7 bg-blue-600 text-white rounded flex items-center justify-center font-bold text-xs shadow-xs">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold text-white text-sm tracking-tight leading-none">
+                ULTRON CORE
+              </div>
+              <div class="text-[10px] text-slate-400 mt-0.5 font-mono">Enterprise System</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Role Badge Display -->
+        <div class="mx-3 mt-3 px-3 py-2 rounded bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs">
+          <span class="text-[11px] text-slate-400 font-medium">กลุ่มสิทธิ์ของคุณ</span>
+          <span id="sidebarUserRoleBadge" class="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
+            -
+          </span>
+        </div>
+
+        <!-- Dynamic Menu List (Populated via JS based on permissions) -->
+        <div class="mt-4">
+          <div class="px-4 pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            เมนูการทำงาน (ตามสิทธิ์)
+          </div>
+          <nav id="sidebarMenuContainer" class="space-y-0.5 px-2 text-xs">
+            <!-- Dynamically populated buttons -->
+          </nav>
+        </div>
+      </div>
+
+      <!-- Bottom Section: User Identity & Logout Button -->
+      <div class="p-3 border-t border-slate-800 space-y-3 bg-slate-950/40">
+        <!-- User Info Card -->
+        <div class="flex items-center space-x-2.5 px-2 py-1.5">
+          <div id="sidebarUserAvatar" class="w-8 h-8 rounded-full bg-slate-800 text-white font-mono font-bold text-xs flex items-center justify-center border border-slate-700">
+            U
+          </div>
+          <div class="flex-1 min-w-0">
+            <div id="sidebarUsernameText" class="text-xs font-semibold text-white truncate">-</div>
+            <div id="sidebarEmployeeIdText" class="text-[10px] text-slate-400 font-mono truncate">-</div>
+          </div>
+        </div>
+
+        <!-- Sign Out Button -->
         <button 
           type="button" 
           onclick="handleLogout()" 
-          class="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium rounded-md transition-colors cursor-pointer shadow-xs flex items-center justify-center space-x-2"
+          class="w-full py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-medium rounded transition-colors cursor-pointer border border-slate-700/80 flex items-center justify-center space-x-2"
         >
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
-          <span>ลงชื่อออกจากระบบ (Sign Out)</span>
+          <span>ลงชื่อออกจากระบบ</span>
         </button>
       </div>
 
-    </div>
+    </aside>
 
-    <div class="mt-3 text-center text-[11px] text-slate-400">
-      ULTRON Enterprise Minimal Core
-    </div>
+    <!-- RIGHT MAIN WORKSPACE -->
+    <main class="flex-1 flex flex-col min-w-0">
+      
+      <!-- Top Workspace Header Bar -->
+      <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center space-x-3">
+          <h1 id="pageTitle" class="text-sm font-bold text-slate-900 tracking-tight">
+            หน้าหลัก (Home)
+          </h1>
+          <span class="text-slate-300">|</span>
+          <span class="text-xs text-slate-500">ระบบงานหลักสำหรับผู้ใช้งานทุกหน้าที่</span>
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs">
+          <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-medium font-mono">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>PORT 3000 // READY</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Workspace Content (NO DASHBOARD, JUST AUTHENTIC HOME) -->
+      <div class="flex-1 p-6 overflow-y-auto">
+        
+        <!-- SECTION 1: HOME PAGE (EVERYONE ARRIVES HERE FIRST) -->
+        <div id="sectionHome" class="max-w-4xl space-y-5">
+          
+          <!-- Welcome Banner Card -->
+          <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-2xs">
+            <div class="flex items-start justify-between">
+              <div>
+                <div class="text-xs text-slate-500 font-medium">เข้าสู่ระบบสำเร็จ</div>
+                <h2 class="text-lg font-bold text-slate-900 mt-0.5">
+                  ยินดีต้อนรับคุณ <span id="homeWelcomeUsername" class="text-blue-700 font-mono">-</span> สู่หน้าหลักของระบบ
+                </h2>
+                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                  ระบบได้ทำการยืนยันตัวตนและประเมินสิทธิ์การทำงานตามบทบาท (RBAC) เรียบร้อยแล้ว เมนูด้านซ้ายจะแสดงเฉพาะฟังก์ชันที่คุณมีสิทธิ์เข้าถึงตามหน้าที่ที่ได้รับมอบหมาย
+                </p>
+              </div>
+              <div class="px-2.5 py-1 rounded bg-slate-100 border border-slate-200 text-[11px] font-mono text-slate-700 text-right">
+                <span class="text-slate-400 block text-[9px] uppercase">Login Timestamp</span>
+                <span id="homeLoginTimestamp">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Identity & Scope Details Card -->
+          <div class="bg-white rounded-lg border border-slate-200 p-6 shadow-2xs space-y-4">
+            <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-2 flex items-center justify-between">
+              <span>ข้อมูลตัวตนและขอบเขตสิทธิ์การใช้งาน (Identity & Permissions Scope)</span>
+              <span class="text-[10px] text-slate-500 font-mono font-normal">SOVEREIGN CORE</span>
+            </h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                <span class="text-slate-400 text-[10px] block">ชื่อบัญชีผู้ใช้งาน:</span>
+                <strong id="homeCardUsername" class="text-sm font-mono text-slate-900 mt-0.5 block">-</strong>
+              </div>
+              <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                <span class="text-slate-400 text-[10px] block">รหัสพนักงาน (Employee ID):</span>
+                <strong id="homeCardEmployeeId" class="text-sm font-mono text-slate-900 mt-0.5 block">-</strong>
+              </div>
+              <div class="p-3 bg-slate-50 rounded border border-slate-200">
+                <span class="text-slate-400 text-[10px] block">กลุ่มสิทธิ์หลัก (Primary Group):</span>
+                <strong id="homeCardRole" class="text-sm font-mono text-blue-700 mt-0.5 block">-</strong>
+              </div>
+            </div>
+
+            <!-- Authorized Permissions List -->
+            <div class="pt-2">
+              <div class="text-[11px] font-semibold text-slate-700 mb-2">
+                รายการสิทธิ์ทั้งหมดที่บัญชีนี้ได้รับอนุญาต (Authorized Permissions):
+              </div>
+              <div id="homePermissionsBadgesContainer" class="flex flex-wrap gap-1.5">
+                <!-- Badges dynamically inserted -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Architectural Note Card (Ready for Maker's Next Step) -->
+          <div class="bg-slate-50 rounded-lg border border-dashed border-slate-300 p-5 text-xs text-slate-600 flex items-start space-x-3">
+            <div class="w-8 h-8 rounded bg-slate-200 text-slate-700 flex items-center justify-center font-bold flex-shrink-0 mt-0.5">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <div class="space-y-1">
+              <div class="font-bold text-slate-900 text-xs">ระบบรากฐานพร้อมทำงาน (Architectural Foundation Ready)</div>
+              <p class="leading-relaxed text-[11px] text-slate-500">
+                ระบบถูกออกแบบให้ทุกคนเริ่มต้นที่ <strong>หน้าหลัก</strong> โดยมีเมนูด้านซ้ายกรองตามสิทธิ์อัตโนมัติ Maker สามารถระบุโมดูลถัดไปที่ต้องการเขียน (เช่น โมดูลพนักงาน, โมดูลผู้ใช้, หรือโมดูลเอกสาร) เพื่อสร้างทีละขั้นตอนต่อไปได้ทันทีครับ
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- SECTION 2: PLACEHOLDER FOR OTHER MODULES (STEP-BY-STEP BUILD) -->
+        <div id="sectionPlaceholder" class="hidden max-w-xl mx-auto py-12 text-center space-y-4">
+          <div class="w-14 h-14 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mx-auto border border-slate-200">
+            <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
+            </svg>
+          </div>
+          <div>
+            <h3 id="placeholderModuleTitle" class="text-base font-bold text-slate-900">-</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+              โมดูลนี้ถูกกำหนดสิทธิ์ไว้ในระบบแล้ว และพร้อมสำหรับการเริ่มพัฒนาตามคำสั่งของ Maker ในขั้นตอนถัดไป
+            </p>
+          </div>
+          <div>
+            <button 
+              type="button" 
+              onclick="navigateToMenu('home')" 
+              class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded transition-colors cursor-pointer"
+            >
+              กลับสู่หน้าหลัก (Back to Home)
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
   </div>
 
   <!-- APPLICATION JAVASCRIPT SDK & UI LOGIC -->
