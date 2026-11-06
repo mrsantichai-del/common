@@ -491,8 +491,8 @@
   </div>
 
   <!-- MODAL: ADD / EDIT MASTER RECORD -->
-  <div id="modalMasterForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg w-full max-w-lg p-6 shadow-xl border border-slate-200 space-y-4">
+  <div id="modalMasterForm" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
+    <div class="bg-white rounded-xl w-full max-w-lg p-6 shadow-2xl border border-slate-200 space-y-4 relative overflow-visible my-auto">
       <div class="flex justify-between items-center border-b border-slate-200 pb-3">
         <div>
           <h3 id="masterModalTitle" class="font-bold text-sm text-slate-900">เพิ่มข้อมูลในตาราง</h3>
@@ -501,9 +501,9 @@
         <button type="button" onclick="closeMasterModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg leading-none cursor-pointer">&times;</button>
       </div>
 
-      <form onsubmit="handleMasterFormSubmit(event)" class="space-y-3">
+      <form onsubmit="handleMasterFormSubmit(event)" class="space-y-4 overflow-visible">
         <input type="hidden" id="masterFormRecordId">
-        <div id="masterFormFieldsContainer" class="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+        <div id="masterFormFieldsContainer" class="space-y-4 overflow-visible">
           <!-- Dynamic Form Fields Generated Based on Active Table -->
         </div>
 
