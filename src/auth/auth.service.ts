@@ -105,14 +105,19 @@ export class AuthService {
       throw new UnauthorizedException('Username/Employee ID and password are required');
     }
 
-    // รองรับการเข้าสู่ระบบด้วยชื่อผู้ใช้ (Username) หรือ รหัสพนักงาน (Employee ID)
-    const user = await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { username: identifier },
-          { employeeId: identifier },
-        ],
-      },
+    // รองรับการเข้าสู่ระบบด้วยชื่อผู้ใช้ (Username) หรือ รหัสพนักงาน (Employee ID) แบบ Case-Insensitive
+    const rawMatches = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      'SELECT id FROM User WHERE LOWER(username) = LOWER(?) OR LOWER(employeeId) = LOWER(?) LIMIT 1',
+      identifier,
+      identifier,
+    );
+
+    if (!rawMatches || rawMatches.length === 0) {
+      throw new UnauthorizedException('ชื่อผู้ใช้/รหัสพนักงาน หรือรหัสผ่านไม่ถูกต้อง');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: rawMatches[0].id },
       include: {
         groups: {
           include: {

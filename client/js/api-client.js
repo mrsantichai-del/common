@@ -95,8 +95,11 @@ class ApiClient {
     let outgoingWire = 'None (GET/Empty)';
     let fetchBody = null;
 
+    const hasCrypto = typeof window !== 'undefined' && Boolean(window.CryptoJS);
+    const canEncrypt = this.encryptionEnabled && hasCrypto;
+
     if (options.body && method !== 'GET') {
-      if (this.encryptionEnabled) {
+      if (canEncrypt) {
         headers['X-Payload-Encrypted'] = 'true';
         const ciphertext = this.encrypt(options.body);
         outgoingWire = ciphertext;
@@ -105,7 +108,7 @@ class ApiClient {
         outgoingWire = JSON.stringify(options.body);
         fetchBody = outgoingWire;
       }
-    } else if (this.encryptionEnabled) {
+    } else if (canEncrypt) {
       headers['X-Payload-Encrypted'] = 'true';
     }
 

@@ -5,12 +5,12 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for decoupled frontends (e.g. localhost:8080)
+  // Enable CORS for decoupled frontends (e.g. localhost:8080 or 127.0.0.1:8080)
   app.enableCors({
     origin: true,
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Accept,Authorization,X-Payload-Encrypted',
+    allowedHeaders: '*',
   });
 
   app.useGlobalPipes(

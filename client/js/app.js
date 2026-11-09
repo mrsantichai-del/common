@@ -5,7 +5,10 @@
  */
 
 const api = new ApiClient({
-  baseUrl: 'http://localhost:3000',
+  baseUrl:
+    typeof window !== 'undefined' && window.location.hostname
+      ? `${window.location.protocol}//${window.location.hostname}:3000`
+      : 'http://localhost:3000',
 });
 
 // Global Application Configuration & Asset Registry
@@ -1637,7 +1640,7 @@ async function handleLoginSubmit(event) {
       errorMsg.textContent = err.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
       errorMsg.classList.remove('hidden');
     }
-    showToast('เข้าสู่ระบบไม่สำเร็จ ตรวจสอบรหัสผ่าน', 'error');
+    showToast('เข้าสู่ระบบไม่สำเร็จ: ' + (err.message || 'ตรวจสอบข้อมูล'), 'error');
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
