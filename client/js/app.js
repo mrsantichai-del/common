@@ -186,19 +186,22 @@ function showToast(message, type = 'success') {
 // ----------------------------------------------------
 
 function initDemoMode() {
-  const isDemo = localStorage.getItem('app_demo_mode') === 'true';
+  const stored = localStorage.getItem('app_demo_mode');
+  // Default to true for developer convenience on first load
+  const isDemo = stored === null ? true : stored === 'true';
   applyDemoMode(isDemo);
 }
 
 function toggleDemoMode() {
-  const current = localStorage.getItem('app_demo_mode') === 'true';
+  const stored = localStorage.getItem('app_demo_mode');
+  const current = stored === null ? true : stored === 'true';
   const next = !current;
   localStorage.setItem('app_demo_mode', next ? 'true' : 'false');
   applyDemoMode(next);
   showToast(
     next
-      ? 'เปิดโหมดทดสอบระบบสำหรับผู้พัฒนา'
-      : 'เข้าสู่โหมดการทำงานจริง',
+      ? 'เปิดโหมดทดสอบระบบสำหรับผู้พัฒนา (DEV MODE: ON)'
+      : 'เข้าสู่โหมดการทำงานจริง (DEV MODE: OFF)',
     'success'
   );
 }
@@ -2024,13 +2027,6 @@ function renderCompanyPrintDocumentHtml(company) {
       <div style="border-top: 1px solid #cbd5e1; padding-top: 8px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b;">
         <div>${company.docFooterNotice || 'เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System'}</div>
         <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">พิมพ์เมื่อ: ${dateTimeFormatted} • Local Sovereignty Architecture</div>
-      </div>
-
-    </div>
-  `;
-}
-        <div>${company.docFooterNotice || 'เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System'}</div>
-        <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">พิมพ์เมื่อ: ${dateTimeFormatted} • Local Sovereignty Architecture</div>
       </div>
 
     </div>
