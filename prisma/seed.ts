@@ -148,8 +148,8 @@ export async function seedDatabase(client: PrismaClient = prisma) {
   // User 1: Super Admin
   const adminUser = await client.user.upsert({
     where: { username: 'root_admin' },
-    update: {},
-    create: { username: 'root_admin', password: passwordHash },
+    update: { employeeId: 'EMP-001' },
+    create: { username: 'root_admin', password: passwordHash, employeeId: 'EMP-001' },
   });
   if (groupSuperAdmin) {
     await client.userGroup.deleteMany({ where: { userId: adminUser.id } });
@@ -159,8 +159,8 @@ export async function seedDatabase(client: PrismaClient = prisma) {
   // User 2: Executive Approver
   const approverUser = await client.user.upsert({
     where: { username: 'approver_ellen' },
-    update: {},
-    create: { username: 'approver_ellen', password: passwordHash },
+    update: { employeeId: 'EMP-002' },
+    create: { username: 'approver_ellen', password: passwordHash, employeeId: 'EMP-002' },
   });
   if (groupApprover) {
     await client.userGroup.deleteMany({ where: { userId: approverUser.id } });
@@ -170,8 +170,8 @@ export async function seedDatabase(client: PrismaClient = prisma) {
   // User 3: Compliance Auditor
   const auditorUser = await client.user.upsert({
     where: { username: 'auditor_arthur' },
-    update: {},
-    create: { username: 'auditor_arthur', password: passwordHash },
+    update: { employeeId: 'EMP-003' },
+    create: { username: 'auditor_arthur', password: passwordHash, employeeId: 'EMP-003' },
   });
   if (groupAuditor) {
     await client.userGroup.deleteMany({ where: { userId: auditorUser.id } });
@@ -181,8 +181,8 @@ export async function seedDatabase(client: PrismaClient = prisma) {
   // User 4: Multi-Group Hybrid (Operator + Auditor)
   const hybridUser = await client.user.upsert({
     where: { username: 'hybrid_harry' },
-    update: {},
-    create: { username: 'hybrid_harry', password: passwordHash },
+    update: { employeeId: 'EMP-004' },
+    create: { username: 'hybrid_harry', password: passwordHash, employeeId: 'EMP-004' },
   });
   if (groupOperator && groupAuditor) {
     await client.userGroup.deleteMany({ where: { userId: hybridUser.id } });

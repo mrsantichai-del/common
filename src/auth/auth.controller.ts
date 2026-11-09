@@ -14,6 +14,11 @@ export class AuthController {
     return this.authService.getAvailableGroups();
   }
 
+  @Get('public-info')
+  async getPublicInfo() {
+    return this.authService.getPublicCompanyInfo();
+  }
+
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);

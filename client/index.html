@@ -89,83 +89,141 @@
   <!-- ============================================================== -->
   <!-- VIEW 1: AUTHENTICATION / SIGN IN                               -->
   <!-- ============================================================== -->
-  <div id="viewLogin" class="min-h-screen flex flex-col justify-center items-center p-4">
-    <div class="w-full max-w-sm bg-white rounded-lg shadow-sm border border-slate-300 p-8">
+  <div id="viewLogin" class="min-h-screen flex flex-col justify-center items-center p-4 bg-slate-900/5 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px]">
+    
+    <!-- Corporate Sign-in Card -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200/90 overflow-hidden transition-all">
       
-      <!-- Brand Logo & Header -->
-      <div class="text-center mb-6">
-        <div class="h-14 max-w-[220px] mx-auto mb-3 flex items-center justify-center p-1.5 bg-white rounded-md border border-slate-100 shadow-2xs">
-          <img src="/assets/logo/logo.jpg" alt="PYLON Logo" class="brand-logo-img">
+      <!-- Top Colored Accent Bar -->
+      <div class="h-1.5 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700"></div>
+
+      <div class="p-8 space-y-6">
+        
+        <!-- Corporate Brand Header -->
+        <div class="text-center space-y-3">
+          <div class="h-16 max-w-[240px] mx-auto flex items-center justify-center p-2 bg-white rounded-lg border border-slate-200/80 shadow-2xs">
+            <img id="loginCompanyLogo" src="/assets/logo/logo.jpg" alt="Company Logo" class="brand-logo-img">
+          </div>
+          
+          <div>
+            <h1 id="loginCompanyNameTh" class="text-base font-bold text-slate-900 tracking-tight leading-snug">
+              บริษัท ไพลอน จำกัด (มหาชน)
+            </h1>
+            <h2 id="loginCompanyNameEn" class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5">
+              PYLON PUBLIC COMPANY LIMITED
+            </h2>
+          </div>
+
+          <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-medium">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+            <span>ระบบลงชื่อเข้าใช้องค์กร (Corporate Identity Center)</span>
+          </div>
         </div>
-        <h1 class="text-lg font-bold text-slate-900 tracking-tight">เข้าสู่ระบบงาน</h1>
-        <p class="text-xs text-slate-500 mt-0.5 font-mono">ENTERPRISE SYSTEM</p>
+
+        <!-- Quick Test Accounts Panel (Toggleable Developer Helper) -->
+        <div id="loginDemoAccountsPanel" class="hidden p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+          <div class="text-[11px] font-semibold text-slate-700 flex items-center justify-between">
+            <span>เลือกบัญชีทดสอบระบบ:</span>
+            <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-mono font-bold">DEV MODE</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <button type="button" onclick="quickLoginAs('root_admin')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
+              <div class="font-bold text-slate-900 text-[11px]">ผู้ดูแลระบบ</div>
+              <div class="text-[10px] text-blue-700 font-mono">root_admin <span class="text-slate-400">(EMP-001)</span></div>
+            </button>
+            <button type="button" onclick="quickLoginAs('approver_ellen')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
+              <div class="font-bold text-slate-900 text-[11px]">ผู้อนุมัติเอกสาร</div>
+              <div class="text-[10px] text-blue-700 font-mono">approver_ellen <span class="text-slate-400">(EMP-002)</span></div>
+            </button>
+            <button type="button" onclick="quickLoginAs('auditor_arthur')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
+              <div class="font-bold text-slate-900 text-[11px]">ผู้ตรวจสอบ</div>
+              <div class="text-[10px] text-blue-700 font-mono">auditor_arthur <span class="text-slate-400">(EMP-003)</span></div>
+            </button>
+            <button type="button" onclick="quickLoginAs('hybrid_harry')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
+              <div class="font-bold text-slate-900 text-[11px]">เจ้าหน้าที่บันทึก</div>
+              <div class="text-[10px] text-blue-700 font-mono">hybrid_harry <span class="text-slate-400">(EMP-004)</span></div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Error Alert Box -->
+        <div id="loginErrorMsg" class="hidden p-3 rounded-lg border border-rose-200 bg-rose-50 text-rose-700 text-xs flex items-center space-x-2"></div>
+
+        <!-- Official Sign In Form -->
+        <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
+          
+          <!-- Username or Employee ID -->
+          <div>
+            <label for="loginUsername" class="block text-xs font-semibold text-slate-700 mb-1">
+              ชื่อผู้ใช้งาน หรือ รหัสพนักงาน (Username / Employee ID) *
+            </label>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="loginUsername" 
+                required 
+                autocomplete="username"
+                placeholder="เช่น root_admin หรือ EMP-001"
+                class="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 outline-none transition-all font-sans bg-slate-50/50 focus:bg-white"
+              />
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-1">สามารถระบุเป็นชื่อบัญชีผู้ใช้ หรือรหัสพนักงานขององค์กร</p>
+          </div>
+
+          <!-- Password -->
+          <div>
+            <label for="loginPassword" class="block text-xs font-semibold text-slate-700 mb-1">
+              รหัสผ่าน (Password) *
+            </label>
+            <div class="relative">
+              <input 
+                type="password" 
+                id="loginPassword" 
+                required 
+                autocomplete="current-password"
+                placeholder="ระบุรหัสผ่านของคุณ"
+                class="w-full pl-9 pr-10 py-2 rounded-lg border border-slate-300 text-xs focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 outline-none transition-all font-mono bg-slate-50/50 focus:bg-white"
+              />
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <button 
+                type="button" 
+                onclick="togglePasswordVisibility('loginPassword', 'eyeIconLogin')" 
+                class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-700 cursor-pointer focus:outline-none"
+                title="แสดง/ซ่อนรหัสผ่าน"
+              >
+                <svg id="eyeIconLogin" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <button 
+            type="submit" 
+            id="btnLoginSubmit"
+            class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-lg transition-all shadow-sm cursor-pointer flex items-center justify-center space-x-2"
+          >
+            <svg class="w-4 h-4 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+            <span>ลงชื่อเข้าสู่ระบบงาน (Sign In)</span>
+          </button>
+        </form>
+
+        <!-- Security Guarantee Notice -->
+        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-sans">
+          <span>🔒 เข้ารหัสข้อมูล AES-256</span>
+          <span>🛡️ Local Sovereignty</span>
+        </div>
+
       </div>
-
-      <!-- Quick Test Accounts Panel (Toggleable Developer Helper) -->
-      <div id="loginDemoAccountsPanel" class="hidden mb-5 p-3 bg-slate-50 border border-slate-200 rounded-md">
-        <div class="text-[11px] font-semibold text-slate-700 mb-2 flex items-center justify-between">
-          <span>เลือกบัญชีทดสอบระบบ:</span>
-          <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-mono">DEV MODE</span>
-        </div>
-        <div class="grid grid-cols-2 gap-1.5 text-xs">
-          <button type="button" onclick="quickLoginAs('root_admin')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
-            <div class="font-semibold text-slate-800 text-[11px]">ผู้ดูแลระบบ</div>
-            <div class="text-[10px] text-slate-500 font-mono">root_admin</div>
-          </button>
-          <button type="button" onclick="quickLoginAs('approver_ellen')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
-            <div class="font-semibold text-slate-800 text-[11px]">ผู้อนุมัติเอกสาร</div>
-            <div class="text-[10px] text-slate-500 font-mono">approver_ellen</div>
-          </button>
-          <button type="button" onclick="quickLoginAs('auditor_arthur')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
-            <div class="font-semibold text-slate-800 text-[11px]">ผู้ตรวจสอบ</div>
-            <div class="text-[10px] text-slate-500 font-mono">auditor_arthur</div>
-          </button>
-          <button type="button" onclick="quickLoginAs('hybrid_harry')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded text-left transition-colors cursor-pointer">
-            <div class="font-semibold text-slate-800 text-[11px]">เจ้าหน้าที่บันทึก</div>
-            <div class="text-[10px] text-slate-500 font-mono">hybrid_harry</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Error Alert Box -->
-      <div id="loginErrorMsg" class="hidden mb-4 p-2.5 rounded border border-rose-200 bg-rose-50 text-rose-700 text-xs"></div>
-
-      <!-- Sign In Form -->
-      <form onsubmit="handleLoginSubmit(event)" class="space-y-4">
-        <div>
-          <label for="loginUsername" class="block text-xs font-medium text-slate-700 mb-1">
-            ชื่อผู้ใช้งาน (Username)
-          </label>
-          <input 
-            type="text" 
-            id="loginUsername" 
-            required 
-            placeholder="เช่น root_admin"
-            class="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none transition-colors"
-          />
-        </div>
-
-        <div>
-          <label for="loginPassword" class="block text-xs font-medium text-slate-700 mb-1">
-            รหัสผ่าน (Password)
-          </label>
-          <input 
-            type="password" 
-            id="loginPassword" 
-            required 
-            placeholder="รหัสผ่าน"
-            class="w-full px-3 py-2 rounded-md border border-slate-300 text-sm focus:ring-1 focus:ring-slate-900 focus:border-slate-900 outline-none transition-colors"
-          />
-        </div>
-
-        <button 
-          type="submit" 
-          id="btnLoginSubmit"
-          class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-md transition-colors shadow-xs cursor-pointer"
-        >
-          เข้าสู่ระบบ (Sign In)
-        </button>
-      </form>
 
     </div>
 
@@ -183,6 +241,9 @@
     </div>
 
     <div class="mt-2 text-center text-[11px] text-slate-400">
+      ระบบความมั่นคงปลอดภัยและการจัดการสิทธิ์ภายในองค์กร (ULTRON IAM Core)
+    </div>
+  </div>
       ระบบความปลอดภัยภายในเครื่อง (Local Sovereignty)
     </div>
   </div>

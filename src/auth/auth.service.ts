@@ -71,9 +71,48 @@ export class AuthService {
     };
   }
 
+  async getPublicCompanyInfo() {
+    const company = await this.prisma.company.findFirst({
+      where: { isDefault: true, isActive: true },
+      select: {
+        id: true,
+        nameTh: true,
+        nameEn: true,
+        shortName: true,
+        taxId: true,
+        branchName: true,
+        logoUrl: true,
+        docFooterNotice: true,
+      },
+    });
+
+    return (
+      company || {
+        nameTh: 'บริษัท ไพลอน จำกัด (มหาชน)',
+        nameEn: 'PYLON PUBLIC COMPANY LIMITED',
+        shortName: 'PYLON',
+        taxId: '0107548000451',
+        branchName: 'สำนักงานใหญ่',
+        logoUrl: '/assets/logo/logo.jpg',
+        docFooterNotice: 'ระบบลงชื่อเข้าใช้องค์กร (Corporate Identity Center)',
+      }
+    );
+  }
+
   async login(loginDto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { username: loginDto.username },
+    const identifier = (loginDto.username || '').trim();
+    if (!identifier || !loginDto.password) {
+      throw new UnauthorizedException('Username/Employee ID and password are required');
+    }
+
+    // รองรับการเข้าสู่ระบบด้วยชื่อผู้ใช้ (Username) หรือ รหัสพนักงาน (Employee ID)
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { employeeId: identifier },
+        ],
+      },
       include: {
         groups: {
           include: {
@@ -92,12 +131,16 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('ชื่อผู้ใช้/รหัสพนักงาน หรือรหัสผ่านไม่ถูกต้อง');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('บัญชีผู้ใช้งานนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ');
     }
 
     const isMatch = await bcrypt.compare(loginDto.password, user.password);
     if (!isMatch) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('ชื่อผู้ใช้/รหัสพนักงาน หรือรหัสผ่านไม่ถูกต้อง');
     }
 
     const groupNames = user.groups.map((ug) => ug.group.name);
@@ -115,6 +158,32 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload);
 
+    // ดึงข้อมูลบริษัทหลักสำหรับแสดงผล
+    const defaultCompany = await this.prisma.company.findFirst({
+      where: { isDefault: true },
+      select: {
+        nameTh: true,
+        nameEn: true,
+        logoUrl: true,
+      },
+    });
+
+    // บันทึก AuditLog การเข้าสู่ระบบ
+    try {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'USER_LOGIN',
+          target: 'User',
+          targetId: user.id,
+          userId: user.id,
+          details: `User '${user.username}' (Employee ID: ${user.employeeId || '-'}) logged in successfully`,
+          ipAddress: '127.0.0.1',
+        },
+      });
+    } catch (e) {
+      console.warn('[AuditLog] Failed to record login audit:', e.message);
+    }
+
     return {
       accessToken,
       user: {
@@ -123,6 +192,11 @@ export class AuthService {
         employeeId: user.employeeId,
         groups: groupNames,
         permissions: Array.from(permissionSet),
+      },
+      company: defaultCompany || {
+        nameTh: 'บริษัท ไพลอน จำกัด (มหาชน)',
+        nameEn: 'PYLON PUBLIC COMPANY LIMITED',
+        logoUrl: '/assets/logo/logo.jpg',
       },
     };
   }

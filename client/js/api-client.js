@@ -186,6 +186,9 @@ class ApiClient {
       getAvailableGroups: async () => {
         return this.request('/auth/groups');
       },
+      getPublicInfo: async () => {
+        return this.request('/auth/public-info');
+      },
       logout: () => {
         this.setToken(null);
       },
