@@ -34,6 +34,10 @@ export async function seedDatabase(client: PrismaClient = prisma) {
     { code: AppPermission.AUDIT_READ, description: 'Inspect audit trail and forensic activity logs' },
     { code: AppPermission.AUDIT_DOWNLOAD, description: 'Download compliance audit logs for reporting' },
     { code: AppPermission.SYSTEM_CONFIGURE, description: 'Configure core kernel parameters and security' },
+
+    // Organization Structure
+    { code: AppPermission.ORG_READ, description: 'Read organization structure, units, and job positions' },
+    { code: AppPermission.ORG_MANAGE, description: 'Manage organization units, job descriptions, and positions' },
   ];
 
   for (const perm of permissionsData) {
@@ -68,6 +72,7 @@ export async function seedDatabase(client: PrismaClient = prisma) {
         AppPermission.DOCUMENTS_CANCEL,
         AppPermission.REPORTS_VIEW,
         AppPermission.REPORTS_DOWNLOAD,
+        AppPermission.ORG_READ,
       ],
     },
     {
@@ -80,6 +85,7 @@ export async function seedDatabase(client: PrismaClient = prisma) {
         AppPermission.DOCUMENTS_CANCEL,
         AppPermission.REPORTS_VIEW,
         AppPermission.REPORTS_DOWNLOAD,
+        AppPermission.ORG_READ,
       ],
     },
     {

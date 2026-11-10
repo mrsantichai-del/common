@@ -24,4 +24,8 @@ export enum AppPermission {
   AUDIT_READ = 'audit:read',
   AUDIT_DOWNLOAD = 'audit:download',
   SYSTEM_CONFIGURE = 'system:configure',
+
+  // 5. Organization Structure & Positions
+  ORG_READ = 'org:read',
+  ORG_MANAGE = 'org:manage',
 }
