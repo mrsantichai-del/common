@@ -203,6 +203,7 @@ function renderMasterTable(records) {
           <th class="p-3 w-12 text-center">#</th>
           <th class="p-3">ชื่อบัญชี (Username)</th>
           <th class="p-3">รหัสพนักงาน (Employee ID)</th>
+          <th class="p-3">ตำแหน่งงาน (Position)</th>
           <th class="p-3">กลุ่มสิทธิ์ (Groups)</th>
           <th class="p-3">สถานะ</th>
           <th class="p-3 text-right">การกระทำ</th>
@@ -210,10 +211,14 @@ function renderMasterTable(records) {
       `;
 
       if (records.length === 0) {
-        rowsHtml = `<tr><td colspan="6" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลผู้ใช้งาน</td></tr>`;
+        rowsHtml = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลผู้ใช้งาน</td></tr>`;
       } else {
         rowsHtml = records
           .map((u, i) => {
+            const positionDisplay = u.position
+              ? `<span class="font-semibold text-slate-800">${u.position.title}</span> <span class="text-slate-400 text-[10px] font-mono">(${u.position.code})</span>`
+              : '<span class="text-slate-400 italic font-sans text-[11px]">-</span>';
+
             const groupsBadge = (u.groups || [])
               .map(
                 (g) =>
@@ -229,6 +234,7 @@ function renderMasterTable(records) {
                 <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
                 <td class="p-3 font-semibold text-slate-900">${u.username}</td>
                 <td class="p-3 text-blue-700">${u.employeeId || '<span class="text-slate-400 italic font-sans">-</span>'}</td>
+                <td class="p-3 font-sans text-xs">${positionDisplay}</td>
                 <td class="p-3">${groupsBadge || '<span class="text-slate-400 italic font-sans">-</span>'}</td>
                 <td class="p-3">${statusBadge}</td>
                 <td class="p-3 text-right font-sans space-x-1.5">
@@ -1394,7 +1400,23 @@ async function renderMasterFormFields(container, table, existing) {
         console.warn('Could not fetch groups lookup:', e);
       }
 
+      // ดึงข้อมูลตำแหน่งงานจากตาราง Position ที่สัมพันธ์กัน
+      let positionOptions = [{ value: '', label: '-- ไม่ระบุตำแหน่งงาน (Unassigned) --' }];
+      try {
+        const posRes = await api.masterTable.findAll('position', { limit: 200 });
+        (posRes && posRes.data ? posRes.data : []).forEach((p) => {
+          positionOptions.push({
+            value: p.id,
+            label: `${p.title} (${p.code})`,
+            sublabel: p.orgUnit ? `หน่วยงาน: ${p.orgUnit.name}` : 'ระดับบริษัท (CEO/Board)',
+          });
+        });
+      } catch (e) {
+        console.warn('Could not fetch positions lookup:', e);
+      }
+
       const currentGroups = existing && existing.groups ? existing.groups : ['GENERAL_USER'];
+      const currentPosId = existing && existing.positionId ? existing.positionId : '';
 
       container.innerHTML = `
         <div>
@@ -1418,6 +1440,31 @@ async function renderMasterFormFields(container, table, existing) {
         <div>
           <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสพนักงาน (Employee ID) <span class="font-normal text-slate-400">(ถ้ามี)</span></label>
           <input type="text" id="f_user_employeeId" placeholder="เช่น EMP-001" value="${existing && existing.employeeId ? existing.employeeId : ''}" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+        </div>
+
+        <!-- ความสัมพันธ์: ตาราง Position (ตำแหน่งงาน) -->
+        <div class="searchable-combobox relative" id="combo_user_position">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            ตำแหน่งงาน (Position) <span class="text-blue-700 font-mono font-normal">(ดึงจากตาราง Position)</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_user_positionId" value="${currentPosId}">
+            <input 
+              type="text" 
+              id="f_user_positionId_search" 
+              autocomplete="off"
+              placeholder="เลือกตำแหน่งงานในโครงสร้างองค์กร..."
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_user_position')"
+              oninput="filterCombobox('combo_user_position', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_user_position')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_user_position_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
         </div>
 
         <!-- ความสัมพันธ์: ตาราง Group -->
@@ -1452,6 +1499,14 @@ async function renderMasterFormFields(container, table, existing) {
         dropdownId: 'combo_user_group_dropdown',
         items: groupOptions,
         selectedValue: currentGroups[0] || 'GENERAL_USER',
+      });
+
+      initCombobox('combo_user_position', {
+        hiddenInputId: 'f_user_positionId',
+        searchInputId: 'f_user_positionId_search',
+        dropdownId: 'combo_user_position_dropdown',
+        items: positionOptions,
+        selectedValue: currentPosId,
       });
       break;
     }
@@ -2314,10 +2369,12 @@ async function handleMasterFormSubmit(event) {
       const p = document.getElementById('f_user_password')?.value;
       const emp = document.getElementById('f_user_employeeId')?.value.trim();
       const selectedGroup = document.getElementById('f_user_group_val')?.value;
+      const posId = document.getElementById('f_user_positionId')?.value;
 
       payload.username = u;
       if (p) payload.password = p;
       payload.employeeId = emp || null;
+      payload.positionId = posId || null;
       if (selectedGroup) payload.groups = [selectedGroup];
       break;
     }

@@ -102,6 +102,9 @@ export class MasterTableService {
               groups: {
                 include: { group: true },
               },
+              position: {
+                select: { id: true, code: true, title: true, isUnitHead: true },
+              },
             },
             skip,
             take: limit,
@@ -120,6 +123,8 @@ export class MasterTableService {
             employeeId: u.employeeId || null,
             isActive: u.isActive,
             groups: u.groups.map((g) => g.group.name),
+            positionId: u.positionId || null,
+            position: u.position || null,
             createdAt: u.createdAt,
             updatedAt: u.updatedAt,
           })),
@@ -677,7 +682,7 @@ export class MasterTableService {
 
       case 'users':
       case 'user': {
-        const { username, password, employeeId, groups = ['GENERAL_USER'] } = payload;
+        const { username, password, employeeId, positionId, groups = ['GENERAL_USER'] } = payload;
         if (!username || !password) {
           throw new BadRequestException('Username and password are required');
         }
@@ -692,6 +697,7 @@ export class MasterTableService {
             username,
             password: passwordHash,
             employeeId: employeeId ? employeeId.trim() : null,
+            positionId: positionId || null,
             isActive: true,
             createdById: userId || null,
             updatedById: userId || null,
@@ -1013,6 +1019,7 @@ export class MasterTableService {
         if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
         if (payload.password) updateData.password = await bcrypt.hash(payload.password, 10);
         if (payload.employeeId !== undefined) updateData.employeeId = payload.employeeId ? payload.employeeId.trim() : null;
+        if (payload.positionId !== undefined) updateData.positionId = payload.positionId || null;
 
         await this.prisma.user.update({ where: { id }, data: updateData });
 
