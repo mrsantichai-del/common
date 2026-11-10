@@ -556,9 +556,42 @@ async function openAddPositionFromOrgChart(orgUnitId, unitName) {
   });
 }
 
+function findRecordInOrgChartData(tableName, id) {
+  if (!rawOrgChartData || !id) return null;
+  const table = tableName.toLowerCase();
+  if (table === 'position') {
+    const compPos = (rawOrgChartData.companyPositions || []).find((p) => p.id === id);
+    if (compPos) return compPos;
+    let found = null;
+    const searchPositions = (nodes) => {
+      for (const node of nodes) {
+        const p = (node.positions || []).find((pos) => pos.id === id);
+        if (p) { found = p; return; }
+        if (node.children && node.children.length > 0) searchPositions(node.children);
+        if (found) return;
+      }
+    };
+    if (rawOrgChartData.tree) searchPositions(rawOrgChartData.tree);
+    return found;
+  } else if (table === 'orgunit') {
+    let found = null;
+    const searchUnits = (nodes) => {
+      for (const node of nodes) {
+        if (node.id === id) { found = node; return; }
+        if (node.children && node.children.length > 0) searchUnits(node.children);
+        if (found) return;
+      }
+    };
+    if (rawOrgChartData.tree) searchUnits(rawOrgChartData.tree);
+    return found;
+  }
+  return null;
+}
+
 async function openEditFromOrgChart(tableName, id) {
   activeMasterTable = tableName.toLowerCase();
-  await openEditMasterRecordModal(id);
+  const cached = findRecordInOrgChartData(tableName, id);
+  await openEditMasterRecordModal(id, cached);
 }
 
 async function deleteRecordFromOrgChart(tableName, id, label) {

@@ -1153,13 +1153,13 @@ async function openCreateMasterRecordModal(prefillData = null) {
   await renderMasterFormFields(container, activeMasterTable, prefillData);
 }
 
-async function openEditMasterRecordModal(id) {
-  let record = masterTableRawData.find((r) => r.id === id);
-  if (!record) {
+async function openEditMasterRecordModal(id, directRecord = null) {
+  let record = directRecord || (masterTableRawData ? masterTableRawData.find((r) => r.id === id) : null);
+  if (!record && id) {
     try {
       const res = await api.masterTable.findOne(activeMasterTable, id);
-      if (res && res.data) {
-        record = res.data;
+      if (res) {
+        record = res.data ? res.data : (res.id ? res : null);
       }
     } catch (err) {
       console.warn('Could not fetch single record by id:', err);
