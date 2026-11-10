@@ -196,6 +196,8 @@ model Position {
   code         String     @unique // เช่น POS-0001
   title        String // ผู้จัดการฝ่ายบัญชีและการเงิน
   isUnitHead   Boolean    @default(false) // เป็นหัวหน้าของหน่วยงานนี้
+  minHeadcount Int        @default(1) // กรอบอัตรากำลังขั้นต่ำ/เป้าหมาย
+  maxHeadcount Int        @default(1) // กรอบอัตรากำลังสูงสุด (เช่น 1 หรือ 3-7 คน)
   isActive     Boolean    @default(true)
   companyId    String
   company      Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)

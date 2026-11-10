@@ -97,15 +97,33 @@ export class OrganizationService {
         type: u.type,
         order: u.order,
         parentId: u.parentId,
-        positions: u.positions.map((p) => ({
-          id: p.id,
-          code: p.code,
-          title: p.title,
-          isUnitHead: p.isUnitHead,
-          job: p.job,
-          reportsTo: p.reportsTo,
-          users: p.users,
-        })),
+        positions: u.positions.map((p) => {
+          const actualCount = p.users ? p.users.length : 0;
+          let headcountStatus = 'OPTIMAL';
+          let headcountDiff = 0;
+          if (actualCount < p.minHeadcount) {
+            headcountStatus = 'UNDER_STAFFED';
+            headcountDiff = p.minHeadcount - actualCount;
+          } else if (actualCount > p.maxHeadcount) {
+            headcountStatus = 'OVER_STAFFED';
+            headcountDiff = actualCount - p.maxHeadcount;
+          }
+
+          return {
+            id: p.id,
+            code: p.code,
+            title: p.title,
+            isUnitHead: p.isUnitHead,
+            minHeadcount: p.minHeadcount,
+            maxHeadcount: p.maxHeadcount,
+            actualCount,
+            headcountStatus,
+            headcountDiff,
+            job: p.job,
+            reportsTo: p.reportsTo,
+            users: p.users,
+          };
+        }),
         children: [],
       });
     });
@@ -128,15 +146,33 @@ export class OrganizationService {
         taxId: targetCompany.taxId,
         logoUrl: targetCompany.logoUrl,
       },
-      companyPositions: companyPositions.map((p) => ({
-        id: p.id,
-        code: p.code,
-        title: p.title,
-        isUnitHead: p.isUnitHead,
-        job: p.job,
-        reportsTo: p.reportsTo,
-        users: p.users,
-      })),
+      companyPositions: companyPositions.map((p) => {
+        const actualCount = p.users ? p.users.length : 0;
+        let headcountStatus = 'OPTIMAL';
+        let headcountDiff = 0;
+        if (actualCount < p.minHeadcount) {
+          headcountStatus = 'UNDER_STAFFED';
+          headcountDiff = p.minHeadcount - actualCount;
+        } else if (actualCount > p.maxHeadcount) {
+          headcountStatus = 'OVER_STAFFED';
+          headcountDiff = actualCount - p.maxHeadcount;
+        }
+
+        return {
+          id: p.id,
+          code: p.code,
+          title: p.title,
+          isUnitHead: p.isUnitHead,
+          minHeadcount: p.minHeadcount,
+          maxHeadcount: p.maxHeadcount,
+          actualCount,
+          headcountStatus,
+          headcountDiff,
+          job: p.job,
+          reportsTo: p.reportsTo,
+          users: p.users,
+        };
+      }),
       tree: rootUnits,
       totalUnits: units.length,
       totalPositions: units.reduce((acc, u) => acc + u.positions.length, 0) + companyPositions.length,
@@ -459,7 +495,7 @@ export class OrganizationService {
   }
 
   async createPosition(payload: any, userId?: string) {
-    const { code, title, isUnitHead = false, companyId, orgUnitId = null, jobId, reportsToId = null, isActive = true } = payload;
+    const { code, title, isUnitHead = false, minHeadcount = 1, maxHeadcount = 1, companyId, orgUnitId = null, jobId, reportsToId = null, isActive = true } = payload;
     if (!code || !title || !jobId) {
       throw new BadRequestException('code, title, and jobId are required');
     }
@@ -474,11 +510,16 @@ export class OrganizationService {
       resolvedCompanyId = defComp.id;
     }
 
+    const parsedMin = Math.max(1, parseInt(minHeadcount, 10) || 1);
+    const parsedMax = Math.max(parsedMin, parseInt(maxHeadcount, 10) || parsedMin);
+
     const position = await this.prisma.position.create({
       data: {
         code,
         title,
         isUnitHead: Boolean(isUnitHead),
+        minHeadcount: parsedMin,
+        maxHeadcount: parsedMax,
         companyId: resolvedCompanyId,
         orgUnitId: orgUnitId || null,
         jobId,
@@ -489,7 +530,7 @@ export class OrganizationService {
       },
     });
 
-    await this.logAudit('POSITION_CREATE', 'Position', `Created Position ${title} (${code})`, userId, position.id, null, { code, title, jobId });
+    await this.logAudit('POSITION_CREATE', 'Position', `Created Position ${title} (${code}) [Quota: ${parsedMin}-${parsedMax}]`, userId, position.id, null, { code, title, jobId });
     return { message: `Position '${title}' successfully created`, id: position.id };
   }
 
@@ -500,6 +541,13 @@ export class OrganizationService {
     const updateData: any = { updatedById: userId || null };
     if (payload.title !== undefined) updateData.title = payload.title;
     if (payload.isUnitHead !== undefined) updateData.isUnitHead = Boolean(payload.isUnitHead);
+    if (payload.minHeadcount !== undefined) {
+      updateData.minHeadcount = Math.max(1, parseInt(payload.minHeadcount, 10) || 1);
+    }
+    if (payload.maxHeadcount !== undefined) {
+      const minVal = updateData.minHeadcount !== undefined ? updateData.minHeadcount : position.minHeadcount;
+      updateData.maxHeadcount = Math.max(minVal, parseInt(payload.maxHeadcount, 10) || minVal);
+    }
     if (payload.orgUnitId !== undefined) updateData.orgUnitId = payload.orgUnitId || null;
     if (payload.jobId !== undefined) updateData.jobId = payload.jobId;
     if (payload.reportsToId !== undefined) updateData.reportsToId = payload.reportsToId || null;

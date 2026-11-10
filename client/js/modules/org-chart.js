@@ -38,16 +38,19 @@ async function loadOrgChartData() {
       }
     }
 
-    // Calculate Occupants Count
+    // Calculate Occupants Count & Total Quota
     let totalEmployeesCount = 0;
+    let totalQuotaCount = 0;
     (res.companyPositions || []).forEach((p) => {
       totalEmployeesCount += Array.isArray(p.users) ? p.users.length : 0;
+      totalQuotaCount += p.minHeadcount || 1;
     });
 
     const countUnitPositionsAndEmployees = (nodes) => {
       nodes.forEach((u) => {
         (u.positions || []).forEach((p) => {
           totalEmployeesCount += Array.isArray(p.users) ? p.users.length : 0;
+          totalQuotaCount += p.minHeadcount || 1;
         });
         if (Array.isArray(u.children)) {
           countUnitPositionsAndEmployees(u.children);
@@ -61,10 +64,12 @@ async function loadOrgChartData() {
     const statUnits = document.getElementById('statTotalUnits');
     const statPositions = document.getElementById('statTotalPositions');
     const statEmployees = document.getElementById('statTotalEmployees');
+    const statQuota = document.getElementById('statTotalQuota');
 
     if (statUnits) statUnits.textContent = res.totalUnits ?? 0;
     if (statPositions) statPositions.textContent = res.totalPositions ?? 0;
     if (statEmployees) statEmployees.textContent = totalEmployeesCount;
+    if (statQuota) statQuota.textContent = totalQuotaCount;
 
     renderOrgChart();
   } catch (err) {
@@ -170,8 +175,33 @@ function renderOrgChart() {
 }
 
 function renderPositionCard(pos, isTopLevel = false) {
-  const occupant = Array.isArray(pos.users) && pos.users.length > 0 ? pos.users[0] : null;
-  const occupantCount = Array.isArray(pos.users) ? pos.users.length : 0;
+  const occupantCount = pos.actualCount ?? (Array.isArray(pos.users) ? pos.users.length : 0);
+  const minH = pos.minHeadcount ?? 1;
+  const maxH = pos.maxHeadcount ?? minH;
+  const rangeStr = minH === maxH ? `${minH}` : `${minH}-${maxH}`;
+
+  let hcBadge = '';
+  if (occupantCount < minH) {
+    const diff = minH - occupantCount;
+    hcBadge = `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-300">ขาด ${diff}</span>`;
+  } else if (occupantCount > maxH) {
+    const diff = occupantCount - maxH;
+    hcBadge = `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-300">เกิน ${diff}</span>`;
+  } else {
+    hcBadge = `<span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-300">พอดี</span>`;
+  }
+
+  const quotaTag = `
+    <div class="flex items-center justify-between text-[10px] bg-slate-50 px-2 py-1 rounded border border-slate-200 mt-2">
+      <span class="text-slate-500 font-sans">อัตรากำลัง:</span>
+      <div class="flex items-center space-x-1 font-mono">
+        <span class="font-bold text-slate-800">${occupantCount}</span>
+        <span class="text-slate-400">/</span>
+        <span class="text-slate-600">${rangeStr} คน</span>
+        ${hcBadge}
+      </div>
+    </div>
+  `;
 
   const jobLevelBadge = pos.job ? `
     <span class="px-1.5 py-0.5 rounded text-[9px] font-bold font-mono ${
@@ -185,25 +215,45 @@ function renderPositionCard(pos, isTopLevel = false) {
     </span>
   ` : '';
 
-  const occupantDisplay = occupant
-    ? `
+  let occupantDisplay = '';
+  if (occupantCount > 1) {
+    occupantDisplay = `
+      <div class="flex items-center space-x-2 pt-2 border-t border-slate-100 mt-2">
+        <div class="flex -space-x-1.5 overflow-hidden">
+          ${(pos.users || []).slice(0, 3).map((u) => `
+            <div class="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-[9px] ring-2 ring-white">
+              ${(u.username || '?').charAt(0).toUpperCase()}
+            </div>
+          `).join('')}
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-bold text-slate-800 truncate">${pos.users[0]?.username || ''} +${occupantCount - 1} คน</div>
+          <div class="text-[10px] text-slate-400 font-mono truncate">มีผู้ครองตำแหน่ง ${occupantCount} คน</div>
+        </div>
+      </div>
+    `;
+  } else if (occupantCount === 1) {
+    const occupant = pos.users[0];
+    occupantDisplay = `
       <div class="flex items-center space-x-2 pt-2 border-t border-slate-100 mt-2">
         <div class="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-[10px] flex-shrink-0">
-          ${occupant.username.charAt(0).toUpperCase()}
+          ${(occupant.username || '?').charAt(0).toUpperCase()}
         </div>
         <div class="min-w-0 flex-1">
           <div class="text-xs font-bold text-slate-800 truncate">${occupant.username}</div>
           <div class="text-[10px] text-slate-400 font-mono truncate">${occupant.employeeId || 'พนักงาน'}</div>
         </div>
       </div>
-    `
-    : `
+    `;
+  } else {
+    occupantDisplay = `
       <div class="pt-2 border-t border-slate-100 mt-2 text-center">
         <span class="text-[10px] font-sans text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block">
           ตำแหน่งว่าง (Vacant)
         </span>
       </div>
     `;
+  }
 
   const headBadge = pos.isUnitHead && !isTopLevel
     ? '<span class="px-1.5 py-0.2 rounded text-[9px] bg-amber-100 text-amber-800 border border-amber-300 font-bold">หัวหน้าหน่วย</span>'
@@ -233,6 +283,7 @@ function renderPositionCard(pos, isTopLevel = false) {
 
       ${pos.job ? `<div class="text-[10px] text-slate-500 truncate">${pos.job.titleTh}</div>` : ''}
       ${reportsToDisplay}
+      ${quotaTag}
       ${occupantDisplay}
 
       <div class="mt-2 pt-1 flex justify-end">

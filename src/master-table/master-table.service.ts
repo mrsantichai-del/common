@@ -429,6 +429,12 @@ export class MasterTableService {
           this.prisma.job.findMany({
             where,
             include: {
+              positions: {
+                where: { isActive: true },
+                include: {
+                  users: { select: { id: true, username: true } },
+                },
+              },
               _count: { select: { positions: true } },
             },
             skip,
@@ -442,20 +448,42 @@ export class MasterTableService {
           total,
           page,
           limit,
-          data: records.map((j) => ({
-            id: j.id,
-            code: j.code,
-            title: j.title,
-            titleEn: j.titleEn,
-            level: j.level,
-            summary: j.summary,
-            responsibilities: j.responsibilities,
-            qualifications: j.qualifications,
-            isActive: j.isActive,
-            positionCount: j._count.positions,
-            createdAt: j.createdAt,
-            updatedAt: j.updatedAt,
-          })),
+          data: records.map((j) => {
+            const positions = j.positions || [];
+            const totalMinHeadcount = positions.reduce((acc, p) => acc + (p.minHeadcount || 1), 0);
+            const totalMaxHeadcount = positions.reduce((acc, p) => acc + (p.maxHeadcount || 1), 0);
+            const actualEmployees = positions.reduce((acc, p) => acc + (p.users ? p.users.length : 0), 0);
+
+            let jobStatus = 'OPTIMAL';
+            let jobDiff = 0;
+            if (actualEmployees < totalMinHeadcount) {
+              jobStatus = 'UNDER_STAFFED';
+              jobDiff = totalMinHeadcount - actualEmployees;
+            } else if (actualEmployees > totalMaxHeadcount) {
+              jobStatus = 'OVER_STAFFED';
+              jobDiff = actualEmployees - totalMaxHeadcount;
+            }
+
+            return {
+              id: j.id,
+              code: j.code,
+              title: j.title,
+              titleEn: j.titleEn,
+              level: j.level,
+              summary: j.summary,
+              responsibilities: j.responsibilities,
+              qualifications: j.qualifications,
+              isActive: j.isActive,
+              positionCount: j._count.positions,
+              totalMinHeadcount,
+              totalMaxHeadcount,
+              actualEmployees,
+              jobStatus,
+              jobDiff,
+              createdAt: j.createdAt,
+              updatedAt: j.updatedAt,
+            };
+          }),
         };
       }
 
@@ -492,28 +520,47 @@ export class MasterTableService {
           total,
           page,
           limit,
-          data: records.map((p) => ({
-            id: p.id,
-            code: p.code,
-            title: p.title,
-            isUnitHead: p.isUnitHead,
-            isActive: p.isActive,
-            companyId: p.companyId,
-            companyName: p.company ? p.company.nameTh : null,
-            orgUnitId: p.orgUnitId,
-            orgUnitCode: p.orgUnit ? p.orgUnit.code : null,
-            orgUnitName: p.orgUnit ? p.orgUnit.name : 'ระดับบริษัท (Company Level)',
-            orgUnitType: p.orgUnit ? p.orgUnit.type : null,
-            jobId: p.jobId,
-            jobCode: p.job ? p.job.code : null,
-            jobTitle: p.job ? p.job.title : null,
-            reportsToId: p.reportsToId,
-            reportsToCode: p.reportsTo ? p.reportsTo.code : null,
-            reportsToTitle: p.reportsTo ? p.reportsTo.title : null,
-            occupants: p.users.map((u) => u.username).join(', '),
-            createdAt: p.createdAt,
-            updatedAt: p.updatedAt,
-          })),
+          data: records.map((p) => {
+            const actualCount = p.users ? p.users.length : 0;
+            let headcountStatus = 'OPTIMAL'; // ครบ/พอดี
+            let headcountDiff = 0;
+            if (actualCount < p.minHeadcount) {
+              headcountStatus = 'UNDER_STAFFED'; // ขาด
+              headcountDiff = p.minHeadcount - actualCount;
+            } else if (actualCount > p.maxHeadcount) {
+              headcountStatus = 'OVER_STAFFED'; // เกิน
+              headcountDiff = actualCount - p.maxHeadcount;
+            }
+
+            return {
+              id: p.id,
+              code: p.code,
+              title: p.title,
+              isUnitHead: p.isUnitHead,
+              minHeadcount: p.minHeadcount,
+              maxHeadcount: p.maxHeadcount,
+              actualCount,
+              headcountStatus,
+              headcountDiff,
+              isActive: p.isActive,
+              companyId: p.companyId,
+              companyName: p.company ? p.company.nameTh : null,
+              orgUnitId: p.orgUnitId,
+              orgUnitCode: p.orgUnit ? p.orgUnit.code : null,
+              orgUnitName: p.orgUnit ? p.orgUnit.name : 'ระดับบริษัท (Company Level)',
+              orgUnitType: p.orgUnit ? p.orgUnit.type : null,
+              jobId: p.jobId,
+              jobCode: p.job ? p.job.code : null,
+              jobTitle: p.job ? p.job.title : null,
+              reportsToId: p.reportsToId,
+              reportsToCode: p.reportsTo ? p.reportsTo.code : null,
+              reportsToTitle: p.reportsTo ? p.reportsTo.title : null,
+              users: p.users,
+              occupants: p.users.map((u) => u.username).join(', '),
+              createdAt: p.createdAt,
+              updatedAt: p.updatedAt,
+            };
+          }),
         };
       }
 
@@ -905,7 +952,7 @@ export class MasterTableService {
 
       case 'positions':
       case 'position': {
-        const { code, title, isUnitHead = false, companyId, orgUnitId = null, jobId, reportsToId = null, isActive = true } = payload;
+        const { code, title, isUnitHead = false, minHeadcount = 1, maxHeadcount = 1, companyId, orgUnitId = null, jobId, reportsToId = null, isActive = true } = payload;
         if (!code || !title || !jobId) throw new BadRequestException('code, title, and jobId are required');
         const existing = await this.prisma.position.findUnique({ where: { code } });
         if (existing) throw new ConflictException(`Position with code '${code}' already exists`);
@@ -917,11 +964,16 @@ export class MasterTableService {
           resolvedCompanyId = defComp.id;
         }
 
+        const parsedMin = Math.max(1, parseInt(minHeadcount, 10) || 1);
+        const parsedMax = Math.max(parsedMin, parseInt(maxHeadcount, 10) || parsedMin);
+
         const position = await this.prisma.position.create({
           data: {
             code,
             title,
             isUnitHead: Boolean(isUnitHead),
+            minHeadcount: parsedMin,
+            maxHeadcount: parsedMax,
             companyId: resolvedCompanyId,
             orgUnitId: orgUnitId || null,
             jobId,
@@ -931,7 +983,7 @@ export class MasterTableService {
             updatedById: userId || null,
           },
         });
-        await this.logAudit('POSITION_CREATE', 'Position', `Created Position ${title} (${code})`, userId, position.id);
+        await this.logAudit('POSITION_CREATE', 'Position', `Created Position ${title} (${code}) [Quota: ${parsedMin}-${parsedMax}]`, userId, position.id);
         return { message: `Position '${title}' successfully created`, id: position.id };
       }
 
@@ -1179,6 +1231,13 @@ export class MasterTableService {
         const updateData: any = { updatedById: userId || null };
         if (payload.title !== undefined) updateData.title = payload.title;
         if (payload.isUnitHead !== undefined) updateData.isUnitHead = Boolean(payload.isUnitHead);
+        if (payload.minHeadcount !== undefined) {
+          updateData.minHeadcount = Math.max(1, parseInt(payload.minHeadcount, 10) || 1);
+        }
+        if (payload.maxHeadcount !== undefined) {
+          const minVal = updateData.minHeadcount !== undefined ? updateData.minHeadcount : position.minHeadcount;
+          updateData.maxHeadcount = Math.max(minVal, parseInt(payload.maxHeadcount, 10) || minVal);
+        }
         if (payload.orgUnitId !== undefined) updateData.orgUnitId = payload.orgUnitId || null;
         if (payload.jobId !== undefined) updateData.jobId = payload.jobId;
         if (payload.reportsToId !== undefined) updateData.reportsToId = payload.reportsToId || null;

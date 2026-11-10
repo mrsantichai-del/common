@@ -480,6 +480,7 @@ function renderMasterTable(records) {
           <th class="p-3">รหัสงาน (Job Code)</th>
           <th class="p-3">ชื่อตำแหน่งงานมาตรฐาน (Title TH / EN)</th>
           <th class="p-3">ระดับงาน (Level)</th>
+          <th class="p-3">กรอบกำลังคนรวม vs คนจริง (Company Quota)</th>
           <th class="p-3">คำอธิบายหน้าที่ความรับผิดชอบ (JD)</th>
           <th class="p-3">สถานะ</th>
           <th class="p-3 text-right">การกระทำ</th>
@@ -487,7 +488,7 @@ function renderMasterTable(records) {
       `;
 
       if (records.length === 0) {
-        rowsHtml = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลลักษณะงานมาตรฐาน (Job/JD)</td></tr>`;
+        rowsHtml = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลลักษณะงานมาตรฐาน (Job/JD)</td></tr>`;
       } else {
         rowsHtml = records
           .map((j, i) => {
@@ -512,6 +513,31 @@ function renderMasterTable(records) {
                 levelBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200 font-bold font-mono">${j.level || '-'}</span>`;
             }
 
+            let quotaDisplay = '<span class="text-slate-400 italic text-[11px] font-sans">-</span>';
+            if (j.totalMinHeadcount > 0 || j.totalMaxHeadcount > 0) {
+              const rangeStr = j.totalMinHeadcount === j.totalMaxHeadcount
+                ? `${j.totalMinHeadcount} คน`
+                : `${j.totalMinHeadcount} - ${j.totalMaxHeadcount} คน`;
+
+              let statusBadge = '';
+              if (j.jobStatus === 'UNDER_STAFFED') {
+                statusBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-700 border border-amber-300">ขาด ${j.jobDiff}</span>`;
+              } else if (j.jobStatus === 'OVER_STAFFED') {
+                statusBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-purple-50 text-purple-700 border border-purple-300">เกิน ${j.jobDiff}</span>`;
+              } else {
+                statusBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-300">ครบอัตรา</span>`;
+              }
+
+              quotaDisplay = `
+                <div class="flex items-center space-x-1.5">
+                  <span class="font-bold text-slate-800 font-mono text-xs">${j.actualEmployees || 0}</span>
+                  <span class="text-slate-400 text-[11px] font-mono">/</span>
+                  <span class="text-slate-600 font-mono text-[11px]">${rangeStr}</span>
+                  ${statusBadge}
+                </div>
+              `;
+            }
+
             const statusBadge = j.isActive !== false
               ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-sans font-semibold">ใช้งานได้</span>'
               : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-sans">ปิดใช้งาน</span>';
@@ -525,6 +551,7 @@ function renderMasterTable(records) {
                   <div class="text-[11px] text-slate-500 font-sans">${j.titleEn || '-'}</div>
                 </td>
                 <td class="p-3">${levelBadge}</td>
+                <td class="p-3 font-sans text-xs">${quotaDisplay}</td>
                 <td class="p-3 text-slate-600 font-sans text-xs max-w-xs truncate" title="${j.description || ''}">
                   ${j.description || '<span class="text-slate-400 italic">-</span>'}
                 </td>
@@ -553,6 +580,7 @@ function renderMasterTable(records) {
           <th class="p-3">ชื่อตำแหน่ง (Position Title)</th>
           <th class="p-3">สังกัดหน่วยงาน (OrgUnit)</th>
           <th class="p-3">ลักษณะงาน (Job)</th>
+          <th class="p-3">กรอบอัตรากำลัง vs คนจริง</th>
           <th class="p-3">ผู้บังคับบัญชา (Reports To)</th>
           <th class="p-3">ผู้ครองตำแหน่ง (Users)</th>
           <th class="p-3">สถานะ</th>
@@ -561,7 +589,7 @@ function renderMasterTable(records) {
       `;
 
       if (records.length === 0) {
-        rowsHtml = `<tr><td colspan="9" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลตำแหน่งงานในระบบ</td></tr>`;
+        rowsHtml = `<tr><td colspan="10" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลตำแหน่งงานในระบบ</td></tr>`;
       } else {
         rowsHtml = records
           .map((p, i) => {
@@ -576,6 +604,28 @@ function renderMasterTable(records) {
             const jobDisplay = p.job
               ? `<span class="text-slate-800">${p.job.titleTh}</span> <span class="text-slate-400 text-[10px] font-mono">(${p.job.code})</span>`
               : '<span class="text-slate-400 italic font-sans">-</span>';
+
+            const minH = p.minHeadcount || 1;
+            const maxH = p.maxHeadcount || minH;
+            const rangeStr = minH === maxH ? `${minH} คน` : `${minH} - ${maxH} คน`;
+
+            let headcountBadge = '';
+            if (p.headcountStatus === 'UNDER_STAFFED') {
+              headcountBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-700 border border-amber-300">ขาด ${p.headcountDiff}</span>`;
+            } else if (p.headcountStatus === 'OVER_STAFFED') {
+              headcountBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-purple-50 text-purple-700 border border-purple-300">เกิน ${p.headcountDiff}</span>`;
+            } else {
+              headcountBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-50 text-emerald-700 border border-emerald-300">พอดี</span>`;
+            }
+
+            const headcountDisplay = `
+              <div class="flex items-center space-x-1.5">
+                <span class="font-bold text-slate-900 font-mono text-xs">${p.actualCount ?? (p.users ? p.users.length : 0)}</span>
+                <span class="text-slate-400 text-[11px] font-mono">/</span>
+                <span class="text-slate-600 font-mono text-[11px]">${rangeStr}</span>
+                ${headcountBadge}
+              </div>
+            `;
 
             const reportsToDisplay = p.reportsTo
               ? `<span class="text-slate-800 font-medium">${p.reportsTo.title}</span> <span class="text-slate-400 text-[10px] font-mono">(${p.reportsTo.code})</span>`
@@ -599,6 +649,7 @@ function renderMasterTable(records) {
                 </td>
                 <td class="p-3 font-sans text-xs">${unitDisplay}</td>
                 <td class="p-3 font-sans text-xs">${jobDisplay}</td>
+                <td class="p-3 font-sans text-xs whitespace-nowrap">${headcountDisplay}</td>
                 <td class="p-3 font-sans text-xs">${reportsToDisplay}</td>
                 <td class="p-3">${usersBadge}</td>
                 <td class="p-3">${statusBadge}</td>
@@ -2203,6 +2254,38 @@ async function renderMasterFormFields(container, table, existing) {
           <div id="combo_pos_reportsTo_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
         </div>
 
+        <!-- กรอบอัตรากำลัง (Manpower Headcount Quota) -->
+        <div class="bg-blue-50/60 p-3 rounded-lg border border-blue-200">
+          <div class="text-[11px] font-bold text-blue-900 mb-2 flex items-center space-x-1.5">
+            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            <span>กรอบอัตรากำลังคน (Manpower Quota Planning)</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">กรอบขั้นต่ำ / เป้าหมาย (Min Quota) <span class="text-rose-500">*</span></label>
+              <input 
+                type="number" 
+                id="f_position_minHeadcount" 
+                min="1" 
+                value="${existing ? (existing.minHeadcount || 1) : 1}" 
+                class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono font-bold focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+              >
+              <p class="text-[10px] text-slate-500 mt-0.5">เช่น 1 คน หรือ 3 คน</p>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">กรอบสูงสุด (Max Quota) <span class="text-rose-500">*</span></label>
+              <input 
+                type="number" 
+                id="f_position_maxHeadcount" 
+                min="1" 
+                value="${existing ? (existing.maxHeadcount || existing.minHeadcount || 1) : 1}" 
+                class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono font-bold focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+              >
+              <p class="text-[10px] text-slate-500 mt-0.5">เช่น ใส่เท่ากัน (1-1) หรือใส่ช่วง (3-7)</p>
+            </div>
+          </div>
+        </div>
+
         <!-- สถานะและสิทธิ -->
         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
           <label class="flex items-center space-x-2.5 cursor-pointer">
@@ -2442,6 +2525,8 @@ async function handleMasterFormSubmit(event) {
       payload.orgUnitId = document.getElementById('f_position_orgUnitId')?.value || null;
       payload.jobId = document.getElementById('f_position_jobId')?.value;
       payload.reportsToId = document.getElementById('f_position_reportsToId')?.value || null;
+      payload.minHeadcount = parseInt(document.getElementById('f_position_minHeadcount')?.value, 10) || 1;
+      payload.maxHeadcount = parseInt(document.getElementById('f_position_maxHeadcount')?.value, 10) || payload.minHeadcount;
       payload.isUnitHead = Boolean(document.getElementById('f_position_isUnitHead')?.checked);
       payload.isActive = Boolean(document.getElementById('f_position_isActive')?.checked);
       break;
