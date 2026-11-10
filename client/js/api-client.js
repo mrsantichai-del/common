@@ -195,6 +195,9 @@ class ApiClient {
       getDemoAccounts: async () => {
         return this.request('/auth/demo-accounts');
       },
+      getMenus: async () => {
+        return this.request('/auth/menus');
+      },
       logout: () => {
         this.setToken(null);
       },

@@ -43,8 +43,26 @@ model Permission {
   createdById String?
   updatedById String?
   groups      GroupPermission[]
+  menus       Menu[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+}
+
+model Menu {
+  id           String      @id @default(uuid())
+  code         String      @unique // e.g. 'home', 'masterData', 'users', 'roles', 'documents', 'reports', 'audit'
+  label        String      // e.g. 'หน้าหลัก (Home)'
+  icon         String?     // SVG markup or icon identifier
+  order        Int         @default(0)
+  isActive     Boolean     @default(true)
+  adminOnly    Boolean     @default(false)
+  parentId     String?
+  parent       Menu?       @relation("MenuHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  submenus     Menu[]      @relation("MenuHierarchy")
+  permissionId String?
+  permission   Permission? @relation(fields: [permissionId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 }
 
 model UserGroup {

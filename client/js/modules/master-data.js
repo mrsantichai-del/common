@@ -7,7 +7,7 @@
 // MasterData Management Engine (Admin Only)
 // ----------------------------------------------------
 
-const MASTER_TABLES = ['company', 'user', 'group', 'permission', 'document', 'auditlog'];
+const MASTER_TABLES = ['company', 'user', 'group', 'permission', 'menu', 'document', 'auditlog'];
 
 function switchMasterTable(tableName) {
   activeMasterTable = tableName.toLowerCase();
@@ -305,6 +305,74 @@ function renderMasterTable(records) {
                   <button type="button" onclick="deleteMasterRecord('${p.id}', '${p.code}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
                     ลบ
                   </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+      }
+      break;
+    }
+
+    case 'menu': {
+      headersHtml = `
+        <tr>
+          <th class="p-3 w-12 text-center">#</th>
+          <th class="p-3">รหัสเมนู (Code)</th>
+          <th class="p-3">ชื่อเมนู (Label)</th>
+          <th class="p-3 text-center">ลำดับ</th>
+          <th class="p-3">เมนูหลัก (Parent)</th>
+          <th class="p-3">สิทธิ์ที่ต้องใช้ (Permission)</th>
+          <th class="p-3 text-center">จำกัดสิทธิ์</th>
+          <th class="p-3 text-center">สถานะ</th>
+          <th class="p-3 text-right">การกระทำ</th>
+        </tr>
+      `;
+
+      if (records.length === 0) {
+        rowsHtml = `<tr><td colspan="9" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลเมนูระบบ</td></tr>`;
+      } else {
+        rowsHtml = records
+          .map((m, i) => {
+            const isSub = Boolean(m.parentId);
+            const parentDisplay = m.parentLabel
+              ? `<span class="inline-flex items-center space-x-1 text-slate-700 font-medium"><span>↳</span><span>${m.parentLabel}</span><span class="text-[10px] text-slate-400 font-mono">(${m.parentCode})</span></span>`
+              : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-medium font-sans">เมนูหลัก (Top Level)</span>`;
+
+            const permDisplay = m.permissionCode
+              ? `<span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-mono font-semibold" title="${m.permissionDesc || ''}">${m.permissionCode}</span>`
+              : `<span class="text-slate-400 text-[11px] font-sans">- ไม่จำกัดสิทธิ์ -</span>`;
+
+            const adminBadge = m.adminOnly
+              ? `<span class="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[10px] font-mono font-semibold">Admin Only</span>`
+              : `<span class="text-slate-400 text-[11px] font-sans">ทั่วไป</span>`;
+
+            const statusBadge = m.isActive
+              ? `<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">ใช้งาน</span>`
+              : `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-semibold">ปิดใช้งาน</span>`;
+
+            return `
+              <tr class="hover:bg-slate-50/80 transition-colors ${isSub ? 'bg-slate-50/30' : ''}">
+                <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
+                <td class="p-3 font-semibold text-slate-900 font-mono">${m.code}</td>
+                <td class="p-3 font-medium text-slate-800 font-sans flex items-center space-x-2">
+                  ${m.icon ? `<span class="w-4 h-4 text-slate-500 flex-shrink-0">${m.icon}</span>` : ''}
+                  <span>${m.label}</span>
+                </td>
+                <td class="p-3 text-center font-mono font-bold text-slate-700 text-xs">${m.order}</td>
+                <td class="p-3">${parentDisplay}</td>
+                <td class="p-3">${permDisplay}</td>
+                <td class="p-3 text-center">${adminBadge}</td>
+                <td class="p-3 text-center">${statusBadge}</td>
+                <td class="p-3 text-right font-sans space-x-1.5">
+                  <button type="button" onclick="openEditMasterRecordModal('${m.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
+                    แก้ไข
+                  </button>
+                  ${
+                    m.code !== 'home'
+                      ? `<button type="button" onclick="deleteMasterRecord('${m.id}', '${m.label}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">ลบ</button>`
+                      : ''
+                  }
                 </td>
               </tr>
             `;
@@ -964,6 +1032,176 @@ async function renderMasterFormFields(container, table, existing) {
       break;
     }
 
+    case 'menu': {
+      let parentOptions = [{ value: '', label: '(ไม่มี - กำหนดเป็นเมนูหลัก Top Level)', sublabel: '' }];
+      let permOptions = [{ value: '', label: '(ไม่มีสิทธิ์เฉพาะ - ผู้ใช้งานทุกคนเข้าถึงได้)', sublabel: '' }];
+
+      try {
+        const [menusRes, permsRes] = await Promise.all([
+          api.masterTable.findAll('menu', { limit: 100 }),
+          api.masterTable.findAll('permission', { limit: 100 }),
+        ]);
+
+        if (menusRes && menusRes.data) {
+          menusRes.data
+            .filter((m) => !existing || m.id !== existing.id)
+            .filter((m) => !m.parentId)
+            .forEach((m) => {
+              parentOptions.push({
+                value: m.id,
+                label: m.label,
+                sublabel: `Code: ${m.code}`,
+              });
+            });
+        }
+
+        if (permsRes && permsRes.data) {
+          permsRes.data.forEach((p) => {
+            permOptions.push({
+              value: p.id,
+              label: p.code,
+              sublabel: p.description || '',
+            });
+          });
+        }
+      } catch (e) {
+        console.warn('Could not fetch menu lookup relations:', e);
+      }
+
+      const defaultParentId = existing && existing.parentId ? existing.parentId : '';
+      const defaultPermId = existing && existing.permissionId ? existing.permissionId : '';
+      const isEdit = Boolean(existing);
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสเมนู (Menu Code) *</label>
+            <input 
+              type="text" 
+              id="f_menu_code" 
+              required 
+              ${isEdit ? 'readonly disabled' : ''} 
+              value="${existing ? existing.code : ''}" 
+              placeholder="เช่น reports, inventory, settings" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none ${isEdit ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อเมนูแสดงผล (Label) *</label>
+            <input 
+              type="text" 
+              id="f_menu_label" 
+              required 
+              value="${existing ? existing.label : ''}" 
+              placeholder="เช่น รายงานสรุป (Reports)" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ลำดับการแสดงผล (Order)</label>
+            <input 
+              type="number" 
+              id="f_menu_order" 
+              value="${existing ? existing.order : 10}" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">SVG Icon (Markup หรือชื่อไอคอน)</label>
+            <input 
+              type="text" 
+              id="f_menu_icon" 
+              value="${existing && existing.icon ? existing.icon.replace(/"/g, '&quot;') : ''}" 
+              placeholder="เว้นว่างได้ หรือใส่ SVG Markup" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+        </div>
+
+        <!-- ความสัมพันธ์: เมนูหลัก (Parent Menu) -->
+        <div class="searchable-combobox relative" id="combo_menu_parent">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            เมนูหลัก (Parent Menu) <span class="text-blue-700 font-mono font-normal">(เลือกเมื่อเป็นเมนูย่อย)</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_menu_parentId" value="${defaultParentId}">
+            <input 
+              type="text" 
+              id="f_menu_parentId_search" 
+              autocomplete="off"
+              placeholder="เลือกเมนูหลัก หรือเว้นว่างให้เป็นเมนูระดับบนสุด..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_menu_parent')"
+              oninput="filterCombobox('combo_menu_parent', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_menu_parent')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_menu_parent_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- ความสัมพันธ์: สิทธิ์การใช้งาน (Permission Binding) -->
+        <div class="searchable-combobox relative" id="combo_menu_perm">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            สิทธิ์การใช้งานที่จำเป็น (Required Permission) <span class="text-blue-700 font-mono font-normal">(ผูกกับตาราง Permission)</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_menu_permissionId" value="${defaultPermId}">
+            <input 
+              type="text" 
+              id="f_menu_permissionId_search" 
+              autocomplete="off"
+              placeholder="ค้นหารหัสสิทธิ์จากฐานข้อมูล..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_menu_perm')"
+              oninput="filterCombobox('combo_menu_perm', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_menu_perm')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_menu_perm_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- สถานะและการจำกัดสิทธิ์ -->
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+          <label class="flex items-center space-x-2.5 cursor-pointer">
+            <input type="checkbox" id="f_menu_isActive" ${!existing || existing.isActive !== false ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-slate-900 border-slate-300">
+            <span class="text-xs font-semibold text-slate-800">เปิดใช้งานเมนูนี้ในระบบ (Active)</span>
+          </label>
+          <label class="flex items-center space-x-2.5 cursor-pointer">
+            <input type="checkbox" id="f_menu_adminOnly" ${existing && existing.adminOnly ? 'checked' : ''} class="w-4 h-4 rounded text-purple-600 focus:ring-slate-900 border-slate-300">
+            <span class="text-xs font-medium text-slate-700">จำกัดให้เฉพาะกลุ่ม SUPER_ADMIN เท่านั้น (Admin Only)</span>
+          </label>
+        </div>
+      `;
+
+      initCombobox('combo_menu_parent', {
+        hiddenInputId: 'f_menu_parentId',
+        searchInputId: 'f_menu_parentId_search',
+        dropdownId: 'combo_menu_parent_dropdown',
+        items: parentOptions,
+        selectedValue: defaultParentId,
+      });
+
+      initCombobox('combo_menu_perm', {
+        hiddenInputId: 'f_menu_permissionId',
+        searchInputId: 'f_menu_permissionId_search',
+        dropdownId: 'combo_menu_perm_dropdown',
+        items: permOptions,
+        selectedValue: defaultPermId,
+      });
+      break;
+    }
+
     case 'document': {
       const cat = existing ? existing.category : 'GENERAL';
 
@@ -1103,6 +1341,20 @@ async function handleMasterFormSubmit(event) {
       break;
     }
 
+    case 'menu': {
+      if (!recordId) {
+        payload.code = document.getElementById('f_menu_code').value.trim();
+      }
+      payload.label = document.getElementById('f_menu_label').value.trim();
+      payload.order = parseInt(document.getElementById('f_menu_order').value, 10) || 0;
+      payload.icon = document.getElementById('f_menu_icon')?.value.trim() || null;
+      payload.parentId = document.getElementById('f_menu_parentId')?.value || null;
+      payload.permissionId = document.getElementById('f_menu_permissionId')?.value || null;
+      payload.adminOnly = Boolean(document.getElementById('f_menu_adminOnly')?.checked);
+      payload.isActive = Boolean(document.getElementById('f_menu_isActive')?.checked);
+      break;
+    }
+
     case 'document': {
       payload.title = document.getElementById('f_doc_title').value.trim();
       payload.category = document.getElementById('f_doc_category').value;
@@ -1129,6 +1381,11 @@ async function handleMasterFormSubmit(event) {
 
     closeMasterModal();
     await loadMasterTableData();
+
+    if (activeMasterTable === 'menu' && typeof loadDynamicMenus === 'function' && typeof renderSidebarMenu === 'function' && currentUser) {
+      await loadDynamicMenus();
+      renderSidebarMenu(currentUser);
+    }
   } catch (err) {
     console.error('Master form submit error:', err);
     showToast(err.message || 'บันทึกข้อมูลไม่สำเร็จ ตรวจสอบข้อมูลซ้ำซ้อน', 'error');
@@ -1148,6 +1405,11 @@ async function deleteMasterRecord(id, label) {
     await api.masterTable.delete(activeMasterTable, id);
     showToast(`ลบข้อมูล "${label || id}" เรียบร้อยแล้ว`, 'success');
     await loadMasterTableData();
+
+    if (activeMasterTable === 'menu' && typeof loadDynamicMenus === 'function' && typeof renderSidebarMenu === 'function' && currentUser) {
+      await loadDynamicMenus();
+      renderSidebarMenu(currentUser);
+    }
   } catch (err) {
     console.error('Delete master record failed:', err);
     showToast(err.message || 'ลบข้อมูลไม่สำเร็จ อาจมีข้อมูลอื่นอ้างอิงอยู่', 'error');

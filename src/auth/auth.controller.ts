@@ -24,6 +24,11 @@ export class AuthController {
     return this.authService.getDemoAccounts();
   }
 
+  @Get('menus')
+  async getMenus() {
+    return this.authService.getSystemMenus();
+  }
+
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);

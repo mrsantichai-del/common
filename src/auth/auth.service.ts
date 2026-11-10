@@ -57,6 +57,37 @@ export class AuthService {
     });
   }
 
+  async getSystemMenus() {
+    const menus = await this.prisma.menu.findMany({
+      where: { parentId: null, isActive: true },
+      include: {
+        permission: true,
+        submenus: {
+          where: { isActive: true },
+          include: { permission: true },
+          orderBy: { order: 'asc' },
+        },
+      },
+      orderBy: { order: 'asc' },
+    });
+
+    return menus.map((m) => ({
+      id: m.code,
+      label: m.label,
+      icon: m.icon,
+      order: m.order,
+      adminOnly: m.adminOnly,
+      requiredPermission: m.permission ? m.permission.code : null,
+      submenus: m.submenus.map((s) => ({
+        id: s.code,
+        label: s.label,
+        order: s.order,
+        adminOnly: s.adminOnly,
+        requiredPermission: s.permission ? s.permission.code : null,
+      })),
+    }));
+  }
+
   async register(registerDto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({
       where: { username: registerDto.username },

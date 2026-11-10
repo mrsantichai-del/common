@@ -302,6 +302,56 @@ export class MasterTableService {
         };
       }
 
+      case 'menus':
+      case 'menu': {
+        const where: any = search
+          ? {
+              OR: [
+                { code: { contains: search } },
+                { label: { contains: search } },
+              ],
+            }
+          : {};
+
+        const [total, records] = await Promise.all([
+          this.prisma.menu.count({ where }),
+          this.prisma.menu.findMany({
+            where,
+            include: {
+              permission: { select: { id: true, code: true, description: true } },
+              parent: { select: { id: true, code: true, label: true } },
+            },
+            skip,
+            take: limit,
+            orderBy: [{ order: 'asc' }],
+          }),
+        ]);
+
+        return {
+          table: 'Menu',
+          total,
+          page,
+          limit,
+          data: records.map((m) => ({
+            id: m.id,
+            code: m.code,
+            label: m.label,
+            icon: m.icon,
+            order: m.order,
+            adminOnly: m.adminOnly,
+            isActive: m.isActive,
+            parentId: m.parentId,
+            parentCode: m.parent ? m.parent.code : null,
+            parentLabel: m.parent ? m.parent.label : null,
+            permissionId: m.permissionId,
+            permissionCode: m.permission ? m.permission.code : null,
+            permissionDesc: m.permission ? m.permission.description : null,
+            createdAt: m.createdAt,
+            updatedAt: m.updatedAt,
+          })),
+        };
+      }
+
       default:
         throw new BadRequestException(`Unknown master table '${tableName}'`);
     }
@@ -335,6 +385,12 @@ export class MasterTableService {
         return this.prisma.document.findUnique({
           where: { id },
           include: { author: true, confirmedBy: true },
+        });
+      case 'menus':
+      case 'menu':
+        return this.prisma.menu.findUnique({
+          where: { id },
+          include: { permission: true, parent: true },
         });
       case 'auditlogs':
       case 'audit-logs':
@@ -554,6 +610,54 @@ export class MasterTableService {
         return { message: `Document '${docNumber}' created as DRAFT`, id: doc.id };
       }
 
+      case 'menus':
+      case 'menu': {
+        const {
+          code,
+          label,
+          icon = null,
+          order = 0,
+          adminOnly = false,
+          isActive = true,
+          parentId = null,
+          permissionId = null,
+        } = payload;
+
+        if (!code || !label) {
+          throw new BadRequestException('Menu code and label are required');
+        }
+
+        const existing = await this.prisma.menu.findUnique({ where: { code } });
+        if (existing) {
+          throw new ConflictException(`Menu with code '${code}' already exists`);
+        }
+
+        const menu = await this.prisma.menu.create({
+          data: {
+            code,
+            label,
+            icon: icon || null,
+            order: Number(order) || 0,
+            adminOnly: Boolean(adminOnly),
+            isActive: isActive !== undefined ? Boolean(isActive) : true,
+            parentId: parentId || null,
+            permissionId: permissionId || null,
+          },
+        });
+
+        await this.logAudit(
+          'MENU_CREATE',
+          'Menu',
+          `Created menu: ${label} (${code})`,
+          userId,
+          menu.id,
+          null,
+          { code, label, order },
+        );
+
+        return { message: `Menu '${label}' successfully created`, id: menu.id };
+      }
+
       default:
         throw new BadRequestException(`Creation not supported on master table '${tableName}'`);
     }
@@ -715,6 +819,38 @@ export class MasterTableService {
         return { message: `Document '${doc.docNumber}' updated` };
       }
 
+      case 'menus':
+      case 'menu': {
+        const menu = await this.prisma.menu.findUnique({ where: { id } });
+        if (!menu) throw new NotFoundException('Menu not found');
+
+        const updateData: any = {};
+        if (payload.label !== undefined) updateData.label = payload.label;
+        if (payload.icon !== undefined) updateData.icon = payload.icon || null;
+        if (payload.order !== undefined) updateData.order = Number(payload.order) || 0;
+        if (payload.adminOnly !== undefined) updateData.adminOnly = Boolean(payload.adminOnly);
+        if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
+        if (payload.parentId !== undefined) updateData.parentId = payload.parentId || null;
+        if (payload.permissionId !== undefined) updateData.permissionId = payload.permissionId || null;
+
+        await this.prisma.menu.update({
+          where: { id },
+          data: updateData,
+        });
+
+        await this.logAudit(
+          'MENU_UPDATE',
+          'Menu',
+          `Updated menu: ${menu.label} (${menu.code})`,
+          userId,
+          id,
+          { label: menu.label, order: menu.order, permissionId: menu.permissionId },
+          updateData,
+        );
+
+        return { message: `Menu '${menu.label}' successfully updated` };
+      }
+
       default:
         throw new BadRequestException(`Update not supported on master table '${tableName}'`);
     }
@@ -777,6 +913,18 @@ export class MasterTableService {
         await this.prisma.document.delete({ where: { id } });
         await this.logAudit('DOC_DELETE', 'Document', `Deleted document ${doc.docNumber}`, userId);
         return { message: `Document '${doc.docNumber}' deleted` };
+      }
+
+      case 'menus':
+      case 'menu': {
+        const menu = await this.prisma.menu.findUnique({ where: { id } });
+        if (!menu) throw new NotFoundException('Menu not found');
+        if (menu.code === 'home') {
+          throw new ConflictException('Cannot delete default home menu');
+        }
+        await this.prisma.menu.delete({ where: { id } });
+        await this.logAudit('MENU_DELETE', 'Menu', `Deleted menu: ${menu.label} (${menu.code})`, userId);
+        return { message: `Menu '${menu.label}' deleted` };
       }
 
       default:
@@ -916,6 +1064,19 @@ export class MasterTableService {
         accountNumber: 'เลขที่บัญชี',
         isDefault: 'สำนักงานหลัก',
         isActive: 'สถานะเปิดใช้งาน',
+        createdAt: 'วันที่สร้างในระบบ',
+        updatedAt: 'วันที่ปรับปรุงล่าสุด',
+      },
+      menu: {
+        code: 'รหัสเมนู (Code)',
+        label: 'ชื่อเมนู (Label)',
+        order: 'ลำดับการแสดงผล (Order)',
+        adminOnly: 'เฉพาะแอดมิน (Admin Only)',
+        isActive: 'สถานะเปิดใช้งาน (Active)',
+        parentCode: 'เมนูหลัก (Parent Code)',
+        parentLabel: 'ชื่อเมนูหลัก (Parent Label)',
+        permissionCode: 'สิทธิ์ที่จำเป็น (Permission Code)',
+        permissionDesc: 'คำอธิบายสิทธิ์ (Permission Description)',
         createdAt: 'วันที่สร้างในระบบ',
         updatedAt: 'วันที่ปรับปรุงล่าสุด',
       },

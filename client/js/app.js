@@ -59,5 +59,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initDemoMode();
   await initCorporateBranding();
   await loadDynamicDemoAccounts();
+  await loadDynamicMenus();
   await refreshAuthStatus();
 });
