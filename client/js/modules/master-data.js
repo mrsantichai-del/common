@@ -7,7 +7,7 @@
 // MasterData Management Engine (Admin Only)
 // ----------------------------------------------------
 
-const MASTER_TABLES = ['company', 'user', 'group', 'permission', 'menu', 'document', 'auditlog'];
+const MASTER_TABLES = ['company', 'user', 'group', 'permission', 'menu', 'orgunit', 'job', 'position', 'document', 'auditlog'];
 
 function switchMasterTable(tableName) {
   activeMasterTable = tableName.toLowerCase();
@@ -385,6 +385,224 @@ function renderMasterTable(records) {
                       ? `<button type="button" onclick="deleteMasterRecord('${m.id}', '${m.label}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">ลบ</button>`
                       : ''
                   }
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+      }
+      break;
+    }
+
+    case 'orgunit': {
+      headersHtml = `
+        <tr>
+          <th class="p-3 w-12 text-center">#</th>
+          <th class="p-3">รหัสหน่วยงาน (Code)</th>
+          <th class="p-3">ชื่อหน่วยงาน (Name TH / EN)</th>
+          <th class="p-3">ประเภท (Type)</th>
+          <th class="p-3">สังกัดหน่วยงานหลัก (Parent Unit)</th>
+          <th class="p-3 text-center">ลำดับ</th>
+          <th class="p-3">สถานะ</th>
+          <th class="p-3 text-right">การกระทำ</th>
+        </tr>
+      `;
+
+      if (records.length === 0) {
+        rowsHtml = `<tr><td colspan="8" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลหน่วยงานในโครงสร้างองค์กร</td></tr>`;
+      } else {
+        rowsHtml = records
+          .map((u, i) => {
+            let typeBadge = '';
+            switch (u.type) {
+              case 'BRANCH':
+                typeBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-purple-50 text-purple-700 border border-purple-200 font-bold font-mono">สาขา (BRANCH)</span>';
+                break;
+              case 'DIVISION':
+                typeBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-bold font-mono">ฝ่าย (DIVISION)</span>';
+                break;
+              case 'DEPARTMENT':
+                typeBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold font-mono">แผนก (DEPARTMENT)</span>';
+                break;
+              case 'SECTION':
+                typeBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-amber-50 text-amber-700 border border-amber-200 font-bold font-mono">ส่วนงาน (SECTION)</span>';
+                break;
+              default:
+                typeBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200 font-bold font-mono">${u.type}</span>`;
+            }
+
+            const parentDisplay = u.parent
+              ? `<span class="text-slate-800 font-semibold">${u.parent.name}</span> <span class="text-slate-400 text-[10px] font-mono">(${u.parent.code})</span>`
+              : '<span class="text-slate-400 italic font-sans text-[11px]">ระดับบนสุด (Root)</span>';
+
+            const statusBadge = u.isActive !== false
+              ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-sans font-semibold">ใช้งานได้</span>'
+              : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-sans">ปิดใช้งาน</span>';
+
+            return `
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
+                <td class="p-3 text-blue-700 font-mono font-bold">${u.code}</td>
+                <td class="p-3">
+                  <div class="font-semibold text-slate-900">${u.name}</div>
+                  <div class="text-[11px] text-slate-500 font-sans">${u.nameEn || '-'}</div>
+                </td>
+                <td class="p-3">${typeBadge}</td>
+                <td class="p-3 font-sans text-xs">${parentDisplay}</td>
+                <td class="p-3 text-center font-mono text-slate-600 text-xs">${u.order ?? 0}</td>
+                <td class="p-3">${statusBadge}</td>
+                <td class="p-3 text-right font-sans space-x-1.5 whitespace-nowrap">
+                  <button type="button" onclick="openEditMasterRecordModal('${u.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
+                    แก้ไข
+                  </button>
+                  <button type="button" onclick="deleteMasterRecord('${u.id}', '${u.name}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
+                    ลบ
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+      }
+      break;
+    }
+
+    case 'job': {
+      headersHtml = `
+        <tr>
+          <th class="p-3 w-12 text-center">#</th>
+          <th class="p-3">รหัสงาน (Job Code)</th>
+          <th class="p-3">ชื่อตำแหน่งงานมาตรฐาน (Title TH / EN)</th>
+          <th class="p-3">ระดับงาน (Level)</th>
+          <th class="p-3">คำอธิบายหน้าที่ความรับผิดชอบ (JD)</th>
+          <th class="p-3">สถานะ</th>
+          <th class="p-3 text-right">การกระทำ</th>
+        </tr>
+      `;
+
+      if (records.length === 0) {
+        rowsHtml = `<tr><td colspan="7" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลลักษณะงานมาตรฐาน (Job/JD)</td></tr>`;
+      } else {
+        rowsHtml = records
+          .map((j, i) => {
+            let levelBadge = '';
+            switch (j.level) {
+              case 'EXECUTIVE':
+                levelBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-purple-100 text-purple-800 border border-purple-300 font-bold font-mono">ผู้บริหาร (EXECUTIVE)</span>';
+                break;
+              case 'MANAGER':
+                levelBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-blue-100 text-blue-800 border border-blue-300 font-bold font-mono">ผู้จัดการ (MANAGER)</span>';
+                break;
+              case 'SUPERVISOR':
+                levelBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-teal-100 text-teal-800 border border-teal-300 font-bold font-mono">หัวหน้างาน (SUPERVISOR)</span>';
+                break;
+              case 'SPECIALIST':
+                levelBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-cyan-100 text-cyan-800 border border-cyan-300 font-bold font-mono">ผู้เชี่ยวชาญ (SPECIALIST)</span>';
+                break;
+              case 'OFFICER':
+                levelBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold font-mono">เจ้าหน้าที่ (OFFICER)</span>';
+                break;
+              default:
+                levelBadge = `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-700 border border-slate-200 font-bold font-mono">${j.level || '-'}</span>`;
+            }
+
+            const statusBadge = j.isActive !== false
+              ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-sans font-semibold">ใช้งานได้</span>'
+              : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-sans">ปิดใช้งาน</span>';
+
+            return `
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
+                <td class="p-3 text-blue-700 font-mono font-bold">${j.code}</td>
+                <td class="p-3">
+                  <div class="font-semibold text-slate-900">${j.titleTh}</div>
+                  <div class="text-[11px] text-slate-500 font-sans">${j.titleEn || '-'}</div>
+                </td>
+                <td class="p-3">${levelBadge}</td>
+                <td class="p-3 text-slate-600 font-sans text-xs max-w-xs truncate" title="${j.description || ''}">
+                  ${j.description || '<span class="text-slate-400 italic">-</span>'}
+                </td>
+                <td class="p-3">${statusBadge}</td>
+                <td class="p-3 text-right font-sans space-x-1.5 whitespace-nowrap">
+                  <button type="button" onclick="openEditMasterRecordModal('${j.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
+                    แก้ไข
+                  </button>
+                  <button type="button" onclick="deleteMasterRecord('${j.id}', '${j.titleTh}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
+                    ลบ
+                  </button>
+                </td>
+              </tr>
+            `;
+          })
+          .join('');
+      }
+      break;
+    }
+
+    case 'position': {
+      headersHtml = `
+        <tr>
+          <th class="p-3 w-12 text-center">#</th>
+          <th class="p-3">รหัสตำแหน่ง (Pos Code)</th>
+          <th class="p-3">ชื่อตำแหน่ง (Position Title)</th>
+          <th class="p-3">สังกัดหน่วยงาน (OrgUnit)</th>
+          <th class="p-3">ลักษณะงาน (Job)</th>
+          <th class="p-3">ผู้บังคับบัญชา (Reports To)</th>
+          <th class="p-3">ผู้ครองตำแหน่ง (Users)</th>
+          <th class="p-3">สถานะ</th>
+          <th class="p-3 text-right">การกระทำ</th>
+        </tr>
+      `;
+
+      if (records.length === 0) {
+        rowsHtml = `<tr><td colspan="9" class="p-8 text-center text-slate-400 font-sans text-xs">ไม่พบข้อมูลตำแหน่งงานในระบบ</td></tr>`;
+      } else {
+        rowsHtml = records
+          .map((p, i) => {
+            const headBadge = p.isUnitHead
+              ? '<span class="ml-1.5 px-1.5 py-0.2 rounded text-[9px] bg-amber-100 text-amber-800 border border-amber-300 font-bold font-mono">หัวหน้าหน่วย</span>'
+              : '';
+
+            const unitDisplay = p.orgUnit
+              ? `<span class="font-semibold text-slate-800">${p.orgUnit.name}</span> <span class="text-slate-400 text-[10px] font-mono">(${p.orgUnit.code})</span>`
+              : '<span class="text-purple-700 font-semibold font-mono text-[11px] bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">ระดับบริษัท (CEO/Board)</span>';
+
+            const jobDisplay = p.job
+              ? `<span class="text-slate-800">${p.job.titleTh}</span> <span class="text-slate-400 text-[10px] font-mono">(${p.job.code})</span>`
+              : '<span class="text-slate-400 italic font-sans">-</span>';
+
+            const reportsToDisplay = p.reportsTo
+              ? `<span class="text-slate-800 font-medium">${p.reportsTo.title}</span> <span class="text-slate-400 text-[10px] font-mono">(${p.reportsTo.code})</span>`
+              : '<span class="text-slate-400 italic font-sans">-</span>';
+
+            const usersBadge = Array.isArray(p.users) && p.users.length > 0
+              ? p.users.map((u) => `<span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-50 text-blue-700 border border-blue-200 font-medium font-mono mr-1">${u.username}</span>`).join('')
+              : '<span class="text-amber-600 font-sans italic text-[11px]">ว่าง (Vacant)</span>';
+
+            const statusBadge = p.isActive !== false
+              ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-sans font-semibold">ใช้งานได้</span>'
+              : '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-sans">ปิดใช้งาน</span>';
+
+            return `
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
+                <td class="p-3 text-blue-700 font-mono font-bold">${p.code}</td>
+                <td class="p-3 font-semibold text-slate-900 font-sans">
+                  ${p.title}
+                  ${headBadge}
+                </td>
+                <td class="p-3 font-sans text-xs">${unitDisplay}</td>
+                <td class="p-3 font-sans text-xs">${jobDisplay}</td>
+                <td class="p-3 font-sans text-xs">${reportsToDisplay}</td>
+                <td class="p-3">${usersBadge}</td>
+                <td class="p-3">${statusBadge}</td>
+                <td class="p-3 text-right font-sans space-x-1.5 whitespace-nowrap">
+                  <button type="button" onclick="openEditMasterRecordModal('${p.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
+                    แก้ไข
+                  </button>
+                  <button type="button" onclick="deleteMasterRecord('${p.id}', '${p.title}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
+                    ลบ
+                  </button>
                 </td>
               </tr>
             `;
@@ -1482,6 +1700,501 @@ async function renderMasterFormFields(container, table, existing) {
       break;
     }
 
+    case 'orgunit': {
+      let companyOptions = [];
+      try {
+        const compRes = await api.masterTable.findAll('company', { limit: 100 });
+        companyOptions = (compRes && compRes.data ? compRes.data : []).map((c) => ({
+          value: c.id,
+          label: `${c.nameTh} (${c.branchName || 'สำนักงานใหญ่'})`,
+          sublabel: `Tax ID: ${c.taxId}`,
+        }));
+      } catch (e) {
+        console.warn('Could not fetch company options:', e);
+      }
+      const defaultCompanyId = existing ? existing.companyId : (companyOptions[0] ? companyOptions[0].value : '');
+
+      let parentUnitOptions = [{ value: '', label: '-- ระดับบนสุด (ไม่มีหน่วยงานหลัก / Root Unit) --' }];
+      try {
+        const unitsRes = await api.masterTable.findAll('orgunit', { limit: 200 });
+        const allUnits = unitsRes && unitsRes.data ? unitsRes.data : [];
+        allUnits
+          .filter((u) => !existing || u.id !== existing.id)
+          .forEach((u) => {
+            parentUnitOptions.push({
+              value: u.id,
+              label: `${u.name} (${u.code})`,
+              sublabel: `ประเภท: ${u.type}`,
+            });
+          });
+      } catch (e) {
+        console.warn('Could not fetch parent org unit options:', e);
+      }
+      const defaultParentUnitId = existing && existing.parentId ? existing.parentId : '';
+      const unitType = existing ? existing.type : 'DEPARTMENT';
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสหน่วยงาน (Code) <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="f_orgunit_code" 
+              value="${existing ? existing.code : ''}" 
+              ${existing ? 'readonly' : 'required'}
+              placeholder="เช่น DEP-ACC, DIV-FIN, BR-HQ" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ประเภทหน่วยงาน (Type) <span class="text-rose-500">*</span></label>
+            <select id="f_orgunit_type" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold focus:ring-1 focus:ring-slate-900 outline-none bg-white">
+              <option value="BRANCH" ${unitType === 'BRANCH' ? 'selected' : ''}>สาขา (BRANCH)</option>
+              <option value="DIVISION" ${unitType === 'DIVISION' ? 'selected' : ''}>ฝ่าย (DIVISION)</option>
+              <option value="DEPARTMENT" ${unitType === 'DEPARTMENT' ? 'selected' : ''}>แผนก (DEPARTMENT)</option>
+              <option value="SECTION" ${unitType === 'SECTION' ? 'selected' : ''}>ส่วนงาน (SECTION)</option>
+              <option value="TEAM" ${unitType === 'TEAM' ? 'selected' : ''}>ทีมงาน (TEAM)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อภาษาไทย (Name TH) <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="f_orgunit_name" 
+              value="${existing ? existing.name : ''}" 
+              required
+              placeholder="เช่น ฝ่ายบัญชีและการเงิน, แผนกบัญชี" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อภาษาอังกฤษ (Name EN)</label>
+            <input 
+              type="text" 
+              id="f_orgunit_nameEn" 
+              value="${existing && existing.nameEn ? existing.nameEn : ''}" 
+              placeholder="เช่น Accounting & Finance Division" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+        </div>
+
+        <!-- บริษัทที่สังกัด -->
+        <div class="searchable-combobox relative" id="combo_orgunit_company">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            บริษัทที่สังกัด (Company) <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_orgunit_companyId" value="${defaultCompanyId}">
+            <input 
+              type="text" 
+              id="f_orgunit_companyId_search" 
+              autocomplete="off"
+              placeholder="ค้นหาบริษัท..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_orgunit_company')"
+              oninput="filterCombobox('combo_orgunit_company', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_orgunit_company')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_orgunit_company_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- สังกัดหน่วยงานหลัก (Parent Unit) -->
+        <div class="searchable-combobox relative" id="combo_orgunit_parent">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            สังกัดหน่วยงานหลัก (Parent Unit) <span class="text-blue-700 font-mono font-normal">(เว้นว่างหากเป็นหน่วยงานระดับบนสุด)</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_orgunit_parentId" value="${defaultParentUnitId}">
+            <input 
+              type="text" 
+              id="f_orgunit_parentId_search" 
+              autocomplete="off"
+              placeholder="เลือกหน่วยงานหลัก เช่น ฝ่ายบัญชี หรือเว้นว่างให้เป็น Root..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_orgunit_parent')"
+              oninput="filterCombobox('combo_orgunit_parent', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_orgunit_parent')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_orgunit_parent_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ลำดับการแสดงผล (Order)</label>
+            <input 
+              type="number" 
+              id="f_orgunit_order" 
+              value="${existing ? existing.order : 1}" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-700 mb-1">คำอธิบายเพิ่มเติม</label>
+            <input 
+              type="text" 
+              id="f_orgunit_description" 
+              value="${existing && existing.description ? existing.description : ''}" 
+              placeholder="หน้าที่ความรับผิดชอบหลักของหน่วยงาน" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <label class="flex items-center space-x-2.5 cursor-pointer">
+            <input type="checkbox" id="f_orgunit_isActive" ${!existing || existing.isActive !== false ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-slate-900 border-slate-300">
+            <span class="text-xs font-semibold text-slate-800">เปิดใช้งานหน่วยงานนี้ในระบบ (Active)</span>
+          </label>
+        </div>
+      `;
+
+      initCombobox('combo_orgunit_company', {
+        hiddenInputId: 'f_orgunit_companyId',
+        searchInputId: 'f_orgunit_companyId_search',
+        dropdownId: 'combo_orgunit_company_dropdown',
+        items: companyOptions,
+        selectedValue: defaultCompanyId,
+      });
+
+      initCombobox('combo_orgunit_parent', {
+        hiddenInputId: 'f_orgunit_parentId',
+        searchInputId: 'f_orgunit_parentId_search',
+        dropdownId: 'combo_orgunit_parent_dropdown',
+        items: parentUnitOptions,
+        selectedValue: defaultParentUnitId,
+      });
+      break;
+    }
+
+    case 'job': {
+      const jobLevel = existing ? existing.level : 'OFFICER';
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสลักษณะงาน (Job Code) <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="f_job_code" 
+              value="${existing ? existing.code : ''}" 
+              ${existing ? 'readonly' : 'required'}
+              placeholder="เช่น JOB-CEO, JOB-MGR, JOB-OFFICER" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับงาน (Job Level) <span class="text-rose-500">*</span></label>
+            <select id="f_job_level" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold focus:ring-1 focus:ring-slate-900 outline-none bg-white">
+              <option value="EXECUTIVE" ${jobLevel === 'EXECUTIVE' ? 'selected' : ''}>ผู้บริหารระดับสูง (EXECUTIVE)</option>
+              <option value="MANAGER" ${jobLevel === 'MANAGER' ? 'selected' : ''}>ผู้จัดการ (MANAGER)</option>
+              <option value="SUPERVISOR" ${jobLevel === 'SUPERVISOR' ? 'selected' : ''}>หัวหน้างาน (SUPERVISOR)</option>
+              <option value="SPECIALIST" ${jobLevel === 'SPECIALIST' ? 'selected' : ''}>ผู้เชี่ยวชาญ (SPECIALIST)</option>
+              <option value="OFFICER" ${jobLevel === 'OFFICER' ? 'selected' : ''}>เจ้าหน้าที่ (OFFICER)</option>
+              <option value="OPERATIONAL" ${jobLevel === 'OPERATIONAL' ? 'selected' : ''}>ปฏิบัติการ (OPERATIONAL)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อตำแหน่งงานภาษาไทย (Title TH) <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="f_job_titleTh" 
+              value="${existing ? existing.titleTh : ''}" 
+              required
+              placeholder="เช่น ผู้จัดการฝ่าย, เจ้าหน้าที่บัญชี" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อตำแหน่งงานภาษาอังกฤษ (Title EN)</label>
+            <input 
+              type="text" 
+              id="f_job_titleEn" 
+              value="${existing && existing.titleEn ? existing.titleEn : ''}" 
+              placeholder="เช่น Division Manager, Accountant" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">คำอธิบายลักษณะงาน (Job Description / Scope of Work)</label>
+          <textarea 
+            id="f_job_description" 
+            rows="3" 
+            placeholder="สรุปขอบเขตหน้าที่ความรับผิดชอบ และเป้าหมายของงาน..." 
+            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+          >${existing && existing.description ? existing.description : ''}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">คุณสมบัติประจำตำแหน่ง (Job Qualifications / Skills)</label>
+          <textarea 
+            id="f_job_qualifications" 
+            rows="2" 
+            placeholder="วุฒิการศึกษา ประสบการณ์ หรือทักษะที่จำเป็น..." 
+            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+          >${existing && existing.qualifications ? existing.qualifications : ''}</textarea>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <label class="flex items-center space-x-2.5 cursor-pointer">
+            <input type="checkbox" id="f_job_isActive" ${!existing || existing.isActive !== false ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-slate-900 border-slate-300">
+            <span class="text-xs font-semibold text-slate-800">เปิดใช้งานลักษณะงานนี้ในระบบ (Active)</span>
+          </label>
+        </div>
+      `;
+      break;
+    }
+
+    case 'position': {
+      let companyOptions = [];
+      try {
+        const compRes = await api.masterTable.findAll('company', { limit: 100 });
+        companyOptions = (compRes && compRes.data ? compRes.data : []).map((c) => ({
+          value: c.id,
+          label: `${c.nameTh} (${c.branchName || 'สำนักงานใหญ่'})`,
+          sublabel: `Tax ID: ${c.taxId}`,
+        }));
+      } catch (e) {
+        console.warn('Could not fetch company options for position:', e);
+      }
+      const defaultCompanyId = existing ? existing.companyId : (companyOptions[0] ? companyOptions[0].value : '');
+
+      let unitOptions = [{ value: '', label: '-- ระดับองค์กร / บริษัท (Company Level เช่น CEO / บอร์ด) --' }];
+      try {
+        const unitsRes = await api.masterTable.findAll('orgunit', { limit: 200 });
+        (unitsRes && unitsRes.data ? unitsRes.data : []).forEach((u) => {
+          unitOptions.push({
+            value: u.id,
+            label: `${u.name} (${u.code})`,
+            sublabel: `ประเภท: ${u.type}`,
+          });
+        });
+      } catch (e) {
+        console.warn('Could not fetch orgunit options for position:', e);
+      }
+      const defaultUnitId = existing && existing.orgUnitId ? existing.orgUnitId : '';
+
+      let jobOptions = [];
+      try {
+        const jobsRes = await api.masterTable.findAll('job', { limit: 200 });
+        jobOptions = (jobsRes && jobsRes.data ? jobsRes.data : []).map((j) => ({
+          value: j.id,
+          label: `${j.titleTh} (${j.code})`,
+          sublabel: `ระดับ: ${j.level}`,
+        }));
+      } catch (e) {
+        console.warn('Could not fetch job options for position:', e);
+      }
+      const defaultJobId = existing ? existing.jobId : (jobOptions[0] ? jobOptions[0].value : '');
+
+      let reportsToOptions = [{ value: '', label: '-- ไม่รายงานต่อตำแหน่งใด (Top Level / Board) --' }];
+      try {
+        const posRes = await api.masterTable.findAll('position', { limit: 200 });
+        (posRes && posRes.data ? posRes.data : [])
+          .filter((p) => !existing || p.id !== existing.id)
+          .forEach((p) => {
+            reportsToOptions.push({
+              value: p.id,
+              label: `${p.title} (${p.code})`,
+              sublabel: p.orgUnit ? `หน่วยงาน: ${p.orgUnit.name}` : 'ระดับบริษัท',
+            });
+          });
+      } catch (e) {
+        console.warn('Could not fetch reports to options for position:', e);
+      }
+      const defaultReportsToId = existing && existing.reportsToId ? existing.reportsToId : '';
+
+      container.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสตำแหน่ง (Position Code) <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="f_position_code" 
+              value="${existing ? existing.code : ''}" 
+              ${existing ? 'readonly' : 'required'}
+              placeholder="เช่น POS-CEO, POS-DIV-ACC-MGR" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+            >
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อตำแหน่งงานเฉพาะตัว (Position Title) <span class="text-rose-500">*</span></label>
+            <input 
+              type="text" 
+              id="f_position_title" 
+              value="${existing ? existing.title : ''}" 
+              required
+              placeholder="เช่น ประธานเจ้าหน้าที่บริหาร, ผู้จัดการฝ่ายบัญชี" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+            >
+          </div>
+        </div>
+
+        <!-- ความสัมพันธ์: บริษัท -->
+        <div class="searchable-combobox relative" id="combo_pos_company">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            บริษัท (Company) <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_position_companyId" value="${defaultCompanyId}">
+            <input 
+              type="text" 
+              id="f_position_companyId_search" 
+              autocomplete="off"
+              placeholder="เลือกบริษัท..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_pos_company')"
+              oninput="filterCombobox('combo_pos_company', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_pos_company')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_pos_company_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- ความสัมพันธ์: สังกัดหน่วยงาน (OrgUnit) -->
+        <div class="searchable-combobox relative" id="combo_pos_orgUnit">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            สังกัดหน่วยงาน (OrgUnit) <span class="text-blue-700 font-mono font-normal">(เว้นว่างหากเป็นระดับบริษัท เช่น CEO/บอร์ด)</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_position_orgUnitId" value="${defaultUnitId}">
+            <input 
+              type="text" 
+              id="f_position_orgUnitId_search" 
+              autocomplete="off"
+              placeholder="เลือกหน่วยงานที่สังกัด หรือเว้นว่างให้เป็นระดับบริษัท..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_pos_orgUnit')"
+              oninput="filterCombobox('combo_pos_orgUnit', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_pos_orgUnit')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_pos_orgUnit_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- ความสัมพันธ์: ลักษณะงาน (Job / JD) -->
+        <div class="searchable-combobox relative" id="combo_pos_job">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            ลักษณะงานมาตรฐาน (Job Role / JD) <span class="text-rose-500">*</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_position_jobId" value="${defaultJobId}">
+            <input 
+              type="text" 
+              id="f_position_jobId_search" 
+              autocomplete="off"
+              placeholder="ค้นหาลักษณะงานมาตรฐาน..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_pos_job')"
+              oninput="filterCombobox('combo_pos_job', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_pos_job')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_pos_job_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- ความสัมพันธ์: รายงานตรงต่อ (Reports To) -->
+        <div class="searchable-combobox relative" id="combo_pos_reportsTo">
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            ผู้บังคับบัญชา / รายงานตรงต่อ (Reports To) <span class="text-blue-700 font-mono font-normal">(ผูกกับตำแหน่งหัวหน้า)</span>
+          </label>
+          <div class="relative">
+            <input type="hidden" id="f_position_reportsToId" value="${defaultReportsToId}">
+            <input 
+              type="text" 
+              id="f_position_reportsToId_search" 
+              autocomplete="off"
+              placeholder="ค้นหาตำแหน่งผู้บังคับบัญชา หรือเว้นว่างหากเป็นผู้บริหารสูงสุด..." 
+              class="w-full px-3 py-1.5 pr-8 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+              onfocus="openCombobox('combo_pos_reportsTo')"
+              oninput="filterCombobox('combo_pos_reportsTo', event)"
+            />
+            <button type="button" onclick="toggleCombobox('combo_pos_reportsTo')" class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 cursor-pointer">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+          <div id="combo_pos_reportsTo_dropdown" class="hidden absolute left-0 right-0 top-full mt-1.5 bg-white border-2 border-slate-300 rounded-lg shadow-2xl max-h-56 overflow-y-auto z-[100] divide-y divide-slate-100 text-xs ring-4 ring-slate-900/10"></div>
+        </div>
+
+        <!-- สถานะและสิทธิ -->
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
+          <label class="flex items-center space-x-2.5 cursor-pointer">
+            <input type="checkbox" id="f_position_isUnitHead" ${existing && existing.isUnitHead ? 'checked' : ''} class="w-4 h-4 rounded text-amber-600 focus:ring-slate-900 border-slate-300">
+            <span class="text-xs font-semibold text-slate-800">เป็นหัวหน้าหน่วยงานนี้ (Unit Head / ผู้มีอำนาจอนุมัติ)</span>
+          </label>
+          <label class="flex items-center space-x-2.5 cursor-pointer">
+            <input type="checkbox" id="f_position_isActive" ${!existing || existing.isActive !== false ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-slate-900 border-slate-300">
+            <span class="text-xs font-medium text-slate-700">เปิดใช้งานตำแหน่งนี้ในระบบ (Active)</span>
+          </label>
+        </div>
+      `;
+
+      initCombobox('combo_pos_company', {
+        hiddenInputId: 'f_position_companyId',
+        searchInputId: 'f_position_companyId_search',
+        dropdownId: 'combo_pos_company_dropdown',
+        items: companyOptions,
+        selectedValue: defaultCompanyId,
+      });
+
+      initCombobox('combo_pos_orgUnit', {
+        hiddenInputId: 'f_position_orgUnitId',
+        searchInputId: 'f_position_orgUnitId_search',
+        dropdownId: 'combo_pos_orgUnit_dropdown',
+        items: unitOptions,
+        selectedValue: defaultUnitId,
+      });
+
+      initCombobox('combo_pos_job', {
+        hiddenInputId: 'f_position_jobId',
+        searchInputId: 'f_position_jobId_search',
+        dropdownId: 'combo_pos_job_dropdown',
+        items: jobOptions,
+        selectedValue: defaultJobId,
+      });
+
+      initCombobox('combo_pos_reportsTo', {
+        hiddenInputId: 'f_position_reportsToId',
+        searchInputId: 'f_position_reportsToId_search',
+        dropdownId: 'combo_pos_reportsTo_dropdown',
+        items: reportsToOptions,
+        selectedValue: defaultReportsToId,
+      });
+      break;
+    }
+
     case 'document': {
       const cat = existing ? existing.category : 'GENERAL';
 
@@ -1635,6 +2348,48 @@ async function handleMasterFormSubmit(event) {
       break;
     }
 
+    case 'orgunit': {
+      if (!recordId) {
+        payload.code = document.getElementById('f_orgunit_code').value.trim().toUpperCase();
+      }
+      payload.name = document.getElementById('f_orgunit_name').value.trim();
+      payload.nameEn = document.getElementById('f_orgunit_nameEn')?.value.trim() || null;
+      payload.type = document.getElementById('f_orgunit_type')?.value || 'DEPARTMENT';
+      payload.companyId = document.getElementById('f_orgunit_companyId')?.value || null;
+      payload.parentId = document.getElementById('f_orgunit_parentId')?.value || null;
+      payload.order = parseInt(document.getElementById('f_orgunit_order')?.value, 10) || 0;
+      payload.description = document.getElementById('f_orgunit_description')?.value.trim() || null;
+      payload.isActive = Boolean(document.getElementById('f_orgunit_isActive')?.checked);
+      break;
+    }
+
+    case 'job': {
+      if (!recordId) {
+        payload.code = document.getElementById('f_job_code').value.trim().toUpperCase();
+      }
+      payload.titleTh = document.getElementById('f_job_titleTh').value.trim();
+      payload.titleEn = document.getElementById('f_job_titleEn')?.value.trim() || null;
+      payload.level = document.getElementById('f_job_level')?.value || 'OFFICER';
+      payload.description = document.getElementById('f_job_description')?.value.trim() || null;
+      payload.qualifications = document.getElementById('f_job_qualifications')?.value.trim() || null;
+      payload.isActive = Boolean(document.getElementById('f_job_isActive')?.checked);
+      break;
+    }
+
+    case 'position': {
+      if (!recordId) {
+        payload.code = document.getElementById('f_position_code').value.trim().toUpperCase();
+      }
+      payload.title = document.getElementById('f_position_title').value.trim();
+      payload.companyId = document.getElementById('f_position_companyId')?.value;
+      payload.orgUnitId = document.getElementById('f_position_orgUnitId')?.value || null;
+      payload.jobId = document.getElementById('f_position_jobId')?.value;
+      payload.reportsToId = document.getElementById('f_position_reportsToId')?.value || null;
+      payload.isUnitHead = Boolean(document.getElementById('f_position_isUnitHead')?.checked);
+      payload.isActive = Boolean(document.getElementById('f_position_isActive')?.checked);
+      break;
+    }
+
     case 'document': {
       payload.title = document.getElementById('f_doc_title').value.trim();
       payload.category = document.getElementById('f_doc_category').value;
@@ -1670,6 +2425,10 @@ async function handleMasterFormSubmit(event) {
     if (activeMasterTable === 'company' && typeof initCorporateBranding === 'function') {
       await initCorporateBranding();
     }
+
+    if (['orgunit', 'job', 'position'].includes(activeMasterTable) && typeof loadOrgChartData === 'function') {
+      loadOrgChartData();
+    }
   } catch (err) {
     console.error('Master form submit error:', err);
     showToast(err.message || 'บันทึกข้อมูลไม่สำเร็จ ตรวจสอบข้อมูลซ้ำซ้อน', 'error');
@@ -1697,6 +2456,10 @@ async function deleteMasterRecord(id, label) {
 
     if (activeMasterTable === 'company' && typeof initCorporateBranding === 'function') {
       await initCorporateBranding();
+    }
+
+    if (['orgunit', 'job', 'position'].includes(activeMasterTable) && typeof loadOrgChartData === 'function') {
+      loadOrgChartData();
     }
   } catch (err) {
     console.error('Delete master record failed:', err);

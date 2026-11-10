@@ -48,6 +48,7 @@ async function loadAllComponents() {
     loadComponent('#sidebarNav', '/views/sidebar.html'),
     loadComponent('#sectionHome', '/views/view-home.html'),
     loadComponent('#sectionMasterData', '/views/view-master-data.html'),
+    loadComponent('#sectionOrgChart', '/views/view-org-chart.html'),
     loadComponent('#modalMasterForm', '/views/modal-master-form.html'),
     loadComponent('#modalCompanyPrintPreview', '/views/modal-company-print.html'),
   ]);

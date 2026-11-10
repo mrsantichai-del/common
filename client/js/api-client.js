@@ -18,6 +18,7 @@ class ApiClient {
     this.users = this._createUsersModule();
     this.admin = this._createAdminModule();
     this.masterTable = this._createMasterTableModule();
+    this.organization = this._createOrganizationModule();
   }
 
   setEncryption(enabled) {
@@ -266,6 +267,48 @@ class ApiClient {
         this.request(`/master-table/${table}/import`, { method: 'POST', body: { items } }),
       exportFile: (table, format = 'csv') =>
         this.request(`/master-table/${table}/export/file?format=${format}`),
+    };
+  }
+
+  _createOrganizationModule() {
+    return {
+      getChart: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return this.request(`/organization/chart${qs ? '?' + qs : ''}`);
+      },
+      getUnits: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return this.request(`/organization/units${qs ? '?' + qs : ''}`);
+      },
+      getUnit: (id) => this.request(`/organization/units/${id}`),
+      createUnit: (data) =>
+        this.request('/organization/units', { method: 'POST', body: data }),
+      updateUnit: (id, data) =>
+        this.request(`/organization/units/${id}`, { method: 'PATCH', body: data }),
+      deleteUnit: (id) =>
+        this.request(`/organization/units/${id}`, { method: 'DELETE' }),
+
+      getJobs: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return this.request(`/organization/jobs${qs ? '?' + qs : ''}`);
+      },
+      createJob: (data) =>
+        this.request('/organization/jobs', { method: 'POST', body: data }),
+      updateJob: (id, data) =>
+        this.request(`/organization/jobs/${id}`, { method: 'PATCH', body: data }),
+      deleteJob: (id) =>
+        this.request(`/organization/jobs/${id}`, { method: 'DELETE' }),
+
+      getPositions: (params = {}) => {
+        const qs = new URLSearchParams(params).toString();
+        return this.request(`/organization/positions${qs ? '?' + qs : ''}`);
+      },
+      createPosition: (data) =>
+        this.request('/organization/positions', { method: 'POST', body: data }),
+      updatePosition: (id, data) =>
+        this.request(`/organization/positions/${id}`, { method: 'PATCH', body: data }),
+      deletePosition: (id) =>
+        this.request(`/organization/positions/${id}`, { method: 'DELETE' }),
     };
   }
 }

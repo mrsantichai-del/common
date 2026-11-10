@@ -71,11 +71,38 @@ function renderSidebarMenu(user) {
         subContainer.className = `ml-4 pl-2 border-l border-slate-800 space-y-0.5 mt-0.5 ${isParentActive ? '' : 'hidden'}`;
 
         item.submenus.forEach((sub) => {
-          const isSubActive = isParentActive && activeMasterTable === sub.id;
+          let isSubActive = false;
+          if (item.id === 'masterData') {
+            isSubActive = isParentActive && activeMasterTable === sub.id.toLowerCase();
+          } else if (item.id === 'organization') {
+            if (sub.id === 'orgChart') {
+              isSubActive = isParentActive && activeMenu === 'organization';
+            } else {
+              isSubActive = isParentActive && activeMasterTable === sub.id.toLowerCase();
+            }
+          }
+
           const subBtn = document.createElement('button');
           subBtn.id = `sidebarSub_${sub.id}`;
           subBtn.type = 'button';
-          subBtn.onclick = () => navigateToMasterTable(sub.id);
+          subBtn.onclick = () => {
+            if (item.id === 'organization') {
+              if (sub.id === 'orgChart') {
+                navigateToMenu('organization');
+              } else if (sub.id === 'orgUnit') {
+                navigateToMasterTable('orgunit');
+              } else if (sub.id === 'job') {
+                navigateToMasterTable('job');
+              } else if (sub.id === 'position') {
+                navigateToMasterTable('position');
+              } else {
+                navigateToMasterTable(sub.id);
+              }
+            } else {
+              navigateToMasterTable(sub.id);
+            }
+          };
+
           subBtn.className = isSubActive
             ? 'w-full flex items-center space-x-2 px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors text-white bg-slate-800 border-l-2 border-blue-400 pl-2'
             : 'w-full flex items-center space-x-2 px-2.5 py-1.5 rounded text-[11px] transition-colors text-slate-400 hover:text-white hover:bg-slate-800/60';
@@ -123,6 +150,7 @@ function navigateToMenu(menuId) {
   const sectionHome = document.getElementById('sectionHome');
   const sectionPlaceholder = document.getElementById('sectionPlaceholder');
   const sectionMasterData = document.getElementById('sectionMasterData');
+  const sectionOrgChart = document.getElementById('sectionOrgChart');
   const placeholderModuleTitle = document.getElementById('placeholderModuleTitle');
 
   const menuInfo = MENU_DEFINITIONS.find((m) => m.id === menuId);
@@ -132,17 +160,29 @@ function navigateToMenu(menuId) {
     if (sectionHome) sectionHome.classList.remove('hidden');
     if (sectionPlaceholder) sectionPlaceholder.classList.add('hidden');
     if (sectionMasterData) sectionMasterData.classList.add('hidden');
+    if (sectionOrgChart) sectionOrgChart.classList.add('hidden');
   } else if (menuId === 'masterData') {
     if (pageTitle) pageTitle.textContent = 'MasterData (จัดการข้อมูลในตารางทั้งหมด)';
     if (sectionHome) sectionHome.classList.add('hidden');
     if (sectionPlaceholder) sectionPlaceholder.classList.add('hidden');
+    if (sectionOrgChart) sectionOrgChart.classList.add('hidden');
     if (sectionMasterData) sectionMasterData.classList.remove('hidden');
     switchMasterTable(activeMasterTable || 'user');
+  } else if (menuId === 'organization') {
+    if (pageTitle) pageTitle.textContent = 'ผังโครงสร้างองค์กร (Organization Structure)';
+    if (sectionHome) sectionHome.classList.add('hidden');
+    if (sectionPlaceholder) sectionPlaceholder.classList.add('hidden');
+    if (sectionMasterData) sectionMasterData.classList.add('hidden');
+    if (sectionOrgChart) sectionOrgChart.classList.remove('hidden');
+    if (typeof loadOrgChartData === 'function') {
+      loadOrgChartData();
+    }
   } else {
     const titleText = menuInfo ? menuInfo.label : menuId;
     if (pageTitle) pageTitle.textContent = titleText;
     if (sectionHome) sectionHome.classList.add('hidden');
     if (sectionMasterData) sectionMasterData.classList.add('hidden');
+    if (sectionOrgChart) sectionOrgChart.classList.add('hidden');
     if (sectionPlaceholder) {
       sectionPlaceholder.classList.remove('hidden');
       if (placeholderModuleTitle) placeholderModuleTitle.textContent = titleText;
