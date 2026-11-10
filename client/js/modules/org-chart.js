@@ -136,11 +136,22 @@ function renderOrgChart() {
   if (execPositions.length > 0) {
     html += `
       <div class="flex flex-col items-center">
-        <div class="inline-flex items-center space-x-1.5 px-3 py-1 bg-slate-900 text-white rounded-full text-[11px] font-bold shadow-xs uppercase tracking-wider mb-3">
-          <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          <span>คณะผู้บริหารระดับสูง (Executive Board)</span>
+        <div class="flex items-center space-x-2 mb-3">
+          <div class="inline-flex items-center space-x-1.5 px-3 py-1 bg-slate-900 text-white rounded-full text-[11px] font-bold shadow-xs uppercase tracking-wider">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span>คณะผู้บริหารระดับสูง (Executive Board)</span>
+          </div>
+          <button 
+            type="button" 
+            onclick="openAddPositionFromOrgChart('', 'ระดับองค์กร / บริษัท')"
+            class="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 inline-flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+            title="เพิ่มตำแหน่งผู้บริหารระดับสูง (Company-level Position)"
+          >
+            <svg class="w-3 h-3 text-amber-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <span>+ ตำแหน่งผู้บริหาร</span>
+          </button>
         </div>
 
         <div class="flex flex-wrap justify-center gap-4 max-w-4xl">
@@ -286,14 +297,24 @@ function renderPositionCard(pos, isTopLevel = false) {
       ${quotaTag}
       ${occupantDisplay}
 
-      <div class="mt-2 pt-1 flex justify-end">
+      <div class="mt-2 pt-1 flex items-center justify-end space-x-2 border-t border-slate-100">
         <button 
           type="button" 
           onclick="openEditFromOrgChart('position', '${pos.id}')"
           class="text-[10px] text-blue-600 hover:text-blue-800 font-medium cursor-pointer inline-flex items-center space-x-0.5"
+          title="แก้ไขตำแหน่งงาน"
         >
           <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
           <span>แก้ไข</span>
+        </button>
+        <button 
+          type="button" 
+          onclick="deleteRecordFromOrgChart('position', '${pos.id}', '${escapeJs(pos.title)}')"
+          class="text-[10px] text-rose-500 hover:text-rose-700 font-medium cursor-pointer inline-flex items-center space-x-0.5"
+          title="ลบตำแหน่งงานนี้"
+        >
+          <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          <span>ลบ</span>
         </button>
       </div>
     </div>
@@ -398,10 +419,18 @@ function renderUnitCardTree(unit, depth = 0) {
             <button 
               type="button" 
               onclick="openEditFromOrgChart('orgunit', '${unit.id}')" 
-              title="แก้ไขหน่วยงานนี้"
-              class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/80 cursor-pointer"
+              title="แก้ไขข้อมูลหน่วยงานนี้"
+              class="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-white/80 cursor-pointer transition-colors"
             >
               <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            </button>
+            <button 
+              type="button" 
+              onclick="deleteRecordFromOrgChart('orgunit', '${unit.id}', '${escapeJs(unit.name)}')" 
+              title="ลบหน่วยงานนี้"
+              class="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-white/80 cursor-pointer transition-colors"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
             </button>
           </div>
         </div>
@@ -413,6 +442,41 @@ function renderUnitCardTree(unit, depth = 0) {
               ? '<div class="text-[11px] text-slate-400 italic text-center py-1">ยังไม่มีตำแหน่งงานในหน่วยงานนี้</div>'
               : `<div class="grid grid-cols-1 gap-2">${positions.map((p) => renderPositionCard(p, false)).join('')}</div>`
           }
+        </div>
+
+        <!-- Unit Actions Footer Bar (เพิ่มระดับเดียวกัน / เพิ่มใต้สังกัด / เพิ่มตำแหน่ง) -->
+        <div class="px-3 py-2 bg-white border-t border-slate-200/80 flex items-center justify-between gap-1 text-[11px]">
+          <div class="flex items-center space-x-1.5">
+            <button 
+              type="button" 
+              onclick="openAddUnitFromOrgChart('${unit.parentId || ''}', '${unit.type}', 'SIBLING', '${escapeJs(unit.name)}')"
+              class="px-2 py-1 rounded border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold inline-flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+              title="เพิ่มหน่วยงานระดับเดียวกันกับ ${unit.name} (${unitColor.labelTh})"
+            >
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+              <span>ระดับเดียวกัน</span>
+            </button>
+
+            <button 
+              type="button" 
+              onclick="openAddUnitFromOrgChart('${unit.id}', '${getNextUnitType(unit.type)}', 'CHILD', '${escapeJs(unit.name)}')"
+              class="px-2 py-1 rounded border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-700 font-semibold inline-flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+              title="เพิ่มหน่วยงานย่อย (${getUnitTypeLabelTh(getNextUnitType(unit.type))}) ใต้สังกัด ${unit.name}"
+            >
+              <svg class="w-3.5 h-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg>
+              <span>+ ใต้สังกัด</span>
+            </button>
+          </div>
+
+          <button 
+            type="button" 
+            onclick="openAddPositionFromOrgChart('${unit.id}', '${escapeJs(unit.name)}')"
+            class="px-2 py-1 rounded border border-purple-200 bg-purple-50/80 hover:bg-purple-100 text-purple-700 font-semibold inline-flex items-center space-x-1 cursor-pointer transition-colors shadow-2xs"
+            title="เพิ่มตำแหน่งงานใน ${unit.name}"
+          >
+            <svg class="w-3.5 h-3.5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+            <span>+ ตำแหน่ง</span>
+          </button>
         </div>
       </div>
 
@@ -433,15 +497,71 @@ function renderUnitCardTree(unit, depth = 0) {
   `;
 }
 
-function openEditFromOrgChart(tableName, id) {
-  // Stay inside Organization menu context seamlessly
-  const subMap = {
-    orgunit: 'orgUnit',
-    job: 'job',
-    position: 'position',
-  };
-  navigateToOrganization(subMap[tableName] || 'orgUnit');
-  setTimeout(() => {
-    openEditMasterRecordModal(id);
-  }, 200);
+function getUnitTypeLabelTh(type) {
+  switch (type) {
+    case 'BRANCH': return 'สาขา (BRANCH)';
+    case 'DIVISION': return 'ฝ่าย (DIVISION)';
+    case 'DEPARTMENT': return 'แผนก (DEPARTMENT)';
+    case 'SECTION': return 'ส่วนงาน (SECTION)';
+    case 'TEAM': return 'ทีมงาน (TEAM)';
+    default: return type || 'หน่วยงาน';
+  }
+}
+
+function getNextUnitType(currentType) {
+  switch (currentType) {
+    case 'BRANCH': return 'DIVISION';      // สาขา -> ฝ่าย
+    case 'DIVISION': return 'DEPARTMENT';  // ฝ่าย -> แผนก
+    case 'DEPARTMENT': return 'SECTION';   // แผนก -> ส่วนงาน
+    case 'SECTION': return 'TEAM';         // ส่วนงาน -> ทีมงาน
+    case 'TEAM': return 'TEAM';
+    default: return 'DEPARTMENT';
+  }
+}
+
+function escapeJs(str) {
+  if (!str) return '';
+  return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function openAddUnitFromOrgChart(parentId, type, mode, targetUnitName) {
+  activeMasterTable = 'orgunit';
+  let contextTitle = '';
+  if (mode === 'SIBLING') {
+    contextTitle = parentId
+      ? `เพิ่มหน่วยงานระดับเดียวกัน (${getUnitTypeLabelTh(type)}) สังกัดเดียวกับ: ${targetUnitName}`
+      : `เพิ่มหน่วยงานระดับบนสุดขององค์กร (ระดับเดียวกันกับ: ${targetUnitName})`;
+  } else if (mode === 'CHILD') {
+    contextTitle = `เพิ่มหน่วยงานย่อย (${getUnitTypeLabelTh(type)}) ใต้สังกัด: ${targetUnitName}`;
+  } else {
+    contextTitle = `เพิ่มสาขา / หน่วยงานระดับบนสุดของบริษัท`;
+  }
+
+  await openCreateMasterRecordModal({
+    parentId: parentId || '',
+    type: type || 'DEPARTMENT',
+    _contextTitle: contextTitle,
+  });
+}
+
+async function openAddPositionFromOrgChart(orgUnitId, unitName) {
+  activeMasterTable = 'position';
+  const contextTitle = orgUnitId
+    ? `เพิ่มตำแหน่งงานใหม่ในหน่วยงาน: ${unitName}`
+    : `เพิ่มตำแหน่งผู้บริหารระดับสูง (Company Level / Executive Board)`;
+
+  await openCreateMasterRecordModal({
+    orgUnitId: orgUnitId || '',
+    _contextTitle: contextTitle,
+  });
+}
+
+async function openEditFromOrgChart(tableName, id) {
+  activeMasterTable = tableName.toLowerCase();
+  await openEditMasterRecordModal(id);
+}
+
+async function deleteRecordFromOrgChart(tableName, id, label) {
+  activeMasterTable = tableName.toLowerCase();
+  await deleteMasterRecord(id, label);
 }

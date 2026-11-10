@@ -1119,15 +1119,29 @@ function closeMasterModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-async function openCreateMasterRecordModal() {
+async function openCreateMasterRecordModal(prefillData = null) {
   const recordIdInput = document.getElementById('masterFormRecordId');
   const title = document.getElementById('masterModalTitle');
   const subtitle = document.getElementById('masterModalSubtitle');
   const container = document.getElementById('masterFormFieldsContainer');
 
   if (recordIdInput) recordIdInput.value = '';
-  if (title) title.textContent = `เพิ่มข้อมูลใหม่: ตาราง ${activeMasterTable.toUpperCase()}`;
-  if (subtitle) subtitle.textContent = `กรอกข้อมูลเพื่อบันทึกลงในฐานข้อมูลระบบ`;
+  if (title) {
+    if (activeMasterTable === 'orgunit') {
+      title.textContent = 'เพิ่มหน่วยงานใหม่ (Organization Unit)';
+    } else if (activeMasterTable === 'position') {
+      title.textContent = 'เพิ่มตำแหน่งงานใหม่ (Position)';
+    } else if (activeMasterTable === 'job') {
+      title.textContent = 'เพิ่มลักษณะงานใหม่ (Job)';
+    } else {
+      title.textContent = `เพิ่มข้อมูลใหม่: ตาราง ${activeMasterTable.toUpperCase()}`;
+    }
+  }
+  if (subtitle) {
+    subtitle.textContent = prefillData && prefillData._contextTitle
+      ? prefillData._contextTitle
+      : `กรอกข้อมูลเพื่อบันทึกลงในฐานข้อมูลระบบ`;
+  }
 
   if (container) {
     container.innerHTML = `<div class="p-4 text-center text-xs text-slate-400">กำลังเตรียมฟอร์มและดึงข้อมูลตารางที่สัมพันธ์...</div>`;
@@ -1136,11 +1150,22 @@ async function openCreateMasterRecordModal() {
   const modal = document.getElementById('modalMasterForm');
   if (modal) modal.classList.remove('hidden');
 
-  await renderMasterFormFields(container, activeMasterTable, null);
+  await renderMasterFormFields(container, activeMasterTable, prefillData);
 }
 
 async function openEditMasterRecordModal(id) {
-  const record = masterTableRawData.find((r) => r.id === id);
+  let record = masterTableRawData.find((r) => r.id === id);
+  if (!record) {
+    try {
+      const res = await api.masterTable.findOne(activeMasterTable, id);
+      if (res && res.data) {
+        record = res.data;
+      }
+    } catch (err) {
+      console.warn('Could not fetch single record by id:', err);
+    }
+  }
+
   if (!record) {
     showToast('ไม่พบข้อมูลรายการที่ต้องการแก้ไข', 'error');
     return;
@@ -1152,7 +1177,17 @@ async function openEditMasterRecordModal(id) {
   const container = document.getElementById('masterFormFieldsContainer');
 
   if (recordIdInput) recordIdInput.value = id;
-  if (title) title.textContent = `แก้ไขข้อมูล: ตาราง ${activeMasterTable.toUpperCase()}`;
+  if (title) {
+    if (activeMasterTable === 'orgunit') {
+      title.textContent = `แก้ไขหน่วยงาน: ${record.name || record.code}`;
+    } else if (activeMasterTable === 'position') {
+      title.textContent = `แก้ไขตำแหน่งงาน: ${record.title || record.code}`;
+    } else if (activeMasterTable === 'job') {
+      title.textContent = `แก้ไขลักษณะงาน: ${record.titleTh || record.code}`;
+    } else {
+      title.textContent = `แก้ไขข้อมูล: ตาราง ${activeMasterTable.toUpperCase()}`;
+    }
+  }
   if (subtitle) subtitle.textContent = `รหัสรายการ (ID): ${id}`;
 
   if (container) {
@@ -1818,14 +1853,14 @@ async function renderMasterFormFields(container, table, existing) {
       } catch (e) {
         console.warn('Could not fetch company options:', e);
       }
-      const defaultCompanyId = existing ? existing.companyId : (companyOptions[0] ? companyOptions[0].value : '');
+      const defaultCompanyId = existing && existing.companyId ? existing.companyId : (companyOptions[0] ? companyOptions[0].value : '');
 
       let parentUnitOptions = [{ value: '', label: '-- ระดับบนสุด (ไม่มีหน่วยงานหลัก / Root Unit) --' }];
       try {
         const unitsRes = await api.masterTable.findAll('orgunit', { limit: 200 });
         const allUnits = unitsRes && unitsRes.data ? unitsRes.data : [];
         allUnits
-          .filter((u) => !existing || u.id !== existing.id)
+          .filter((u) => !existing || !existing.id || u.id !== existing.id)
           .forEach((u) => {
             parentUnitOptions.push({
               value: u.id,
@@ -1837,7 +1872,7 @@ async function renderMasterFormFields(container, table, existing) {
         console.warn('Could not fetch parent org unit options:', e);
       }
       const defaultParentUnitId = existing && existing.parentId ? existing.parentId : '';
-      const unitType = existing ? existing.type : 'DEPARTMENT';
+      const unitType = existing && existing.type ? existing.type : 'DEPARTMENT';
 
       container.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1846,10 +1881,10 @@ async function renderMasterFormFields(container, table, existing) {
             <input 
               type="text" 
               id="f_orgunit_code" 
-              value="${existing ? existing.code : ''}" 
-              ${existing ? 'readonly' : 'required'}
+              value="${existing && existing.id ? existing.code : (existing && existing.code ? existing.code : '')}" 
+              ${existing && existing.id ? 'readonly' : 'required'}
               placeholder="เช่น DEP-ACC, DIV-FIN, BR-HQ" 
-              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing && existing.id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
             >
           </div>
           <div>
@@ -1870,7 +1905,7 @@ async function renderMasterFormFields(container, table, existing) {
             <input 
               type="text" 
               id="f_orgunit_name" 
-              value="${existing ? existing.name : ''}" 
+              value="${existing && existing.id ? existing.name : ''}" 
               required
               placeholder="เช่น ฝ่ายบัญชีและการเงิน, แผนกบัญชี" 
               class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
@@ -2081,7 +2116,7 @@ async function renderMasterFormFields(container, table, existing) {
       } catch (e) {
         console.warn('Could not fetch company options for position:', e);
       }
-      const defaultCompanyId = existing ? existing.companyId : (companyOptions[0] ? companyOptions[0].value : '');
+      const defaultCompanyId = existing && existing.companyId ? existing.companyId : (companyOptions[0] ? companyOptions[0].value : '');
 
       let unitOptions = [{ value: '', label: '-- ระดับองค์กร / บริษัท (Company Level เช่น CEO / บอร์ด) --' }];
       try {
@@ -2109,13 +2144,13 @@ async function renderMasterFormFields(container, table, existing) {
       } catch (e) {
         console.warn('Could not fetch job options for position:', e);
       }
-      const defaultJobId = existing ? existing.jobId : (jobOptions[0] ? jobOptions[0].value : '');
+      const defaultJobId = existing && existing.jobId ? existing.jobId : (jobOptions[0] ? jobOptions[0].value : '');
 
       let reportsToOptions = [{ value: '', label: '-- ไม่รายงานต่อตำแหน่งใด (Top Level / Board) --' }];
       try {
         const posRes = await api.masterTable.findAll('position', { limit: 200 });
         (posRes && posRes.data ? posRes.data : [])
-          .filter((p) => !existing || p.id !== existing.id)
+          .filter((p) => !existing || !existing.id || p.id !== existing.id)
           .forEach((p) => {
             reportsToOptions.push({
               value: p.id,
@@ -2135,10 +2170,10 @@ async function renderMasterFormFields(container, table, existing) {
             <input 
               type="text" 
               id="f_position_code" 
-              value="${existing ? existing.code : ''}" 
-              ${existing ? 'readonly' : 'required'}
+              value="${existing && existing.id ? existing.code : (existing && existing.code ? existing.code : '')}" 
+              ${existing && existing.id ? 'readonly' : 'required'}
               placeholder="เช่น POS-CEO, POS-DIV-ACC-MGR" 
-              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing && existing.id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
             >
           </div>
           <div>
@@ -2146,7 +2181,7 @@ async function renderMasterFormFields(container, table, existing) {
             <input 
               type="text" 
               id="f_position_title" 
-              value="${existing ? existing.title : ''}" 
+              value="${existing && existing.id ? existing.title : ''}" 
               required
               placeholder="เช่น ประธานเจ้าหน้าที่บริหาร, ผู้จัดการฝ่ายบัญชี" 
               class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
