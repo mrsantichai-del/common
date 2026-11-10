@@ -144,8 +144,15 @@ function renderMasterTable(records) {
               <tr class="hover:bg-slate-50/80 transition-colors">
                 <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
                 <td class="p-3">
-                  <div class="font-semibold text-slate-900">${c.nameTh}</div>
-                  <div class="text-[11px] text-slate-500 font-sans">${c.nameEn}</div>
+                  <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded border border-slate-200 bg-white p-0.5 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-2xs">
+                      ${c.logoUrl ? `<img src="${c.logoUrl}" class="max-w-full max-h-full object-contain" alt="Logo">` : '<span class="text-[9px] text-slate-300">No logo</span>'}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="font-semibold text-slate-900 truncate">${c.nameTh}</div>
+                      <div class="text-[11px] text-slate-500 font-sans truncate">${c.nameEn}</div>
+                    </div>
+                  </div>
                 </td>
                 <td class="p-3 text-blue-700 font-mono font-medium">${c.taxId}</td>
                 <td class="p-3 font-sans text-xs">${branchDisplay}</td>
@@ -154,8 +161,13 @@ function renderMasterTable(records) {
                   <div class="text-[10px] text-slate-400 truncate max-w-xs" title="${c.addressTh}">${c.addressTh}</div>
                 </td>
                 <td class="p-3">
-                  ${defaultBadge}
-                  ${statusBadge}
+                  <div class="flex flex-col space-y-1">
+                    <div>
+                      ${defaultBadge}
+                      ${statusBadge}
+                    </div>
+                    ${c.stampUrl ? '<span class="text-[9px] text-slate-500 font-sans flex items-center space-x-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span><span>มีตรายาง</span></span>' : ''}
+                  </div>
                 </td>
                 <td class="p-3 text-right font-sans space-x-1.5 whitespace-nowrap">
                   <button type="button" onclick="openCompanyPrintPreview('${c.id}')" title="พิมพ์ข้อมูลแบบทางการ / ส่งออก PDF" class="px-2 py-1 text-[11px] font-medium rounded bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 cursor-pointer inline-flex items-center space-x-1 shadow-2xs">
@@ -650,6 +662,180 @@ document.addEventListener('click', (e) => {
 });
 
 // ----------------------------------------------------
+// Company Image Management (Logo & Stamp Processing)
+// ----------------------------------------------------
+
+function handleCompanyImageUpload(type, event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('กรุณาเลือกไฟล์รูปภาพเท่านั้น (PNG, JPG, SVG, WebP)', 'error');
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('ขนาดไฟล์รูปภาพเกิน 10MB กรุณาเลือกไฟล์ที่เล็กลง', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const rawDataUrl = e.target.result;
+
+    if (file.type === 'image/svg+xml' || file.size < 50 * 1024) {
+      applyCompanyImage(type, rawDataUrl, file.name);
+      return;
+    }
+
+    // Canvas resize to optimize storage and performance (max 800px)
+    const img = new Image();
+    img.onload = function () {
+      const maxDim = 800;
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const mime = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      const compressedDataUrl = canvas.toDataURL(mime, 0.88);
+      applyCompanyImage(type, compressedDataUrl, file.name);
+    };
+    img.src = rawDataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyCompanyImage(type, dataUrl, fileName) {
+  if (type === 'logo') {
+    const input = document.getElementById('f_company_logoUrl');
+    const preview = document.getElementById('companyLogoPreviewImg');
+    const placeholder = document.getElementById('companyLogoPlaceholder');
+    const info = document.getElementById('companyLogoFileInfo');
+
+    if (input) input.value = dataUrl;
+    if (preview) {
+      preview.src = dataUrl;
+      preview.classList.remove('hidden');
+    }
+    if (placeholder) placeholder.classList.add('hidden');
+    if (info) {
+      info.textContent = fileName ? `ไฟล์: ${fileName}` : 'กำหนดรูปภาพเรียบร้อย';
+      info.classList.remove('hidden');
+    }
+    showToast('เลือกไฟล์โลโก้เรียบร้อยแล้ว', 'success');
+  } else if (type === 'stamp') {
+    const input = document.getElementById('f_company_stampUrl');
+    const preview = document.getElementById('companyStampPreviewImg');
+    const placeholder = document.getElementById('companyStampPlaceholder');
+    const info = document.getElementById('companyStampFileInfo');
+
+    if (input) input.value = dataUrl;
+    if (preview) {
+      preview.src = dataUrl;
+      preview.classList.remove('hidden');
+    }
+    if (placeholder) placeholder.classList.add('hidden');
+    if (info) {
+      info.textContent = fileName ? `ไฟล์: ${fileName}` : 'กำหนดรูปภาพเรียบร้อย';
+      info.classList.remove('hidden');
+    }
+    showToast('เลือกไฟล์ตรายางเรียบร้อยแล้ว', 'success');
+  }
+}
+
+function clearCompanyImage(type) {
+  if (type === 'logo') {
+    const input = document.getElementById('f_company_logoUrl');
+    const preview = document.getElementById('companyLogoPreviewImg');
+    const placeholder = document.getElementById('companyLogoPlaceholder');
+    const info = document.getElementById('companyLogoFileInfo');
+    const fileInput = document.getElementById('f_company_logoFile');
+
+    if (input) input.value = '';
+    if (fileInput) fileInput.value = '';
+    if (preview) {
+      preview.src = '';
+      preview.classList.add('hidden');
+    }
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (info) info.classList.add('hidden');
+    showToast('ล้างไฟล์โลโก้เรียบร้อย', 'info');
+  } else if (type === 'stamp') {
+    const input = document.getElementById('f_company_stampUrl');
+    const preview = document.getElementById('companyStampPreviewImg');
+    const placeholder = document.getElementById('companyStampPlaceholder');
+    const info = document.getElementById('companyStampFileInfo');
+    const fileInput = document.getElementById('f_company_stampFile');
+
+    if (input) input.value = '';
+    if (fileInput) fileInput.value = '';
+    if (preview) {
+      preview.src = '';
+      preview.classList.add('hidden');
+    }
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (info) info.classList.add('hidden');
+    showToast('ล้างไฟล์ตรายางเรียบร้อย', 'info');
+  }
+}
+
+function setCompanyPresetLogo(path, label) {
+  applyCompanyImage('logo', path, label);
+}
+
+function onCompanyUrlManualInput(type, value) {
+  const v = (value || '').trim();
+  if (type === 'logo') {
+    const preview = document.getElementById('companyLogoPreviewImg');
+    const placeholder = document.getElementById('companyLogoPlaceholder');
+    if (v) {
+      if (preview) {
+        preview.src = v;
+        preview.classList.remove('hidden');
+      }
+      if (placeholder) placeholder.classList.add('hidden');
+    } else {
+      if (preview) {
+        preview.src = '';
+        preview.classList.add('hidden');
+      }
+      if (placeholder) placeholder.classList.remove('hidden');
+    }
+  } else if (type === 'stamp') {
+    const preview = document.getElementById('companyStampPreviewImg');
+    const placeholder = document.getElementById('companyStampPlaceholder');
+    if (v) {
+      if (preview) {
+        preview.src = v;
+        preview.classList.remove('hidden');
+      }
+      if (placeholder) placeholder.classList.add('hidden');
+    } else {
+      if (preview) {
+        preview.src = '';
+        preview.classList.add('hidden');
+      }
+      if (placeholder) placeholder.classList.remove('hidden');
+    }
+  }
+}
+
+// ----------------------------------------------------
 // Master Modal: Add / Edit Record Handling
 // ----------------------------------------------------
 
@@ -714,6 +900,8 @@ async function renderMasterFormFields(container, table, existing) {
       const isDefault = existing ? Boolean(existing.isDefault) : true;
       const isActive = existing ? existing.isActive !== false : true;
       const branchType = existing ? (existing.branchType || 'HEAD_OFFICE') : 'HEAD_OFFICE';
+      const currentLogo = existing && existing.logoUrl ? existing.logoUrl : '/assets/logo/logo.jpg';
+      const currentStamp = existing && existing.stampUrl ? existing.stampUrl : '';
 
       container.innerHTML = `
         <!-- ส่วนที่ 1: ข้อมูลนิติบุคคลและสาขา -->
@@ -845,37 +1033,129 @@ async function renderMasterFormFields(container, table, existing) {
           </div>
         </div>
 
-        <!-- ส่วนที่ 5: อัตลักษณ์และการตั้งค่า -->
-        <div>
+        <!-- ส่วนที่ 5: อัตลักษณ์องค์กรและตรายาง -->
+        <div class="border-b border-slate-200 pb-3">
           <div class="text-[11px] font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center space-x-1.5">
             <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-            <span>5. อัตลักษณ์และการตั้งค่า (Branding & Settings)</span>
+            <span>5. อัตลักษณ์องค์กรและตรายาง (Corporate Identity & Stamp)</span>
           </div>
-          <div class="space-y-2.5">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">ไฟล์โลโก้ (Logo URL)</label>
-                <input type="text" id="f_company_logoUrl" value="${existing && existing.logoUrl ? existing.logoUrl : '/assets/logo/logo.jpg'}" placeholder="/assets/logo/logo.jpg" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 mb-3">
+            <!-- 5.1 โลโก้บริษัท (Company Logo) -->
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-800">
+                  ไฟล์โลโก้บริษัท (Company Logo)
+                </label>
+                <span id="companyLogoFileInfo" class="text-[10px] text-blue-600 font-medium truncate max-w-[140px] hidden"></span>
               </div>
+
+              <!-- Preview Area -->
+              <div class="flex items-center space-x-3 bg-white p-2.5 rounded border border-slate-200">
+                <div class="w-20 h-16 bg-slate-50 border border-slate-200 rounded flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs">
+                  <img id="companyLogoPreviewImg" src="${currentLogo}" alt="Logo Preview" class="${currentLogo ? '' : 'hidden'} max-w-full max-h-full object-contain p-1">
+                  <div id="companyLogoPlaceholder" class="${currentLogo ? 'hidden' : ''} text-center text-slate-300">
+                    <svg class="w-6 h-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span class="text-[9px] block">ไม่มีโลโก้</span>
+                  </div>
+                </div>
+
+                <div class="flex-1 space-y-1.5 min-w-0">
+                  <div class="flex flex-wrap gap-1.5">
+                    <input type="file" id="f_company_logoFile" accept="image/*" class="hidden" onchange="handleCompanyImageUpload('logo', event)">
+                    <button type="button" onclick="document.getElementById('f_company_logoFile').click()" class="px-2.5 py-1 text-xs font-medium rounded bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer flex items-center space-x-1 shadow-2xs">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      <span>${isEdit ? 'เปลี่ยนไฟล์รูปภาพ' : 'เลือกไฟล์รูปภาพ'}</span>
+                    </button>
+                    <button type="button" onclick="clearCompanyImage('logo')" class="px-2 py-1 text-xs font-medium rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-600 cursor-pointer">
+                      ล้างรูป
+                    </button>
+                  </div>
+                  <div class="flex items-center space-x-1.5 text-[10px] text-slate-500">
+                    <span>หรือเลือกพรีเซ็ต:</span>
+                    <button type="button" onclick="setCompanyPresetLogo('/assets/logo/logo.jpg', 'logo.jpg')" class="text-blue-600 hover:underline cursor-pointer">ทั่วไป</button>
+                    <span>|</span>
+                    <button type="button" onclick="setCompanyPresetLogo('/assets/logo/pylon-logo.jpg', 'pylon-logo.jpg')" class="text-blue-600 hover:underline cursor-pointer">PYLON</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Manual URL or Path -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">ไฟล์ตรายาง (Stamp URL)</label>
-                <input type="text" id="f_company_stampUrl" value="${existing && existing.stampUrl ? existing.stampUrl : ''}" placeholder="เช่น /assets/stamp/stamp.png" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono focus:ring-1 focus:ring-slate-900 outline-none">
+                <label class="block text-[10px] text-slate-500 mb-0.5">URL หรือที่อยู่ไฟล์โลโก้:</label>
+                <input 
+                  type="text" 
+                  id="f_company_logoUrl" 
+                  value="${currentLogo}" 
+                  placeholder="/assets/logo/logo.jpg หรือ Data URL" 
+                  oninput="onCompanyUrlManualInput('logo', this.value)"
+                  class="w-full px-2.5 py-1 rounded border border-slate-300 text-[11px] font-mono focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+                >
               </div>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">ข้อความท้ายเอกสาร (Document Footer Notice)</label>
-              <input type="text" id="f_company_docFooterNotice" value="${existing && existing.docFooterNotice ? existing.docFooterNotice : ''}" placeholder="เช่น เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+
+            <!-- 5.2 ตรายางบริษัท (Company Stamp) -->
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2.5">
+              <div class="flex items-center justify-between">
+                <label class="block text-xs font-bold text-slate-800">
+                  ไฟล์ตรายางประทับ (Corporate Stamp)
+                </label>
+                <span id="companyStampFileInfo" class="text-[10px] text-blue-600 font-medium truncate max-w-[140px] hidden"></span>
+              </div>
+
+              <!-- Preview Area -->
+              <div class="flex items-center space-x-3 bg-white p-2.5 rounded border border-slate-200">
+                <div class="w-20 h-16 bg-slate-50 border border-slate-200 rounded flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs">
+                  <img id="companyStampPreviewImg" src="${currentStamp}" alt="Stamp Preview" class="${currentStamp ? '' : 'hidden'} max-w-full max-h-full object-contain p-1">
+                  <div id="companyStampPlaceholder" class="${currentStamp ? 'hidden' : ''} text-center text-slate-300">
+                    <svg class="w-6 h-6 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    <span class="text-[9px] block">ไม่มีตรายาง</span>
+                  </div>
+                </div>
+
+                <div class="flex-1 space-y-1.5 min-w-0">
+                  <div class="flex flex-wrap gap-1.5">
+                    <input type="file" id="f_company_stampFile" accept="image/*" class="hidden" onchange="handleCompanyImageUpload('stamp', event)">
+                    <button type="button" onclick="document.getElementById('f_company_stampFile').click()" class="px-2.5 py-1 text-xs font-medium rounded bg-slate-800 hover:bg-slate-900 text-white transition-colors cursor-pointer flex items-center space-x-1 shadow-2xs">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      <span>${isEdit ? 'เปลี่ยนไฟล์ตรายาง' : 'เลือกไฟล์ตรายาง'}</span>
+                    </button>
+                    <button type="button" onclick="clearCompanyImage('stamp')" class="px-2 py-1 text-xs font-medium rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-600 cursor-pointer">
+                      ล้างรูป
+                    </button>
+                  </div>
+                  <p class="text-[10px] text-slate-500">แนะนำไฟล์ PNG พื้นหลังโปร่งใส</p>
+                </div>
+              </div>
+
+              <!-- Manual URL or Path -->
+              <div>
+                <label class="block text-[10px] text-slate-500 mb-0.5">URL หรือที่อยู่ไฟล์ตรายาง:</label>
+                <input 
+                  type="text" 
+                  id="f_company_stampUrl" 
+                  value="${currentStamp}" 
+                  placeholder="เช่น /assets/stamp/stamp.png หรือ Data URL" 
+                  oninput="onCompanyUrlManualInput('stamp', this.value)"
+                  class="w-full px-2.5 py-1 rounded border border-slate-300 text-[11px] font-mono focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+                >
+              </div>
             </div>
-            <div class="flex items-center space-x-6 pt-1">
-              <label class="inline-flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" id="f_company_isDefault" ${isDefault ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-0 cursor-pointer">
-                <span class="text-xs font-medium text-slate-700">ตั้งเป็นข้อมูลบริษัทหลัก (Default Company)</span>
-              </label>
-              <label class="inline-flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" id="f_company_isActive" ${isActive ? 'checked' : ''} class="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer">
-                <span class="text-xs font-medium text-slate-700">สถานะเปิดใช้งาน (Active)</span>
-              </label>
-            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ข้อความท้ายเอกสาร (Document Footer Notice)</label>
+            <input type="text" id="f_company_docFooterNotice" value="${existing && existing.docFooterNotice ? existing.docFooterNotice : ''}" placeholder="เช่น เอกสารนี้ออกโดยระบบอัตโนมัติ ULTRON Core System" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none">
+          </div>
+          <div class="flex items-center space-x-6 pt-2">
+            <label class="inline-flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" id="f_company_isDefault" ${isDefault ? 'checked' : ''} class="w-4 h-4 rounded text-blue-600 focus:ring-0 cursor-pointer">
+              <span class="text-xs font-medium text-slate-700">ตั้งเป็นข้อมูลบริษัทหลัก (Default Company)</span>
+            </label>
+            <label class="inline-flex items-center space-x-2 cursor-pointer">
+              <input type="checkbox" id="f_company_isActive" ${isActive ? 'checked' : ''} class="w-4 h-4 rounded text-emerald-600 focus:ring-0 cursor-pointer">
+              <span class="text-xs font-medium text-slate-700">สถานะเปิดใช้งาน (Active)</span>
+            </label>
           </div>
         </div>
       `;
@@ -1386,6 +1666,10 @@ async function handleMasterFormSubmit(event) {
       await loadDynamicMenus();
       renderSidebarMenu(currentUser);
     }
+
+    if (activeMasterTable === 'company' && typeof initCorporateBranding === 'function') {
+      await initCorporateBranding();
+    }
   } catch (err) {
     console.error('Master form submit error:', err);
     showToast(err.message || 'บันทึกข้อมูลไม่สำเร็จ ตรวจสอบข้อมูลซ้ำซ้อน', 'error');
@@ -1409,6 +1693,10 @@ async function deleteMasterRecord(id, label) {
     if (activeMasterTable === 'menu' && typeof loadDynamicMenus === 'function' && typeof renderSidebarMenu === 'function' && currentUser) {
       await loadDynamicMenus();
       renderSidebarMenu(currentUser);
+    }
+
+    if (activeMasterTable === 'company' && typeof initCorporateBranding === 'function') {
+      await initCorporateBranding();
     }
   } catch (err) {
     console.error('Delete master record failed:', err);
