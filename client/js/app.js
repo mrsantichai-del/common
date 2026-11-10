@@ -88,6 +88,7 @@ const MENU_DEFINITIONS = [
 document.addEventListener('DOMContentLoaded', async () => {
   initDemoMode();
   await initCorporateBranding();
+  await loadDynamicDemoAccounts();
   await refreshAuthStatus();
 });
 
@@ -245,6 +246,47 @@ function quickLoginAs(username) {
 
   showToast(`เลือกบัญชี ${username} แล้ว กรุณากดปุ่ม "เข้าสู่ระบบ"`, 'success');
   if (btnSubmit) btnSubmit.focus();
+}
+
+async function loadDynamicDemoAccounts() {
+  const grid = document.getElementById('loginDemoAccountsGrid');
+  if (!grid) return;
+
+  try {
+    const accounts = await api.auth.getDemoAccounts();
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      grid.innerHTML = '<div class="col-span-2 text-center py-2 text-slate-400 text-xs">ไม่พบบัญชีผู้ใช้งานที่เปิดใช้งานในระบบ</div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    accounts.forEach((acc) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.onclick = () => quickLoginAs(acc.username);
+      btn.className =
+        'p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-all cursor-pointer shadow-2xs group hover:border-blue-400 focus:ring-1 focus:ring-blue-400';
+
+      const empBadge = acc.employeeId ? `<span class="text-slate-400">(${acc.employeeId})</span>` : '';
+      btn.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-slate-900 text-[11px] truncate">${acc.groupDescription || acc.groupName}</div>
+          <span class="text-[9px] bg-slate-100 text-slate-600 px-1 rounded font-mono">${acc.groupName}</span>
+        </div>
+        <div class="text-[10px] text-blue-700 font-mono mt-0.5 truncate">
+          ${acc.username} ${empBadge}
+        </div>
+      `;
+      grid.appendChild(btn);
+    });
+  } catch (err) {
+    console.warn('[DemoAccounts] Could not load dynamic demo accounts from database:', err.message);
+    grid.innerHTML = `
+      <div class="col-span-2 text-center py-2 text-amber-600 text-[11px]">
+        ไม่สามารถดึงข้อมูลจากตารางได้ (${err.message})
+      </div>
+    `;
+  }
 }
 
 // ----------------------------------------------------

@@ -192,6 +192,9 @@ class ApiClient {
       getPublicInfo: async () => {
         return this.request('/auth/public-info');
       },
+      getDemoAccounts: async () => {
+        return this.request('/auth/demo-accounts');
+      },
       logout: () => {
         this.setToken(null);
       },

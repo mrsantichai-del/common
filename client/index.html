@@ -120,29 +120,18 @@
           </div>
         </div>
 
-        <!-- Quick Test Accounts Panel (Toggleable Developer Helper) -->
-        <div id="loginDemoAccountsPanel" class="hidden p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+        <!-- Quick Test Accounts Panel (Dynamically Loaded from Database) -->
+        <div id="loginDemoAccountsPanel" class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
           <div class="text-[11px] font-semibold text-slate-700 flex items-center justify-between">
-            <span>เลือกบัญชีทดสอบระบบ:</span>
+            <span class="flex items-center space-x-1.5">
+              <span>เลือกบัญชีทดสอบระบบ:</span>
+              <span class="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-sans">ดึงจากตารางฐานข้อมูลจริง</span>
+            </span>
             <span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-mono font-bold">DEV MODE</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-xs">
-            <button type="button" onclick="quickLoginAs('root_admin')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
-              <div class="font-bold text-slate-900 text-[11px]">ผู้ดูแลระบบ</div>
-              <div class="text-[10px] text-blue-700 font-mono">root_admin <span class="text-slate-400">(EMP-001)</span></div>
-            </button>
-            <button type="button" onclick="quickLoginAs('approver_ellen')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
-              <div class="font-bold text-slate-900 text-[11px]">ผู้อนุมัติเอกสาร</div>
-              <div class="text-[10px] text-blue-700 font-mono">approver_ellen <span class="text-slate-400">(EMP-002)</span></div>
-            </button>
-            <button type="button" onclick="quickLoginAs('auditor_arthur')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
-              <div class="font-bold text-slate-900 text-[11px]">ผู้ตรวจสอบ</div>
-              <div class="text-[10px] text-blue-700 font-mono">auditor_arthur <span class="text-slate-400">(EMP-003)</span></div>
-            </button>
-            <button type="button" onclick="quickLoginAs('hybrid_harry')" class="p-2 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-left transition-colors cursor-pointer shadow-2xs">
-              <div class="font-bold text-slate-900 text-[11px]">เจ้าหน้าที่บันทึก</div>
-              <div class="text-[10px] text-blue-700 font-mono">hybrid_harry <span class="text-slate-400">(EMP-004)</span></div>
-            </button>
+          <div id="loginDemoAccountsGrid" class="grid grid-cols-2 gap-2 text-xs">
+            <!-- Dynamically populated from SQLite User & Group tables -->
+            <div class="col-span-2 text-center py-2 text-slate-400 text-xs">กำลังเชื่อมต่อตารางผู้ใช้...</div>
           </div>
         </div>
 
@@ -668,7 +657,7 @@
   </div>
 
   <!-- APPLICATION JAVASCRIPT SDK & UI LOGIC -->
-  <script src="/js/api-client.js?v=20261109_02"></script>
-  <script src="/js/app.js?v=20261109_02"></script>
+  <script src="/js/api-client.js?v=20261109_03"></script>
+  <script src="/js/app.js?v=20261109_03"></script>
 </body>
 </html>

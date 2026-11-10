@@ -24,6 +24,39 @@ export class AuthService {
     });
   }
 
+  async getDemoAccounts() {
+    const users = await this.prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        username: true,
+        employeeId: true,
+        groups: {
+          select: {
+            group: {
+              select: {
+                name: true,
+                description: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return users.map((u) => {
+      const primaryGroup = u.groups[0]?.group;
+      return {
+        id: u.id,
+        username: u.username,
+        employeeId: u.employeeId,
+        groupName: primaryGroup?.name || 'GENERAL_USER',
+        groupDescription: primaryGroup?.description || 'ผู้ใช้งานระบบ',
+      };
+    });
+  }
+
   async register(registerDto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({
       where: { username: registerDto.username },
