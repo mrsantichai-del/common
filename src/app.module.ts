@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { CryptoModule } from './crypto/crypto.module';
 import { AdminModule } from './admin/admin.module';
 import { MasterTableModule } from './master-table/master-table.module';
+import { OrganizationModule } from './organization/organization.module';
 import { PayloadCryptoMiddleware } from './crypto/payload-crypto.middleware';
 import { PayloadCryptoInterceptor } from './crypto/payload-crypto.interceptor';
 
@@ -22,6 +23,7 @@ import { PayloadCryptoInterceptor } from './crypto/payload-crypto.interceptor';
     UsersModule,
     AdminModule,
     MasterTableModule,
+    OrganizationModule,
   ],
   providers: [
     {

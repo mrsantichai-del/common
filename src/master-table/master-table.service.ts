@@ -352,6 +352,166 @@ export class MasterTableService {
         };
       }
 
+      case 'orgunits':
+      case 'orgunit':
+      case 'org-unit': {
+        const where: any = search
+          ? {
+              OR: [
+                { code: { contains: search } },
+                { name: { contains: search } },
+                { nameEn: { contains: search } },
+              ],
+            }
+          : {};
+        if (query.category) where.type = query.category;
+
+        const [total, records] = await Promise.all([
+          this.prisma.orgUnit.count({ where }),
+          this.prisma.orgUnit.findMany({
+            where,
+            include: {
+              company: { select: { id: true, nameTh: true } },
+              parent: { select: { id: true, code: true, name: true, type: true } },
+              _count: { select: { children: true, positions: true } },
+            },
+            skip,
+            take: limit,
+            orderBy: [{ parentId: 'asc' }, { order: 'asc' }],
+          }),
+        ]);
+
+        return {
+          table: 'OrgUnit',
+          total,
+          page,
+          limit,
+          data: records.map((u) => ({
+            id: u.id,
+            code: u.code,
+            name: u.name,
+            nameEn: u.nameEn,
+            type: u.type,
+            order: u.order,
+            isActive: u.isActive,
+            companyId: u.companyId,
+            companyName: u.company ? u.company.nameTh : null,
+            parentId: u.parentId,
+            parentCode: u.parent ? u.parent.code : null,
+            parentName: u.parent ? u.parent.name : null,
+            childCount: u._count.children,
+            positionCount: u._count.positions,
+            createdAt: u.createdAt,
+            updatedAt: u.updatedAt,
+          })),
+        };
+      }
+
+      case 'jobs':
+      case 'job': {
+        const where: any = search
+          ? {
+              OR: [
+                { code: { contains: search } },
+                { title: { contains: search } },
+                { titleEn: { contains: search } },
+              ],
+            }
+          : {};
+
+        const [total, records] = await Promise.all([
+          this.prisma.job.count({ where }),
+          this.prisma.job.findMany({
+            where,
+            include: {
+              _count: { select: { positions: true } },
+            },
+            skip,
+            take: limit,
+            orderBy: [{ level: 'desc' }, { code: 'asc' }],
+          }),
+        ]);
+
+        return {
+          table: 'Job',
+          total,
+          page,
+          limit,
+          data: records.map((j) => ({
+            id: j.id,
+            code: j.code,
+            title: j.title,
+            titleEn: j.titleEn,
+            level: j.level,
+            summary: j.summary,
+            responsibilities: j.responsibilities,
+            qualifications: j.qualifications,
+            isActive: j.isActive,
+            positionCount: j._count.positions,
+            createdAt: j.createdAt,
+            updatedAt: j.updatedAt,
+          })),
+        };
+      }
+
+      case 'positions':
+      case 'position': {
+        const where: any = search
+          ? {
+              OR: [
+                { code: { contains: search } },
+                { title: { contains: search } },
+              ],
+            }
+          : {};
+
+        const [total, records] = await Promise.all([
+          this.prisma.position.count({ where }),
+          this.prisma.position.findMany({
+            where,
+            include: {
+              company: { select: { id: true, nameTh: true } },
+              orgUnit: { select: { id: true, code: true, name: true, type: true } },
+              job: { select: { id: true, code: true, title: true, level: true } },
+              reportsTo: { select: { id: true, code: true, title: true } },
+              users: { select: { id: true, username: true, employeeId: true } },
+            },
+            skip,
+            take: limit,
+            orderBy: [{ orgUnitId: 'asc' }, { isUnitHead: 'desc' }, { title: 'asc' }],
+          }),
+        ]);
+
+        return {
+          table: 'Position',
+          total,
+          page,
+          limit,
+          data: records.map((p) => ({
+            id: p.id,
+            code: p.code,
+            title: p.title,
+            isUnitHead: p.isUnitHead,
+            isActive: p.isActive,
+            companyId: p.companyId,
+            companyName: p.company ? p.company.nameTh : null,
+            orgUnitId: p.orgUnitId,
+            orgUnitCode: p.orgUnit ? p.orgUnit.code : null,
+            orgUnitName: p.orgUnit ? p.orgUnit.name : 'ระดับบริษัท (Company Level)',
+            orgUnitType: p.orgUnit ? p.orgUnit.type : null,
+            jobId: p.jobId,
+            jobCode: p.job ? p.job.code : null,
+            jobTitle: p.job ? p.job.title : null,
+            reportsToId: p.reportsToId,
+            reportsToCode: p.reportsTo ? p.reportsTo.code : null,
+            reportsToTitle: p.reportsTo ? p.reportsTo.title : null,
+            occupants: p.users.map((u) => u.username).join(', '),
+            createdAt: p.createdAt,
+            updatedAt: p.updatedAt,
+          })),
+        };
+      }
+
       default:
         throw new BadRequestException(`Unknown master table '${tableName}'`);
     }
@@ -391,6 +551,25 @@ export class MasterTableService {
         return this.prisma.menu.findUnique({
           where: { id },
           include: { permission: true, parent: true },
+        });
+      case 'orgunits':
+      case 'orgunit':
+      case 'org-unit':
+        return this.prisma.orgUnit.findUnique({
+          where: { id },
+          include: { company: true, parent: true, children: true, positions: true },
+        });
+      case 'jobs':
+      case 'job':
+        return this.prisma.job.findUnique({
+          where: { id },
+          include: { positions: true },
+        });
+      case 'positions':
+      case 'position':
+        return this.prisma.position.findUnique({
+          where: { id },
+          include: { company: true, orgUnit: true, job: true, reportsTo: true, users: true },
         });
       case 'auditlogs':
       case 'audit-logs':
@@ -658,6 +837,98 @@ export class MasterTableService {
         return { message: `Menu '${label}' successfully created`, id: menu.id };
       }
 
+      case 'orgunits':
+      case 'orgunit':
+      case 'org-unit': {
+        const { code, name, nameEn = null, type, order = 0, companyId, parentId = null, isActive = true } = payload;
+        if (!code || !name || !type) {
+          throw new BadRequestException('code, name, and type are required');
+        }
+        const existing = await this.prisma.orgUnit.findUnique({ where: { code } });
+        if (existing) throw new ConflictException(`OrgUnit with code '${code}' already exists`);
+
+        let resolvedCompanyId = companyId;
+        if (!resolvedCompanyId) {
+          const defComp = await this.prisma.company.findFirst({ where: { isDefault: true } });
+          if (!defComp) throw new BadRequestException('No company configured in system');
+          resolvedCompanyId = defComp.id;
+        }
+
+        const unit = await this.prisma.orgUnit.create({
+          data: {
+            code,
+            name,
+            nameEn,
+            type: type.toUpperCase(),
+            order: Number(order) || 0,
+            companyId: resolvedCompanyId,
+            parentId: parentId || null,
+            isActive: isActive !== undefined ? Boolean(isActive) : true,
+            createdById: userId || null,
+            updatedById: userId || null,
+          },
+        });
+        await this.logAudit('ORG_UNIT_CREATE', 'OrgUnit', `Created OrgUnit ${name} (${code})`, userId, unit.id);
+        return { message: `OrgUnit '${name}' successfully created`, id: unit.id };
+      }
+
+      case 'jobs':
+      case 'job': {
+        const { code, title, titleEn = null, level = 0, summary = null, responsibilities = null, qualifications = null, isActive = true } = payload;
+        if (!code || !title) throw new BadRequestException('code and title are required');
+        const existing = await this.prisma.job.findUnique({ where: { code } });
+        if (existing) throw new ConflictException(`Job with code '${code}' already exists`);
+
+        const job = await this.prisma.job.create({
+          data: {
+            code,
+            title,
+            titleEn,
+            level: Number(level) || 0,
+            summary,
+            responsibilities,
+            qualifications,
+            isActive: isActive !== undefined ? Boolean(isActive) : true,
+            createdById: userId || null,
+            updatedById: userId || null,
+          },
+        });
+        await this.logAudit('JOB_CREATE', 'Job', `Created Job Description ${title} (${code})`, userId, job.id);
+        return { message: `Job '${title}' successfully created`, id: job.id };
+      }
+
+      case 'positions':
+      case 'position': {
+        const { code, title, isUnitHead = false, companyId, orgUnitId = null, jobId, reportsToId = null, isActive = true } = payload;
+        if (!code || !title || !jobId) throw new BadRequestException('code, title, and jobId are required');
+        const existing = await this.prisma.position.findUnique({ where: { code } });
+        if (existing) throw new ConflictException(`Position with code '${code}' already exists`);
+
+        let resolvedCompanyId = companyId;
+        if (!resolvedCompanyId) {
+          const defComp = await this.prisma.company.findFirst({ where: { isDefault: true } });
+          if (!defComp) throw new BadRequestException('No company configured in system');
+          resolvedCompanyId = defComp.id;
+        }
+
+        const position = await this.prisma.position.create({
+          data: {
+            code,
+            title,
+            isUnitHead: Boolean(isUnitHead),
+            companyId: resolvedCompanyId,
+            orgUnitId: orgUnitId || null,
+            jobId,
+            reportsToId: reportsToId || null,
+            isActive: isActive !== undefined ? Boolean(isActive) : true,
+            createdById: userId || null,
+            updatedById: userId || null,
+          },
+        });
+        await this.logAudit('POSITION_CREATE', 'Position', `Created Position ${title} (${code})`, userId, position.id);
+        return { message: `Position '${title}' successfully created`, id: position.id };
+      }
+
       default:
         throw new BadRequestException(`Creation not supported on master table '${tableName}'`);
     }
@@ -851,6 +1122,70 @@ export class MasterTableService {
         return { message: `Menu '${menu.label}' successfully updated` };
       }
 
+      case 'orgunits':
+      case 'orgunit':
+      case 'org-unit': {
+        const unit = await this.prisma.orgUnit.findUnique({ where: { id } });
+        if (!unit) throw new NotFoundException('OrgUnit not found');
+
+        const updateData: any = { updatedById: userId || null };
+        if (payload.name !== undefined) updateData.name = payload.name;
+        if (payload.nameEn !== undefined) updateData.nameEn = payload.nameEn || null;
+        if (payload.type !== undefined) updateData.type = payload.type.toUpperCase();
+        if (payload.order !== undefined) updateData.order = Number(payload.order) || 0;
+        if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
+        if (payload.parentId !== undefined) updateData.parentId = payload.parentId || null;
+
+        if (updateData.parentId === id) {
+          throw new BadRequestException('Cannot set OrgUnit as its own parent');
+        }
+
+        await this.prisma.orgUnit.update({ where: { id }, data: updateData });
+        await this.logAudit('ORG_UNIT_UPDATE', 'OrgUnit', `Updated OrgUnit ${unit.name}`, userId, id, null, updateData);
+        return { message: `OrgUnit '${unit.name}' successfully updated` };
+      }
+
+      case 'jobs':
+      case 'job': {
+        const job = await this.prisma.job.findUnique({ where: { id } });
+        if (!job) throw new NotFoundException('Job description not found');
+
+        const updateData: any = { updatedById: userId || null };
+        if (payload.title !== undefined) updateData.title = payload.title;
+        if (payload.titleEn !== undefined) updateData.titleEn = payload.titleEn || null;
+        if (payload.level !== undefined) updateData.level = Number(payload.level) || 0;
+        if (payload.summary !== undefined) updateData.summary = payload.summary || null;
+        if (payload.responsibilities !== undefined) updateData.responsibilities = payload.responsibilities || null;
+        if (payload.qualifications !== undefined) updateData.qualifications = payload.qualifications || null;
+        if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
+
+        await this.prisma.job.update({ where: { id }, data: updateData });
+        await this.logAudit('JOB_UPDATE', 'Job', `Updated Job Description ${job.title}`, userId, id, null, updateData);
+        return { message: `Job '${job.title}' successfully updated` };
+      }
+
+      case 'positions':
+      case 'position': {
+        const position = await this.prisma.position.findUnique({ where: { id } });
+        if (!position) throw new NotFoundException('Position not found');
+
+        const updateData: any = { updatedById: userId || null };
+        if (payload.title !== undefined) updateData.title = payload.title;
+        if (payload.isUnitHead !== undefined) updateData.isUnitHead = Boolean(payload.isUnitHead);
+        if (payload.orgUnitId !== undefined) updateData.orgUnitId = payload.orgUnitId || null;
+        if (payload.jobId !== undefined) updateData.jobId = payload.jobId;
+        if (payload.reportsToId !== undefined) updateData.reportsToId = payload.reportsToId || null;
+        if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
+
+        if (updateData.reportsToId === id) {
+          throw new BadRequestException('Cannot set Position to report to itself');
+        }
+
+        await this.prisma.position.update({ where: { id }, data: updateData });
+        await this.logAudit('POSITION_UPDATE', 'Position', `Updated Position ${position.title}`, userId, id, null, updateData);
+        return { message: `Position '${position.title}' successfully updated` };
+      }
+
       default:
         throw new BadRequestException(`Update not supported on master table '${tableName}'`);
     }
@@ -925,6 +1260,58 @@ export class MasterTableService {
         await this.prisma.menu.delete({ where: { id } });
         await this.logAudit('MENU_DELETE', 'Menu', `Deleted menu: ${menu.label} (${menu.code})`, userId);
         return { message: `Menu '${menu.label}' deleted` };
+      }
+
+      case 'orgunits':
+      case 'orgunit':
+      case 'org-unit': {
+        const unit = await this.prisma.orgUnit.findUnique({
+          where: { id },
+          include: { _count: { select: { children: true, positions: true } } },
+        });
+        if (!unit) throw new NotFoundException('OrgUnit not found');
+        if (unit._count.children > 0) {
+          throw new ConflictException(`Cannot delete unit '${unit.name}' because it contains ${unit._count.children} child units`);
+        }
+        if (unit._count.positions > 0) {
+          throw new ConflictException(`Cannot delete unit '${unit.name}' because it has ${unit._count.positions} positions assigned`);
+        }
+        await this.prisma.orgUnit.delete({ where: { id } });
+        await this.logAudit('ORG_UNIT_DELETE', 'OrgUnit', `Deleted OrgUnit ${unit.name}`, userId);
+        return { message: `OrgUnit '${unit.name}' deleted` };
+      }
+
+      case 'jobs':
+      case 'job': {
+        const job = await this.prisma.job.findUnique({
+          where: { id },
+          include: { _count: { select: { positions: true } } },
+        });
+        if (!job) throw new NotFoundException('Job description not found');
+        if (job._count.positions > 0) {
+          throw new ConflictException(`Cannot delete Job '${job.title}' because it is assigned to ${job._count.positions} positions`);
+        }
+        await this.prisma.job.delete({ where: { id } });
+        await this.logAudit('JOB_DELETE', 'Job', `Deleted Job Description ${job.title}`, userId);
+        return { message: `Job '${job.title}' deleted` };
+      }
+
+      case 'positions':
+      case 'position': {
+        const position = await this.prisma.position.findUnique({
+          where: { id },
+          include: { _count: { select: { users: true, subordinates: true } } },
+        });
+        if (!position) throw new NotFoundException('Position not found');
+        if (position._count.users > 0) {
+          throw new ConflictException(`Cannot delete Position '${position.title}' because ${position._count.users} user(s) occupy it`);
+        }
+        if (position._count.subordinates > 0) {
+          throw new ConflictException(`Cannot delete Position '${position.title}' because ${position._count.subordinates} position(s) report to it`);
+        }
+        await this.prisma.position.delete({ where: { id } });
+        await this.logAudit('POSITION_DELETE', 'Position', `Deleted Position ${position.title}`, userId);
+        return { message: `Position '${position.title}' deleted` };
       }
 
       default:
@@ -1077,6 +1464,49 @@ export class MasterTableService {
         parentLabel: 'ชื่อเมนูหลัก (Parent Label)',
         permissionCode: 'สิทธิ์ที่จำเป็น (Permission Code)',
         permissionDesc: 'คำอธิบายสิทธิ์ (Permission Description)',
+        createdAt: 'วันที่สร้างในระบบ',
+        updatedAt: 'วันที่ปรับปรุงล่าสุด',
+      },
+      orgunit: {
+        code: 'รหัสหน่วยงาน (Code)',
+        name: 'ชื่อหน่วยงาน (Name)',
+        nameEn: 'ชื่อภาษาอังกฤษ (Name EN)',
+        type: 'ประเภท (Type: BRANCH/DIVISION/DEPARTMENT/SECTION)',
+        order: 'ลำดับ (Order)',
+        isActive: 'สถานะเปิดใช้งาน (Active)',
+        companyName: 'บริษัทที่สังกัด (Company)',
+        parentCode: 'รหัสสังกัดหลัก (Parent Code)',
+        parentName: 'ชื่อสังกัดหลัก (Parent Name)',
+        childCount: 'จำนวนหน่วยงานย่อย',
+        positionCount: 'จำนวนตำแหน่งงาน',
+        createdAt: 'วันที่สร้างในระบบ',
+        updatedAt: 'วันที่ปรับปรุงล่าสุด',
+      },
+      job: {
+        code: 'รหัสลักษณะงาน (Job Code)',
+        title: 'ชื่อลักษณะงาน (Title)',
+        titleEn: 'ชื่อภาษาอังกฤษ (Title EN)',
+        level: 'ระดับงาน (Level / Grade)',
+        summary: 'วัตถุประสงค์ของงาน (Summary)',
+        responsibilities: 'หน้าที่ความรับผิดชอบ (Responsibilities)',
+        qualifications: 'คุณสมบัติ (Qualifications)',
+        isActive: 'สถานะเปิดใช้งาน (Active)',
+        positionCount: 'จำนวนอัตราตำแหน่งงาน',
+        createdAt: 'วันที่สร้างในระบบ',
+        updatedAt: 'วันที่ปรับปรุงล่าสุด',
+      },
+      position: {
+        code: 'รหัสตำแหน่ง (Position Code)',
+        title: 'ชื่อตำแหน่ง (Position Title)',
+        isUnitHead: 'เป็นหัวหน้าหน่วยงาน',
+        isActive: 'สถานะเปิดใช้งาน (Active)',
+        companyName: 'บริษัทที่สังกัด (Company)',
+        orgUnitName: 'หน่วยงานสังกัด (OrgUnit)',
+        orgUnitType: 'ประเภทหน่วยงาน',
+        jobTitle: 'ลักษณะงาน (Job / JD)',
+        jobLevel: 'ระดับงาน (Level)',
+        reportsToTitle: 'ขึ้นตรงต่อตำแหน่ง (Reports To)',
+        occupants: 'ผู้ครองตำแหน่งปัจจุบัน',
         createdAt: 'วันที่สร้างในระบบ',
         updatedAt: 'วันที่ปรับปรุงล่าสุด',
       },
