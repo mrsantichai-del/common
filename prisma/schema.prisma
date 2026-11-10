@@ -19,6 +19,8 @@ model User {
   authoredDocs  Document[]  @relation("AuthorDocs")
   confirmedDocs Document[]  @relation("ConfirmedDocs")
   auditLogs     AuditLog[]
+  positionId    String?
+  position      Position?   @relation(fields: [positionId], references: [id], onDelete: SetNull)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
@@ -144,9 +146,70 @@ model Company {
   docFooterNotice  String?  // ข้อความท้ายเอกสาร
   isDefault        Boolean  @default(true) // เป็นบริษัทหลักหรือไม่
   isActive         Boolean  @default(true)
+  orgUnits         OrgUnit[]
+  positions        Position[]
   createdById      String?
   updatedById      String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model OrgUnit {
+  id          String     @id @default(uuid())
+  code        String     @unique // เช่น BR-HQ, DIV-ACC, DEP-ACC01
+  name        String // ชื่อภาษาไทย
+  nameEn      String?
+  type        String // BRANCH, DIVISION, DEPARTMENT, SECTION
+  order       Int        @default(0)
+  isActive    Boolean    @default(true)
+  companyId   String
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  parentId    String? // null = สาขา (ชั้นบนสุดใต้บริษัท)
+  parent      OrgUnit?   @relation("OrgTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    OrgUnit[]  @relation("OrgTree")
+  positions   Position[]
+  createdById String?
+  updatedById String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Job {
+  id               String     @id @default(uuid())
+  code             String     @unique // เช่น JOB-DIV-MGR, JOB-ACC-OFF
+  title            String // ผู้จัดการฝ่าย, เจ้าหน้าที่บัญชี
+  titleEn          String?
+  level            Int        @default(0) // ระดับ/Job Grade
+  summary          String? // วัตถุประสงค์ของงาน
+  responsibilities String? // หน้าที่ความรับผิดชอบ
+  qualifications   String? // คุณสมบัติ
+  isActive         Boolean    @default(true)
+  positions        Position[]
+  createdById      String?
+  updatedById      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+}
+
+model Position {
+  id           String     @id @default(uuid())
+  code         String     @unique // เช่น POS-0001
+  title        String // ผู้จัดการฝ่ายบัญชีและการเงิน
+  isUnitHead   Boolean    @default(false) // เป็นหัวหน้าของหน่วยงานนี้
+  isActive     Boolean    @default(true)
+  companyId    String
+  company      Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  orgUnitId    String? // null = ตำแหน่งระดับบริษัท (CEO)
+  orgUnit      OrgUnit?   @relation(fields: [orgUnitId], references: [id], onDelete: Restrict)
+  jobId        String
+  job          Job        @relation(fields: [jobId], references: [id], onDelete: Restrict)
+  reportsToId  String? // สายบังคับบัญชา
+  reportsTo    Position?  @relation("ReportLine", fields: [reportsToId], references: [id], onDelete: SetNull)
+  subordinates Position[] @relation("ReportLine")
+  users        User[]
+  createdById  String?
+  updatedById  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
