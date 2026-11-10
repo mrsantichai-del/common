@@ -10,10 +10,10 @@ const api = new ApiClient({
       : 'http://localhost:3000',
 });
 
-// Global Application Configuration & Asset Registry
+// Global Application Configuration & Asset Registry (Populated dynamically from DB)
 const APP_CONFIG = {
-  logoPath: '/assets/logo/logo.jpg',
-  companyName: 'PYLON PUBLIC COMPANY LIMITED',
+  logoPath: null,
+  companyName: null,
 };
 window.APP_CONFIG = APP_CONFIG;
 

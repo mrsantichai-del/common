@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -119,17 +119,10 @@ export class AuthService {
       },
     });
 
-    return (
-      company || {
-        nameTh: 'บริษัท ไพลอน จำกัด (มหาชน)',
-        nameEn: 'PYLON PUBLIC COMPANY LIMITED',
-        shortName: 'PYLON',
-        taxId: '0107548000451',
-        branchName: 'สำนักงานใหญ่',
-        logoUrl: '/assets/logo/logo.jpg',
-        docFooterNotice: 'ระบบลงชื่อเข้าใช้องค์กร (Corporate Identity Center)',
-      }
-    );
+    if (!company) {
+      throw new NotFoundException('Company profile not configured in database table');
+    }
+    return company;
   }
 
   async login(loginDto: LoginDto) {
@@ -231,11 +224,7 @@ export class AuthService {
         groups: groupNames,
         permissions: Array.from(permissionSet),
       },
-      company: defaultCompany || {
-        nameTh: 'บริษัท ไพลอน จำกัด (มหาชน)',
-        nameEn: 'PYLON PUBLIC COMPANY LIMITED',
-        logoUrl: '/assets/logo/logo.jpg',
-      },
+      company: defaultCompany || null,
     };
   }
 }
