@@ -383,9 +383,13 @@ function renderUnitCardTree(unit, depth = 0) {
 }
 
 function openEditFromOrgChart(tableName, id) {
-  // Switch to MasterData table tab and open edit modal
-  activeMasterTable = tableName;
-  navigateToMasterTable(tableName);
+  // Stay inside Organization menu context seamlessly
+  const subMap = {
+    orgunit: 'orgUnit',
+    job: 'job',
+    position: 'position',
+  };
+  navigateToOrganization(subMap[tableName] || 'orgUnit');
   setTimeout(() => {
     openEditMasterRecordModal(id);
   }, 200);

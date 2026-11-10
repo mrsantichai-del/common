@@ -21,6 +21,7 @@ window.APP_CONFIG = APP_CONFIG;
 let currentUser = null;
 let activeMenu = 'home';
 let activeMasterTable = 'company';
+let activeOrgSub = 'orgChart';
 let masterTableRawData = [];
 
 /**

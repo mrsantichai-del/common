@@ -48,17 +48,26 @@ function renderSidebarMenu(user) {
         const parentBtn = document.createElement('button');
         parentBtn.id = `sidebarBtn_${item.id}`;
         parentBtn.type = 'button';
-        parentBtn.onclick = () => navigateToMenu(item.id);
+        parentBtn.onclick = () => {
+          if (item.id === 'organization') {
+            navigateToOrganization(activeOrgSub || 'orgChart');
+          } else if (item.id === 'masterData') {
+            navigateToMasterTable(activeMasterTable || 'company');
+          } else {
+            navigateToMenu(item.id);
+          }
+        };
+
         parentBtn.className = isParentActive
-          ? 'w-full flex items-center justify-between px-3 py-2 rounded font-medium transition-colors text-white bg-blue-600 shadow-xs'
-          : 'w-full flex items-center justify-between px-3 py-2 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800';
+          ? 'w-full flex items-center justify-between px-3 py-2 rounded font-semibold text-xs transition-colors text-white bg-slate-800 shadow-xs border-l-2 border-blue-500'
+          : 'w-full flex items-center justify-between px-3 py-2 rounded font-medium text-xs transition-colors text-slate-400 hover:text-white hover:bg-slate-800';
 
         parentBtn.innerHTML = `
           <div class="flex items-center space-x-2.5 truncate">
             <span class="flex-shrink-0">${item.icon}</span>
             <span class="truncate">${item.label}</span>
           </div>
-          <svg class="w-3 h-3 text-slate-400 flex-shrink-0 transform ${isParentActive ? 'rotate-90 text-white' : ''} transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <svg class="w-3 h-3 ${isParentActive ? 'text-blue-400 rotate-90' : 'text-slate-500'} flex-shrink-0 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         `;
@@ -75,11 +84,7 @@ function renderSidebarMenu(user) {
           if (item.id === 'masterData') {
             isSubActive = isParentActive && activeMasterTable === sub.id.toLowerCase();
           } else if (item.id === 'organization') {
-            if (sub.id === 'orgChart') {
-              isSubActive = isParentActive && activeMenu === 'organization';
-            } else {
-              isSubActive = isParentActive && activeMasterTable === sub.id.toLowerCase();
-            }
+            isSubActive = isParentActive && (activeOrgSub === sub.id || (sub.id === 'orgChart' && !activeOrgSub));
           }
 
           const subBtn = document.createElement('button');
@@ -87,28 +92,20 @@ function renderSidebarMenu(user) {
           subBtn.type = 'button';
           subBtn.onclick = () => {
             if (item.id === 'organization') {
-              if (sub.id === 'orgChart') {
-                navigateToMenu('organization');
-              } else if (sub.id === 'orgUnit') {
-                navigateToMasterTable('orgunit');
-              } else if (sub.id === 'job') {
-                navigateToMasterTable('job');
-              } else if (sub.id === 'position') {
-                navigateToMasterTable('position');
-              } else {
-                navigateToMasterTable(sub.id);
-              }
+              navigateToOrganization(sub.id);
+            } else if (item.id === 'masterData') {
+              navigateToMasterTable(sub.id);
             } else {
               navigateToMasterTable(sub.id);
             }
           };
 
           subBtn.className = isSubActive
-            ? 'w-full flex items-center space-x-2 px-2.5 py-1.5 rounded text-[11px] font-medium transition-colors text-white bg-slate-800 border-l-2 border-blue-400 pl-2'
+            ? 'w-full flex items-center space-x-2 px-2.5 py-1.5 rounded text-[11px] font-semibold transition-colors text-white bg-blue-600 shadow-xs'
             : 'w-full flex items-center space-x-2 px-2.5 py-1.5 rounded text-[11px] transition-colors text-slate-400 hover:text-white hover:bg-slate-800/60';
 
           subBtn.innerHTML = `
-            <span class="w-1.5 h-1.5 rounded-full ${isSubActive ? 'bg-blue-400' : 'bg-slate-600'} flex-shrink-0"></span>
+            <span class="w-1.5 h-1.5 rounded-full ${isSubActive ? 'bg-white' : 'bg-slate-600'} flex-shrink-0"></span>
             <span class="truncate">${sub.label}</span>
           `;
 
@@ -124,8 +121,8 @@ function renderSidebarMenu(user) {
         btn.type = 'button';
         btn.onclick = () => navigateToMenu(item.id);
         btn.className = isParentActive
-          ? 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium transition-colors text-white bg-blue-600 shadow-xs'
-          : 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium transition-colors text-slate-400 hover:text-white hover:bg-slate-800';
+          ? 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-semibold text-xs transition-colors text-white bg-blue-600 shadow-xs'
+          : 'w-full flex items-center space-x-2.5 px-3 py-2 rounded font-medium text-xs transition-colors text-slate-400 hover:text-white hover:bg-slate-800';
 
         btn.innerHTML = `
           <span class="flex-shrink-0">${item.icon}</span>
@@ -139,6 +136,11 @@ function renderSidebarMenu(user) {
 }
 
 function navigateToMenu(menuId) {
+  if (menuId === 'organization') {
+    navigateToOrganization(activeOrgSub || 'orgChart');
+    return;
+  }
+
   activeMenu = menuId;
 
   // Refresh Sidebar styling
@@ -168,15 +170,6 @@ function navigateToMenu(menuId) {
     if (sectionOrgChart) sectionOrgChart.classList.add('hidden');
     if (sectionMasterData) sectionMasterData.classList.remove('hidden');
     switchMasterTable(activeMasterTable || 'user');
-  } else if (menuId === 'organization') {
-    if (pageTitle) pageTitle.textContent = 'ผังโครงสร้างองค์กร (Organization Structure)';
-    if (sectionHome) sectionHome.classList.add('hidden');
-    if (sectionPlaceholder) sectionPlaceholder.classList.add('hidden');
-    if (sectionMasterData) sectionMasterData.classList.add('hidden');
-    if (sectionOrgChart) sectionOrgChart.classList.remove('hidden');
-    if (typeof loadOrgChartData === 'function') {
-      loadOrgChartData();
-    }
   } else {
     const titleText = menuInfo ? menuInfo.label : menuId;
     if (pageTitle) pageTitle.textContent = titleText;
@@ -187,6 +180,55 @@ function navigateToMenu(menuId) {
       sectionPlaceholder.classList.remove('hidden');
       if (placeholderModuleTitle) placeholderModuleTitle.textContent = titleText;
     }
+  }
+}
+
+function navigateToOrganization(subId = 'orgChart') {
+  activeMenu = 'organization';
+  activeOrgSub = subId;
+
+  // Refresh Sidebar styling
+  if (currentUser) {
+    renderSidebarMenu(currentUser);
+  }
+
+  const pageTitle = document.getElementById('pageTitle');
+  const sectionHome = document.getElementById('sectionHome');
+  const sectionPlaceholder = document.getElementById('sectionPlaceholder');
+  const sectionMasterData = document.getElementById('sectionMasterData');
+  const sectionOrgChart = document.getElementById('sectionOrgChart');
+
+  if (sectionHome) sectionHome.classList.add('hidden');
+  if (sectionPlaceholder) sectionPlaceholder.classList.add('hidden');
+
+  if (subId === 'orgChart') {
+    if (pageTitle) pageTitle.textContent = 'โครงสร้างองค์กร > ผังโครงสร้างองค์กร (Org Chart)';
+    if (sectionMasterData) sectionMasterData.classList.add('hidden');
+    if (sectionOrgChart) sectionOrgChart.classList.remove('hidden');
+    if (typeof loadOrgChartData === 'function') {
+      loadOrgChartData();
+    }
+  } else {
+    const tableMap = {
+      orgUnit: 'orgunit',
+      orgunit: 'orgunit',
+      job: 'job',
+      position: 'position',
+    };
+    const targetTable = tableMap[subId] || 'orgunit';
+    const titleMap = {
+      orgunit: 'โครงสร้างองค์กร > สาขา ฝ่าย แผนก (Org Units)',
+      job: 'โครงสร้างองค์กร > ลักษณะงานมาตรฐาน (Job / JD)',
+      position: 'โครงสร้างองค์กร > ตำแหน่งงาน (Positions)',
+    };
+
+    if (pageTitle) {
+      pageTitle.textContent = titleMap[targetTable] || 'โครงสร้างองค์กร (Organization)';
+    }
+
+    if (sectionOrgChart) sectionOrgChart.classList.add('hidden');
+    if (sectionMasterData) sectionMasterData.classList.remove('hidden');
+    switchMasterTable(targetTable);
   }
 }
 
