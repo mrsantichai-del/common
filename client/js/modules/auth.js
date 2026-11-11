@@ -118,6 +118,10 @@ async function handleLoginSubmit(event) {
       ? `${loginUser.username}${loginUser.employeeId ? ` (รหัส: ${loginUser.employeeId})` : ''}`
       : username;
     showToast(`เข้าสู่ระบบสำเร็จ: ${displayName}`, 'success');
+    const now = Date.now();
+    localStorage.setItem(SESSION_SECURITY_CONFIG.KEY_LOGIN_TIME, String(now));
+    localStorage.setItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE, String(now));
+    startSessionMonitor();
     await refreshAuthStatus();
   } catch (err) {
     console.error('Login failed:', err);
@@ -135,6 +139,9 @@ async function handleLoginSubmit(event) {
 }
 
 function handleLogout() {
+  stopSessionMonitor();
+  localStorage.removeItem(SESSION_SECURITY_CONFIG.KEY_LOGIN_TIME);
+  localStorage.removeItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE);
   api.auth.logout();
   currentUser = null;
   activeMenu = 'home';
@@ -155,6 +162,7 @@ async function refreshAuthStatus() {
   const viewApp = document.getElementById('viewApp');
 
   if (!api.isAuthenticated()) {
+    stopSessionMonitor();
     currentUser = null;
     if (viewLogin) viewLogin.classList.remove('hidden');
     if (viewApp) viewApp.classList.add('hidden');
@@ -198,13 +206,125 @@ async function refreshAuthStatus() {
     // Default to Home View for every user role
     navigateToMenu(activeMenu || 'home');
 
+    // Start Dual-Tier Session Security Monitor (1hr Idle / 8hr Hard Expiry)
+    startSessionMonitor();
+
     return user;
   } catch (err) {
     console.error('Session validation failed:', err);
+    stopSessionMonitor();
     api.auth.logout();
     currentUser = null;
     if (viewLogin) viewLogin.classList.remove('hidden');
     if (viewApp) viewApp.classList.add('hidden');
     return null;
+  }
+}
+
+// --------------------------------------------------------------------------
+// Enterprise Dual-Tier Session Security Policy:
+// 1. Idle Timeout (1 hr without mouse/keyboard activity)
+// 2. Hard Expiry  (8 hrs maximum session lifetime from login)
+// --------------------------------------------------------------------------
+const SESSION_SECURITY_CONFIG = {
+  IDLE_TIMEOUT_MS: 60 * 60 * 1000,      // 1 hour (60 minutes)
+  HARD_TIMEOUT_MS: 8 * 60 * 60 * 1000,  // 8 hours
+  CHECK_INTERVAL_MS: 15 * 1000,         // Evaluates policy every 15 seconds
+  ACTIVITY_THROTTLE_MS: 5 * 1000,       // Throttles writing last active to 5 seconds
+  KEY_LAST_ACTIVE: 'app_session_last_active',
+  KEY_LOGIN_TIME: 'app_session_login_time',
+};
+
+let _sessionMonitorTimer = null;
+let _lastActivityRecordTime = 0;
+
+function startSessionMonitor() {
+  stopSessionMonitor();
+
+  const now = Date.now();
+  if (!localStorage.getItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE)) {
+    localStorage.setItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE, String(now));
+  }
+  if (!localStorage.getItem(SESSION_SECURITY_CONFIG.KEY_LOGIN_TIME)) {
+    localStorage.setItem(SESSION_SECURITY_CONFIG.KEY_LOGIN_TIME, String(now));
+  }
+
+  // Monitor mouse movement, clicks, keystrokes, touch, and scrolling
+  const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+  events.forEach((evt) => {
+    window.addEventListener(evt, recordUserActivity, { passive: true });
+  });
+
+  _sessionMonitorTimer = setInterval(evaluateSessionPolicy, SESSION_SECURITY_CONFIG.CHECK_INTERVAL_MS);
+}
+
+function stopSessionMonitor() {
+  if (_sessionMonitorTimer) {
+    clearInterval(_sessionMonitorTimer);
+    _sessionMonitorTimer = null;
+  }
+  const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+  events.forEach((evt) => {
+    window.removeEventListener(evt, recordUserActivity);
+  });
+}
+
+function recordUserActivity() {
+  const now = Date.now();
+  if (now - _lastActivityRecordTime > SESSION_SECURITY_CONFIG.ACTIVITY_THROTTLE_MS) {
+    _lastActivityRecordTime = now;
+    if (api && api.isAuthenticated()) {
+      localStorage.setItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE, String(now));
+    }
+  }
+}
+
+function evaluateSessionPolicy() {
+  if (!api || !api.isAuthenticated()) {
+    stopSessionMonitor();
+    return;
+  }
+
+  const now = Date.now();
+  const rawLastActive = localStorage.getItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE);
+  const rawLoginTime = localStorage.getItem(SESSION_SECURITY_CONFIG.KEY_LOGIN_TIME);
+
+  const lastActive = rawLastActive ? parseInt(rawLastActive, 10) : now;
+  const loginTime = rawLoginTime ? parseInt(rawLoginTime, 10) : now;
+
+  // 1. Check Idle / Inactivity Timeout (1 hour)
+  const idleElapsed = now - lastActive;
+  if (idleElapsed >= SESSION_SECURITY_CONFIG.IDLE_TIMEOUT_MS) {
+    console.warn(`[Security] Session Idle Timeout triggered (${Math.round(idleElapsed / 60000)} mins inactive)`);
+    handleSessionExpired('เซสชันหมดอายุเนื่องจากไม่มีการใช้งานหน้าจอเกิน 1 ชั่วโมง (Idle Timeout)');
+    return;
+  }
+
+  // 2. Check Absolute Hard Lifetime (8 hours)
+  const totalElapsed = now - loginTime;
+  if (totalElapsed >= SESSION_SECURITY_CONFIG.HARD_TIMEOUT_MS) {
+    console.warn(`[Security] Maximum Session Lifetime reached (${Math.round(totalElapsed / 3600000)} hrs elapsed)`);
+    handleSessionExpired('เซสชันหมดอายุเนื่องจากเข้าใช้งานครบ 8 ชั่วโมงตามนโยบายความปลอดภัย (Maximum Lifetime)');
+    return;
+  }
+}
+
+function handleSessionExpired(reasonMessage) {
+  stopSessionMonitor();
+  localStorage.removeItem(SESSION_SECURITY_CONFIG.KEY_LAST_ACTIVE);
+  localStorage.removeItem(SESSION_SECURITY_CONFIG.KEY_LOGIN_TIME);
+
+  if (typeof api !== 'undefined' && api.auth) {
+    api.auth.logout();
+  }
+  currentUser = null;
+
+  const viewLogin = document.getElementById('viewLogin');
+  const viewApp = document.getElementById('viewApp');
+  if (viewApp) viewApp.classList.add('hidden');
+  if (viewLogin) viewLogin.classList.remove('hidden');
+
+  if (typeof showToast === 'function') {
+    showToast(reasonMessage || 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่', 'warning');
   }
 }

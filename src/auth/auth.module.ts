@@ -17,7 +17,7 @@ import { GroupsGuard } from './guards/groups.guard';
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET', 'super-secret-jwt-key-change-in-production'),
         signOptions: {
-          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '1d') as any,
+          expiresIn: (configService.get<string>('JWT_EXPIRES_IN') || '8h') as any,
         },
       }),
     }),
