@@ -52,6 +52,7 @@ async function loadAllComponents() {
     loadComponent('#sectionOrgChart', '/views/view-org-chart.html'),
     loadComponent('#modalMasterForm', '/views/modal-master-form.html'),
     loadComponent('#modalCompanyPrintPreview', '/views/modal-company-print.html'),
+    loadComponent('#modalJobPrintPreview', '/views/modal-job-print.html'),
   ]);
 }
 

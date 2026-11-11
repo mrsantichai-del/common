@@ -547,20 +547,29 @@ function renderMasterTable(records) {
                 <td class="p-3 text-center text-slate-400 text-xs">${i + 1}</td>
                 <td class="p-3 text-blue-700 font-mono font-bold">${j.code}</td>
                 <td class="p-3">
-                  <div class="font-semibold text-slate-900">${j.titleTh}</div>
+                  <div class="font-semibold text-slate-900">${j.title || j.titleTh || '-'}</div>
                   <div class="text-[11px] text-slate-500 font-sans">${j.titleEn || '-'}</div>
                 </td>
                 <td class="p-3">${levelBadge}</td>
                 <td class="p-3 font-sans text-xs">${quotaDisplay}</td>
-                <td class="p-3 text-slate-600 font-sans text-xs max-w-xs truncate" title="${j.description || ''}">
-                  ${j.description || '<span class="text-slate-400 italic">-</span>'}
+                <td class="p-3 text-slate-600 font-sans text-xs max-w-xs truncate" title="${j.summary || j.responsibilities || j.description || ''}">
+                  ${j.summary || j.responsibilities || j.description || '<span class="text-slate-400 italic">-</span>'}
                 </td>
                 <td class="p-3">${statusBadge}</td>
                 <td class="p-3 text-right font-sans space-x-1.5 whitespace-nowrap">
+                  <button 
+                    type="button" 
+                    onclick="openJobPrintPreview('${j.id}')" 
+                    class="px-2.5 py-1 text-[11px] font-semibold rounded bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 cursor-pointer inline-flex items-center space-x-1 shadow-2xs"
+                    title="พิมพ์เอกสารกำหนดหน้าที่ความรับผิดชอบและคุณสมบัติ (ISO 9001 Job Description)"
+                  >
+                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                    <span>พิมพ์ ISO</span>
+                  </button>
                   <button type="button" onclick="openEditMasterRecordModal('${j.id}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 cursor-pointer">
                     แก้ไข
                   </button>
-                  <button type="button" onclick="deleteMasterRecord('${j.id}', '${j.titleTh}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
+                  <button type="button" onclick="deleteMasterRecord('${j.id}', '${escapeJs(j.title || j.titleTh || j.code)}')" class="px-2 py-1 text-[11px] rounded bg-white hover:bg-rose-50 border border-rose-200 text-rose-600 cursor-pointer">
                     ลบ
                   </button>
                 </td>
@@ -2071,75 +2080,120 @@ async function renderMasterFormFields(container, table, existing) {
 
     case 'job': {
       const jobLevel = existing ? existing.level : 'OFFICER';
+      const existingTitle = existing ? (existing.title || existing.titleTh || '') : '';
+      const existingSummary = existing ? (existing.summary || existing.description || '') : '';
+      const existingResp = existing ? (existing.responsibilities || existing.description || '') : '';
+      const existingQual = existing && existing.qualifications ? existing.qualifications : '';
 
       container.innerHTML = `
+        <!-- ISO 9001 Quality Notice Banner -->
+        <div class="bg-indigo-50/70 p-3 rounded-lg border border-indigo-200/80 text-xs text-indigo-950 flex items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <div>
+              <span class="font-bold">ข้อมูลกำหนดลักษณะงานมาตรฐาน (ISO 9001:2015 Clause 7.2 Competence)</span>
+              <p class="text-[11px] text-slate-600 mt-0.5">ข้อมูลในฟอร์มนี้จะถูกแปลงเป็นแบบฟอร์มเอกสารควบคุมคุณภาพ พร้อมพิมพ์/ส่งออกรองรับการตรวจสอบโดยผู้ตรวจประเมินภายนอก (External Audit)</p>
+            </div>
+          </div>
+          ${existing && existing.id ? `
+            <button 
+              type="button" 
+              onclick="openJobPrintPreview('${existing.id}')" 
+              class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors flex items-center space-x-1 flex-shrink-0 cursor-pointer shadow-xs"
+              title="ดูตัวอย่างแบบฟอร์มเอกสาร ISO และสั่งพิมพ์"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+              <span>ดูเอกสาร ISO</span>
+            </button>
+          ` : ''}
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสลักษณะงาน (Job Code) <span class="text-rose-500">*</span></label>
             <input 
               type="text" 
               id="f_job_code" 
-              value="${existing ? existing.code : ''}" 
-              ${existing ? 'readonly' : 'required'}
-              placeholder="เช่น JOB-CEO, JOB-MGR, JOB-OFFICER" 
-              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+              value="${existing && existing.id ? existing.code : (existing && existing.code ? existing.code : '')}" 
+              ${existing && existing.id ? 'readonly' : 'required'}
+              placeholder="เช่น JOB-CEO, JOB-DIV-MGR, JOB-OFFICER" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing && existing.id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white font-bold text-slate-900'}"
             >
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับงาน (Job Level) <span class="text-rose-500">*</span></label>
-            <select id="f_job_level" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold focus:ring-1 focus:ring-slate-900 outline-none bg-white">
-              <option value="EXECUTIVE" ${jobLevel === 'EXECUTIVE' ? 'selected' : ''}>ผู้บริหารระดับสูง (EXECUTIVE)</option>
-              <option value="MANAGER" ${jobLevel === 'MANAGER' ? 'selected' : ''}>ผู้จัดการ (MANAGER)</option>
-              <option value="SUPERVISOR" ${jobLevel === 'SUPERVISOR' ? 'selected' : ''}>หัวหน้างาน (SUPERVISOR)</option>
-              <option value="SPECIALIST" ${jobLevel === 'SPECIALIST' ? 'selected' : ''}>ผู้เชี่ยวชาญ (SPECIALIST)</option>
-              <option value="OFFICER" ${jobLevel === 'OFFICER' ? 'selected' : ''}>เจ้าหน้าที่ (OFFICER)</option>
-              <option value="OPERATIONAL" ${jobLevel === 'OPERATIONAL' ? 'selected' : ''}>ปฏิบัติการ (OPERATIONAL)</option>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ระดับตำแหน่งงาน (Job Level) <span class="text-rose-500">*</span></label>
+            <select id="f_job_level" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer">
+              <option value="EXECUTIVE" ${jobLevel === 'EXECUTIVE' || jobLevel === 10 || jobLevel === '10' ? 'selected' : ''}>ผู้บริหารระดับสูง (EXECUTIVE)</option>
+              <option value="MANAGER" ${jobLevel === 'MANAGER' || jobLevel === 8 || jobLevel === 7 || jobLevel === '8' || jobLevel === '7' ? 'selected' : ''}>ผู้จัดการ (MANAGER)</option>
+              <option value="SUPERVISOR" ${jobLevel === 'SUPERVISOR' || jobLevel === 5 || jobLevel === '5' ? 'selected' : ''}>หัวหน้างาน (SUPERVISOR)</option>
+              <option value="SPECIALIST" ${jobLevel === 'SPECIALIST' || jobLevel === 4 || jobLevel === '4' ? 'selected' : ''}>ผู้เชี่ยวชาญ (SPECIALIST)</option>
+              <option value="OFFICER" ${jobLevel === 'OFFICER' || jobLevel === 2 || jobLevel === '2' ? 'selected' : ''}>เจ้าหน้าที่ (OFFICER)</option>
+              <option value="OPERATIONAL" ${jobLevel === 'OPERATIONAL' || jobLevel === 1 || jobLevel === '1' ? 'selected' : ''}>ปฏิบัติการ (OPERATIONAL)</option>
             </select>
           </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อตำแหน่งงานภาษาไทย (Title TH) <span class="text-rose-500">*</span></label>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อลักษณะงานภาษาไทย (Job Title TH) <span class="text-rose-500">*</span></label>
             <input 
               type="text" 
               id="f_job_titleTh" 
-              value="${existing ? existing.titleTh : ''}" 
+              value="${existingTitle}" 
               required
               placeholder="เช่น ผู้จัดการฝ่าย, เจ้าหน้าที่บัญชี" 
-              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold text-slate-900 focus:ring-1 focus:ring-slate-900 outline-none bg-white"
             >
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อตำแหน่งงานภาษาอังกฤษ (Title EN)</label>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">ชื่อลักษณะงานภาษาอังกฤษ (Job Title EN)</label>
             <input 
               type="text" 
               id="f_job_titleEn" 
               value="${existing && existing.titleEn ? existing.titleEn : ''}" 
               placeholder="เช่น Division Manager, Accountant" 
-              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-slate-900 outline-none bg-white"
             >
           </div>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">คำอธิบายลักษณะงาน (Job Description / Scope of Work)</label>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            วัตถุประสงค์หลักของตำแหน่งงาน (Job Purpose / Objective)
+            <span class="text-[10px] text-slate-400 font-normal">บทบาทความสำคัญในระบบคุณภาพ</span>
+          </label>
           <textarea 
-            id="f_job_description" 
-            rows="3" 
-            placeholder="สรุปขอบเขตหน้าที่ความรับผิดชอบ และเป้าหมายของงาน..." 
-            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
-          >${existing && existing.description ? existing.description : ''}</textarea>
+            id="f_job_summary" 
+            rows="2" 
+            placeholder="สรุปวัตถุประสงค์และเป้าหมายหลักของการมีตำแหน่งนี้ในระบบบริหารคุณภาพ..." 
+            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white leading-relaxed"
+          >${existingSummary}</textarea>
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">คุณสมบัติประจำตำแหน่ง (Job Qualifications / Skills)</label>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            หน้าที่และความรับผิดชอบหลักตามระบบ ISO (Key Responsibilities & Scope of Work) <span class="text-rose-500">*</span>
+            <span class="text-[10px] text-slate-400 font-normal">แยกเป็นข้อๆ เช่น 1. 2. 3.</span>
+          </label>
+          <textarea 
+            id="f_job_responsibilities" 
+            rows="4" 
+            placeholder="1. ปฏิบัติงานตามขั้นตอนการปฏิบัติงาน (SOP/WI) ที่กำหนด&#10;2. ตรวจสอบความถูกต้องและจัดทำเอกสารคุณภาพตามมาตรฐาน ISO 9001&#10;3. รายงานผลการดำเนินงานและข้อบกพร่องต่อผู้บังคับบัญชา..." 
+            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white font-sans leading-relaxed"
+          >${existingResp}</textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">
+            คุณสมบัติและความสามารถประจำตำแหน่ง (Job Specification & Competencies - ISO 7.2)
+            <span class="text-[10px] text-slate-400 font-normal">วุฒิการศึกษา, ประสบการณ์, ทักษะ, และการฝึกอบรม</span>
+          </label>
           <textarea 
             id="f_job_qualifications" 
-            rows="2" 
-            placeholder="วุฒิการศึกษา ประสบการณ์ หรือทักษะที่จำเป็น..." 
-            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white"
-          >${existing && existing.qualifications ? existing.qualifications : ''}</textarea>
+            rows="3" 
+            placeholder="• วุฒิการศึกษา: ปริญญาตรีขึ้นไปในสาขาที่เกี่ยวข้อง&#10;• ประสบการณ์: มีประสบการณ์ในสายงานอย่างน้อย 1-3 ปี&#10;• การฝึกอบรมตามมาตรฐาน ISO: ผ่านการฝึกอบรมข้อกำหนด ISO 9001:2015" 
+            class="w-full px-3 py-2 rounded border border-slate-300 text-xs focus:ring-1 focus:ring-slate-900 outline-none bg-white font-sans leading-relaxed"
+          >${existingQual}</textarea>
         </div>
 
         <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
@@ -2590,10 +2644,12 @@ async function handleMasterFormSubmit(event) {
       if (!recordId) {
         payload.code = document.getElementById('f_job_code').value.trim().toUpperCase();
       }
-      payload.titleTh = document.getElementById('f_job_titleTh').value.trim();
+      payload.title = document.getElementById('f_job_titleTh').value.trim();
+      payload.titleTh = payload.title;
       payload.titleEn = document.getElementById('f_job_titleEn')?.value.trim() || null;
       payload.level = document.getElementById('f_job_level')?.value || 'OFFICER';
-      payload.description = document.getElementById('f_job_description')?.value.trim() || null;
+      payload.summary = document.getElementById('f_job_summary')?.value.trim() || null;
+      payload.responsibilities = document.getElementById('f_job_responsibilities')?.value.trim() || null;
       payload.qualifications = document.getElementById('f_job_qualifications')?.value.trim() || null;
       payload.isActive = Boolean(document.getElementById('f_job_isActive')?.checked);
       break;

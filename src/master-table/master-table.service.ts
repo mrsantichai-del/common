@@ -615,7 +615,16 @@ export class MasterTableService {
       case 'job':
         return this.prisma.job.findUnique({
           where: { id },
-          include: { positions: true },
+          include: {
+            positions: {
+              where: { isActive: true },
+              include: {
+                company: true,
+                orgUnit: true,
+                users: { select: { id: true, username: true, employeeId: true } },
+              },
+            },
+          },
         });
       case 'positions':
       case 'position':
@@ -927,18 +936,19 @@ export class MasterTableService {
 
       case 'jobs':
       case 'job': {
-        const { code, title, titleEn = null, level = 0, summary = null, responsibilities = null, qualifications = null, isActive = true } = payload;
-        if (!code || !title) throw new BadRequestException('code and title are required');
+        const { code, title, titleTh, titleEn = null, level = 0, summary = null, description = null, responsibilities = null, qualifications = null, isActive = true } = payload;
+        const finalTitle = title || titleTh;
+        if (!code || !finalTitle) throw new BadRequestException('code and title (titleTh) are required');
         const existing = await this.prisma.job.findUnique({ where: { code } });
         if (existing) throw new ConflictException(`Job with code '${code}' already exists`);
 
         const job = await this.prisma.job.create({
           data: {
             code,
-            title,
+            title: finalTitle,
             titleEn,
             level: Number(level) || 0,
-            summary,
+            summary: summary || description,
             responsibilities,
             qualifications,
             isActive: isActive !== undefined ? Boolean(isActive) : true,
@@ -946,8 +956,8 @@ export class MasterTableService {
             updatedById: userId || null,
           },
         });
-        await this.logAudit('JOB_CREATE', 'Job', `Created Job Description ${title} (${code})`, userId, job.id);
-        return { message: `Job '${title}' successfully created`, id: job.id };
+        await this.logAudit('JOB_CREATE', 'Job', `Created Job Description ${finalTitle} (${code})`, userId, job.id);
+        return { message: `Job '${finalTitle}' successfully created`, id: job.id };
       }
 
       case 'positions':
@@ -1211,9 +1221,14 @@ export class MasterTableService {
 
         const updateData: any = { updatedById: userId || null };
         if (payload.title !== undefined) updateData.title = payload.title;
+        else if (payload.titleTh !== undefined) updateData.title = payload.titleTh;
+
         if (payload.titleEn !== undefined) updateData.titleEn = payload.titleEn || null;
         if (payload.level !== undefined) updateData.level = Number(payload.level) || 0;
+        
         if (payload.summary !== undefined) updateData.summary = payload.summary || null;
+        else if (payload.description !== undefined) updateData.summary = payload.description || null;
+
         if (payload.responsibilities !== undefined) updateData.responsibilities = payload.responsibilities || null;
         if (payload.qualifications !== undefined) updateData.qualifications = payload.qualifications || null;
         if (payload.isActive !== undefined) updateData.isActive = Boolean(payload.isActive);
