@@ -141,6 +141,14 @@ class ApiClient {
       }
 
       if (!response.ok) {
+        if (response.status === 401 && endpoint !== '/auth/login') {
+          if (typeof showToast === 'function') {
+            showToast('เซสชันการใช้งานหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง', 'warning');
+          }
+          if (typeof refreshAuthStatus === 'function') {
+            setTimeout(() => refreshAuthStatus(), 1200);
+          }
+        }
         const error = new Error(payload.message || 'API request failed');
         error.status = response.status;
         error.data = payload;
