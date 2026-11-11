@@ -359,7 +359,10 @@ export class OrganizationService {
   async findOneJob(id: string) {
     const job = await this.prisma.job.findUnique({
       where: { id },
-      include: { positions: { include: { orgUnit: true, users: true } } },
+      include: {
+        positions: { include: { orgUnit: true, users: true } },
+        documents: { orderBy: { createdAt: 'desc' } },
+      },
     });
     if (!job) throw new NotFoundException('Job description not found');
     return job;
@@ -423,6 +426,123 @@ export class OrganizationService {
     await this.prisma.job.delete({ where: { id } });
     await this.logAudit('JOB_DELETE', 'Job', `Deleted Job Description ${job.title} (${job.code})`, userId);
     return { message: `Job '${job.title}' deleted` };
+  }
+
+  // --------------------------------------------------------------------------
+  // 3.1 Job Documents & Revisions (เอกสารฉบับลงนาม & ประวัติเวอร์ชัน ISO 9001)
+  // --------------------------------------------------------------------------
+  async getJobDocuments(jobId: string) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Job description not found');
+
+    return this.prisma.jobDocument.findMany({
+      where: { jobId },
+      orderBy: [{ revisionNo: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async uploadJobDocument(
+    jobId: string,
+    file: any,
+    meta: { revisionNo?: string; effectiveDate?: string; note?: string },
+    userId?: string,
+  ) {
+    const job = await this.prisma.job.findUnique({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Job description not found');
+
+    if (!file) {
+      throw new BadRequestException('File is required');
+    }
+
+    // Default revision: if not provided, find latest revision and auto increment
+    let revisionNo = meta.revisionNo?.trim();
+    if (!revisionNo) {
+      const latest = await this.prisma.jobDocument.findFirst({
+        where: { jobId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (latest && !isNaN(Number(latest.revisionNo))) {
+        const nextRev = Number(latest.revisionNo) + 1;
+        revisionNo = String(nextRev).padStart(2, '0');
+      } else {
+        revisionNo = '00';
+      }
+    }
+
+    // Decode original filename if needed
+    let originalName = file.originalname;
+    try {
+      originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+    } catch {
+      originalName = file.originalname;
+    }
+
+    const doc = await this.prisma.jobDocument.create({
+      data: {
+        jobId,
+        revisionNo,
+        fileName: originalName,
+        filePath: file.path.replace(/\\/g, '/'),
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        effectiveDate: meta.effectiveDate ? new Date(meta.effectiveDate) : null,
+        note: meta.note?.trim() || null,
+        uploadedById: userId || null,
+      },
+    });
+
+    await this.logAudit(
+      'JOB_DOCUMENT_UPLOAD',
+      'JobDocument',
+      `Uploaded signed document Rev. ${revisionNo} (${doc.fileName}) for Job ${job.title} (${job.code})`,
+      userId,
+      doc.id,
+      null,
+      { revisionNo, fileName: doc.fileName, fileSize: doc.fileSize },
+    );
+
+    return {
+      message: `บันทึกเอกสารฉบับลงนาม Rev. ${revisionNo} เรียบร้อยแล้ว`,
+      document: doc,
+    };
+  }
+
+  async getJobDocument(docId: string) {
+    const doc = await this.prisma.jobDocument.findUnique({
+      where: { id: docId },
+      include: { job: true },
+    });
+    if (!doc) throw new NotFoundException('Job document not found');
+    return doc;
+  }
+
+  async deleteJobDocument(docId: string, userId?: string) {
+    const doc = await this.prisma.jobDocument.findUnique({
+      where: { id: docId },
+      include: { job: true },
+    });
+    if (!doc) throw new NotFoundException('Job document not found');
+
+    try {
+      const fs = await import('fs');
+      if (fs.existsSync(doc.filePath)) {
+        fs.unlinkSync(doc.filePath);
+      }
+    } catch (e) {
+      console.warn(`[DeleteJobDocument] Failed to unlink file ${doc.filePath}:`, e.message);
+    }
+
+    await this.prisma.jobDocument.delete({ where: { id: docId } });
+    await this.logAudit(
+      'JOB_DOCUMENT_DELETE',
+      'JobDocument',
+      `Deleted document Rev. ${doc.revisionNo} (${doc.fileName}) of Job ${doc.job?.title}`,
+      userId,
+      docId,
+      { fileName: doc.fileName, revisionNo: doc.revisionNo },
+    );
+
+    return { message: `ลบเอกสาร Rev. ${doc.revisionNo} เรียบร้อยแล้ว` };
   }
 
   // --------------------------------------------------------------------------

@@ -34,6 +34,16 @@ async function openJobPrintPreview(jobId) {
     console.warn('Could not load company for job print:', e);
   }
 
+  // ดึงเอกสารฉบับลงนามและประวัติเวอร์ชัน (Signed Copies / ISO Revisions)
+  let documents = [];
+  try {
+    const docRes = await api.organization.getJobDocuments(jobId);
+    documents = Array.isArray(docRes) ? docRes : (docRes?.data || []);
+  } catch (e) {
+    console.warn('Could not load job documents for print preview:', e);
+  }
+  job.documents = documents;
+
   currentPreviewJob = job;
   currentPreviewJobCompany = company;
 
@@ -91,8 +101,38 @@ function renderJobPrintDocumentHtml(job, company) {
     day: 'numeric',
   });
 
+  // ตรวจสอบเอกสารฉบับลงนามล่าสุด (Latest Signed Physical Copy)
+  const docs = Array.isArray(job.documents) ? job.documents : [];
+  const latestDoc = docs.length > 0 ? docs[0] : null;
+  const docRevisionNo = latestDoc ? latestDoc.revisionNo : '00';
+  const docEffectiveDate = latestDoc && latestDoc.effectiveDate
+    ? new Date(latestDoc.effectiveDate).toLocaleDateString('th-TH')
+    : '01/01/2569';
+
   return `
     <div class="job-iso-document text-slate-900 font-sans">
+      ${latestDoc ? `
+        <!-- Audit Evidence Badge (แสดงเฉพาะบนหน้าจอ ไม่พิมพ์ออกกระดาษ) -->
+        <div class="mb-3 p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between no-print shadow-2xs">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+            <div>
+              <span class="font-bold">หลักฐานเอกสารฉบับลงนามสมบูรณ์: Rev. ${latestDoc.revisionNo} (${latestDoc.fileName})</span>
+              <span class="text-[11px] text-emerald-700 ml-1">• บังคับใช้เมื่อ: ${docEffectiveDate}</span>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onclick="openJobDocumentPreview('${latestDoc.id}', '${escapeJs(latestDoc.fileName)}')" 
+            class="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] flex items-center space-x-1 cursor-pointer shadow-2xs"
+            title="เปิดดูไฟล์สแกนฉบับลงนามตัวจริงสำหรับ External Audit"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            <span>เปิดดูฉบับลงนามจริง</span>
+          </button>
+        </div>
+      ` : ''}
+
       <!-- 1. Header Control Box (กล่องหัวเอกสารควบคุมคุณภาพ ISO 9001) -->
       <table class="w-full border-collapse border-2 border-slate-900 text-xs mb-4">
         <tbody>
@@ -113,8 +153,8 @@ function renderJobPrintDocumentHtml(job, company) {
             <td class="w-1/4 p-2 border-b border-slate-900 text-[11px] align-middle font-mono">
               <div class="space-y-1">
                 <div><span class="text-slate-600 font-sans">รหัสเอกสาร:</span> <b class="text-slate-900">JD-${jobCode}</b></div>
-                <div><span class="text-slate-600 font-sans">แก้ไขครั้งที่:</span> <b>00</b></div>
-                <div><span class="text-slate-600 font-sans">วันที่มีผล:</span> <b>01/01/2569</b></div>
+                <div><span class="text-slate-600 font-sans">แก้ไขครั้งที่:</span> <b>${docRevisionNo}</b></div>
+                <div><span class="text-slate-600 font-sans">วันที่มีผล:</span> <b>${docEffectiveDate}</b></div>
                 <div><span class="text-slate-600 font-sans">หน้า:</span> <b>1 / 1</b></div>
               </div>
             </td>

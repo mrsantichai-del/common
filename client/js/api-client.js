@@ -306,6 +306,28 @@ class ApiClient {
         this.request(`/organization/jobs/${id}`, { method: 'PATCH', body: data }),
       deleteJob: (id) =>
         this.request(`/organization/jobs/${id}`, { method: 'DELETE' }),
+      getJobDocuments: (jobId) =>
+        this.request(`/organization/jobs/${jobId}/documents`),
+      uploadJobDocument: (jobId, formData) => {
+        const token = this.getToken();
+        return fetch(`${this.baseUrl}/organization/jobs/${jobId}/documents`, {
+          method: 'POST',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
+        }).then(async (res) => {
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ message: res.statusText }));
+            throw new Error(err.message || 'Upload failed');
+          }
+          return res.json();
+        });
+      },
+      deleteJobDocument: (docId) =>
+        this.request(`/organization/jobs/documents/${docId}`, { method: 'DELETE' }),
+      getJobDocumentDownloadUrl: (docId, preview = false) =>
+        `${this.baseUrl}/organization/jobs/documents/${docId}/download${preview ? '?preview=true' : ''}`,
 
       getPositions: (params = {}) => {
         const qs = new URLSearchParams(params).toString();

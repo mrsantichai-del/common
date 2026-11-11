@@ -1207,6 +1207,9 @@ async function openEditMasterRecordModal(id, directRecord = null) {
   if (modal) modal.classList.remove('hidden');
 
   await renderMasterFormFields(container, activeMasterTable, record);
+  if (activeMasterTable === 'job' && record && record.id) {
+    loadJobDocumentHistory(record.id);
+  }
 }
 
 async function renderMasterFormFields(container, table, existing) {
@@ -2202,6 +2205,119 @@ async function renderMasterFormFields(container, table, existing) {
             <span class="text-xs font-semibold text-slate-800">เปิดใช้งานลักษณะงานนี้ในระบบ (Active)</span>
           </label>
         </div>
+
+        <!-- 📑 แฟ้มเอกสารฉบับลงนาม & ประวัติการเปลี่ยนแปลงเวอร์ชัน (ISO 9001:2015 Clause 7.5 Documented Information) -->
+        <div class="mt-4 pt-4 border-t-2 border-dashed border-indigo-200">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-2">
+              <span class="p-1.5 bg-indigo-100 text-indigo-700 rounded-lg">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+              </span>
+              <div>
+                <h4 class="text-xs font-bold text-slate-900">เอกสารฉบับลงนามและประวัติเวอร์ชัน (Signed Copies & ISO Revisions)</h4>
+                <p class="text-[11px] text-slate-500">จัดเก็บไฟล์ฉบับลงนามจริง (PDF/สแกน) เป็นหลักฐานสำหรับผู้ตรวจประเมินภายนอก (External Audit Evidence)</p>
+              </div>
+            </div>
+            ${existing && existing.id ? `
+              <button 
+                type="button" 
+                onclick="loadJobDocumentHistory('${existing.id}')" 
+                class="px-2 py-1 text-[11px] font-medium rounded border border-slate-300 hover:bg-slate-100 text-slate-700 cursor-pointer flex items-center space-x-1"
+                title="รีเฟรชประวัติเอกสาร"
+              >
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                <span>รีเฟรช</span>
+              </button>
+            ` : ''}
+          </div>
+
+          ${existing && existing.id ? `
+            <!-- แบบฟอร์มอัพโหลดไฟล์ใหม่ -->
+            <div class="bg-indigo-50/50 rounded-xl p-3.5 border border-indigo-200/70 mb-3 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-indigo-950 flex items-center space-x-1.5">
+                  <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                  <span>อัพโหลดเอกสารฉบับลงนามใหม่ (Upload Signed Copy)</span>
+                </span>
+                <span class="text-[10px] text-indigo-600 font-mono">รองรับ PDF, DOC, DOCX, PNG, JPG (สูงสุด 25MB)</span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-end">
+                <!-- File Input -->
+                <div class="md:col-span-5">
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">เลือกไฟล์เอกสารฉบับลงนาม *</label>
+                  <input 
+                    type="file" 
+                    id="f_job_doc_file" 
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" 
+                    class="w-full text-xs text-slate-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 file:cursor-pointer border border-slate-300 rounded-lg p-1 bg-white"
+                  >
+                </div>
+
+                <!-- Revision No. -->
+                <div class="md:col-span-2">
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">เลขเวอร์ชัน (Rev.)</label>
+                  <input 
+                    type="text" 
+                    id="f_job_doc_revisionNo" 
+                    placeholder="เช่น 00, 01" 
+                    class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-mono font-bold text-indigo-700 uppercase focus:ring-1 focus:ring-indigo-600 outline-none bg-white text-center"
+                  >
+                </div>
+
+                <!-- Effective Date -->
+                <div class="md:col-span-3">
+                  <label class="block text-[11px] font-semibold text-slate-700 mb-1">วันที่มีผลบังคับใช้</label>
+                  <input 
+                    type="date" 
+                    id="f_job_doc_effectiveDate" 
+                    class="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs font-sans text-slate-700 focus:ring-1 focus:ring-indigo-600 outline-none bg-white"
+                  >
+                </div>
+
+                <!-- Upload Button -->
+                <div class="md:col-span-2">
+                  <button 
+                    type="button" 
+                    id="btnUploadJobDoc" 
+                    onclick="uploadJobSignedDocument('${existing.id}')" 
+                    class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors flex items-center justify-center space-x-1 cursor-pointer shadow-xs"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    <span>อัพโหลด</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Note -->
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-1">หมายเหตุ / รายละเอียดการลงนามอนุมัติ (Audit Note)</label>
+                <input 
+                  type="text" 
+                  id="f_job_doc_note" 
+                  placeholder="เช่น ฉบับลงนามสมบูรณ์โดย MD ผ่านการ Audit ประจำปี 2569, ปรับเพิ่มหน้าที่ด้านความปลอดภัย" 
+                  class="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-sans focus:ring-1 focus:ring-indigo-600 outline-none bg-white"
+                >
+              </div>
+            </div>
+
+            <!-- ตารางประวัติเอกสาร -->
+            <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+              <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs font-semibold text-slate-700">
+                <span>ตารางประวัติเวอร์ชันและเอกสารแนบ (ISO Document History)</span>
+                <span id="jobDocCountBadge" class="text-[11px] text-slate-500 font-mono">กำลังโหลด...</span>
+              </div>
+              <div id="jobDocumentHistoryContainer" class="divide-y divide-slate-100 max-h-60 overflow-y-auto">
+                <div class="p-4 text-center text-slate-400 text-xs font-sans">กำลังเรียกข้อมูลประวัติเอกสาร...</div>
+              </div>
+            </div>
+          ` : `
+            <div class="bg-amber-50 rounded-xl p-3 border border-amber-200/80 text-amber-900 text-xs flex items-center space-x-2">
+              <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>กรุณากด <b>"บันทึกข้อมูล"</b> เพื่อสร้างลักษณะงานนี้ก่อน จากนั้นจะสามารถเริ่มอัพโหลดไฟล์ฉบับลงนามและจัดเก็บประวัติเวอร์ชันได้</span>
+            </div>
+          `}
+        </div>
       `;
       break;
     }
@@ -2866,3 +2982,310 @@ function triggerSmartCodeGeneration(target) {
     selectSuggestedCode(smartCode);
   }
 }
+
+// ============================================================================
+// ISO 9001 Job Document Revision Control & Signed Copies Engine (Clause 7.5)
+// ============================================================================
+
+async function loadJobDocumentHistory(jobId) {
+  const container = document.getElementById('jobDocumentHistoryContainer');
+  const countBadge = document.getElementById('jobDocCountBadge');
+  const revInput = document.getElementById('f_job_doc_revisionNo');
+  const dateInput = document.getElementById('f_job_doc_effectiveDate');
+
+  if (!container) return;
+
+  // ตั้งค่าวันที่เริ่มต้นเป็นวันปัจจุบันถ้ายังว่างอยู่
+  if (dateInput && !dateInput.value) {
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.value = today;
+  }
+
+  container.innerHTML = `
+    <div class="p-4 text-center text-slate-400 text-xs font-sans flex items-center justify-center space-x-2">
+      <svg class="animate-spin h-4 w-4 text-indigo-600" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>กำลังโหลดประวัติเวอร์ชันเอกสาร...</span>
+    </div>
+  `;
+
+  try {
+    const docs = await api.organization.getJobDocuments(jobId);
+    const list = Array.isArray(docs) ? docs : (docs?.data || []);
+
+    if (countBadge) {
+      countBadge.textContent = `${list.length} ฉบับ`;
+    }
+
+    // Auto-suggest next revision number
+    if (revInput) {
+      if (list.length === 0) {
+        revInput.value = '00';
+      } else {
+        const topDoc = list[0];
+        const num = parseInt(topDoc.revisionNo, 10);
+        if (!isNaN(num)) {
+          revInput.value = String(num + 1).padStart(2, '0');
+        } else {
+          revInput.value = '01';
+        }
+      }
+    }
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div class="p-6 text-center text-slate-400 text-xs font-sans space-y-1">
+          <svg class="w-8 h-8 mx-auto text-slate-300 stroke-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+          <p class="font-semibold text-slate-600">ยังไม่มีไฟล์เอกสารฉบับลงนามในระบบ</p>
+          <p class="text-[11px] text-slate-400">เลือกไฟล์ฉบับที่มีลายเซ็นต์อนุมัติครบถ้วนด้านบน แล้วกด "อัพโหลด" เพื่อจัดเก็บเป็นหลักฐาน</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list
+      .map((doc, idx) => {
+        const isLatest = idx === 0;
+        const sizeFormatted = doc.fileSize
+          ? doc.fileSize > 1024 * 1024
+            ? (doc.fileSize / (1024 * 1024)).toFixed(1) + ' MB'
+            : Math.round(doc.fileSize / 1024) + ' KB'
+          : '-';
+
+        const effectiveDateStr = doc.effectiveDate
+          ? new Date(doc.effectiveDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })
+          : '-';
+        const createdAtStr = doc.createdAt
+          ? new Date(doc.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '-';
+
+        const isPdf = (doc.mimeType && doc.mimeType.includes('pdf')) || doc.fileName.toLowerCase().endsWith('.pdf');
+
+        return `
+          <div class="p-3 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+            <div class="flex items-start space-x-3 min-w-0">
+              <!-- Revision Badge -->
+              <div class="flex flex-col items-center flex-shrink-0 pt-0.5">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold font-mono ${isLatest ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-700'}">
+                  Rev. ${doc.revisionNo}
+                </span>
+                ${isLatest ? '<span class="text-[9px] text-emerald-600 font-bold mt-0.5">ฉบับล่าสุด</span>' : ''}
+              </div>
+
+              <!-- File Info & Note -->
+              <div class="min-w-0 space-y-1">
+                <div class="flex items-center space-x-2">
+                  <span class="p-1 rounded bg-slate-100 text-slate-600 flex-shrink-0">
+                    ${isPdf ? `
+                      <svg class="w-4 h-4 text-rose-600" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" /></svg>
+                    ` : `
+                      <svg class="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    `}
+                  </span>
+                  <span class="font-semibold text-slate-900 text-xs truncate max-w-sm" title="${escapeJs(doc.fileName)}">
+                    ${doc.fileName}
+                  </span>
+                  <span class="text-[10px] text-slate-400 font-mono">(${sizeFormatted})</span>
+                </div>
+
+                <div class="text-[11px] text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                  <span>📅 บังคับใช้: <b class="text-slate-800">${effectiveDateStr}</b></span>
+                  <span>🕒 อัพโหลดเมื่อ: <span class="text-slate-500">${createdAtStr}</span></span>
+                </div>
+
+                ${doc.note ? `
+                  <p class="text-[11px] text-slate-500 italic bg-slate-50 px-2 py-0.5 rounded border border-slate-200 inline-block">
+                    💬 ${doc.note}
+                  </p>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-1.5 self-end md:self-center flex-shrink-0">
+              <button 
+                type="button" 
+                onclick="openJobDocumentPreview('${doc.id}', '${escapeJs(doc.fileName)}')" 
+                class="px-2.5 py-1 text-xs font-semibold rounded bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 cursor-pointer flex items-center space-x-1 shadow-2xs"
+                title="เปิดดูเอกสารต้นฉบับในแท็บใหม่"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                <span>เปิดดู</span>
+              </button>
+
+              <button 
+                type="button" 
+                onclick="downloadJobDocumentFile('${doc.id}', '${escapeJs(doc.fileName)}')" 
+                class="px-2.5 py-1 text-xs font-semibold rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 cursor-pointer flex items-center space-x-1 shadow-2xs"
+                title="ดาวน์โหลดไฟล์เก็บไว้ในเครื่อง"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span>ดาวน์โหลด</span>
+              </button>
+
+              <button 
+                type="button" 
+                onclick="deleteJobDocumentRevision('${doc.id}', '${doc.revisionNo}', '${jobId}')" 
+                class="px-2 py-1 text-xs rounded bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 cursor-pointer flex items-center space-x-1 shadow-2xs"
+                title="ลบเอกสารฉบับนี้"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                <span>ลบ</span>
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+  } catch (err) {
+    console.error('Failed to load job document history:', err);
+    container.innerHTML = `
+      <div class="p-4 text-center text-rose-500 text-xs font-sans">
+        ไม่สามารถโหลดประวัติเอกสารได้: ${err.message || 'Network error'}
+      </div>
+    `;
+  }
+}
+
+async function uploadJobSignedDocument(jobId) {
+  const fileInput = document.getElementById('f_job_doc_file');
+  const revInput = document.getElementById('f_job_doc_revisionNo');
+  const dateInput = document.getElementById('f_job_doc_effectiveDate');
+  const noteInput = document.getElementById('f_job_doc_note');
+  const btn = document.getElementById('btnUploadJobDoc');
+
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+    showToast('กรุณาเลือกไฟล์เอกสารฉบับลงนามก่อน', 'warning');
+    if (fileInput) fileInput.focus();
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const maxBytes = 25 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    showToast('ขนาดไฟล์เกินกำหนด (สูงสุด 25MB)', 'warning');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  if (revInput && revInput.value.trim()) {
+    formData.append('revisionNo', revInput.value.trim());
+  }
+  if (dateInput && dateInput.value) {
+    formData.append('effectiveDate', dateInput.value);
+  }
+  if (noteInput && noteInput.value.trim()) {
+    formData.append('note', noteInput.value.trim());
+  }
+
+  // Update button state
+  const originalBtnHtml = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `
+      <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>กำลังส่ง...</span>
+    `;
+  }
+
+  try {
+    const res = await api.organization.uploadJobDocument(jobId, formData);
+    showToast(res.message || 'อัพโหลดไฟล์ฉบับลงนามสำเร็จ', 'success');
+
+    // เคลียร์ input file และ note
+    fileInput.value = '';
+    if (noteInput) noteInput.value = '';
+
+    // โหลดประวัติใหม่ทันที
+    await loadJobDocumentHistory(jobId);
+  } catch (err) {
+    console.error('Failed to upload job document:', err);
+    showToast('อัพโหลดไม่สำเร็จ: ' + (err.message || 'Unknown error'), 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalBtnHtml;
+    }
+  }
+}
+
+async function deleteJobDocumentRevision(docId, revNo, jobId) {
+  if (!confirm(`คุณต้องการลบเอกสารฉบับลงนาม Rev. ${revNo} นี้ใช่หรือไม่?\n(การกระทำนี้จะลบไฟล์ออกจากระบบอย่างถาวร)`)) {
+    return;
+  }
+
+  try {
+    const res = await api.organization.deleteJobDocument(docId);
+    showToast(res.message || `ลบเอกสาร Rev. ${revNo} เรียบร้อยแล้ว`, 'success');
+    await loadJobDocumentHistory(jobId);
+  } catch (err) {
+    console.error('Failed to delete job document:', err);
+    showToast('ไม่สามารถลบเอกสารได้: ' + (err.message || 'Unknown error'), 'error');
+  }
+}
+
+async function openJobDocumentPreview(docId, fileName) {
+  try {
+    const token = api.getToken();
+    const url = `${api.baseUrl}/organization/jobs/documents/${docId}/download?preview=true`;
+    const res = await fetch(url, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`ไม่สามารถเปิดไฟล์ได้ (${res.status} ${res.statusText})`);
+    }
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+  } catch (err) {
+    console.error('Failed to open document preview:', err);
+    showToast('เกิดข้อผิดพลาดในการเปิดไฟล์: ' + err.message, 'error');
+  }
+}
+
+async function downloadJobDocumentFile(docId, fileName) {
+  try {
+    const token = api.getToken();
+    const url = `${api.baseUrl}/organization/jobs/documents/${docId}/download`;
+    const res = await fetch(url, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`ไม่สามารถดาวน์โหลดไฟล์ได้ (${res.status} ${res.statusText})`);
+    }
+
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName || 'Job_Signed_Document.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+    showToast(`ดาวน์โหลดไฟล์ "${fileName}" สำเร็จ`, 'info');
+  } catch (err) {
+    console.error('Failed to download document:', err);
+    showToast('เกิดข้อผิดพลาดในการดาวน์โหลด: ' + err.message, 'error');
+  }
+}
+
+// Export functions to window
+window.loadJobDocumentHistory = loadJobDocumentHistory;
+window.uploadJobSignedDocument = uploadJobSignedDocument;
+window.deleteJobDocumentRevision = deleteJobDocumentRevision;
+window.openJobDocumentPreview = openJobDocumentPreview;
+window.downloadJobDocumentFile = downloadJobDocumentFile;
