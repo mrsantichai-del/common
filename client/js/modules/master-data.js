@@ -1859,6 +1859,7 @@ async function renderMasterFormFields(container, table, existing) {
       try {
         const unitsRes = await api.masterTable.findAll('orgunit', { limit: 200 });
         const allUnits = unitsRes && unitsRes.data ? unitsRes.data : [];
+        window._cachedOrgUnits = allUnits;
         allUnits
           .filter((u) => !existing || !existing.id || u.id !== existing.id)
           .forEach((u) => {
@@ -1873,23 +1874,51 @@ async function renderMasterFormFields(container, table, existing) {
       }
       const defaultParentUnitId = existing && existing.parentId ? existing.parentId : '';
       const unitType = existing && existing.type ? existing.type : 'DEPARTMENT';
+      const isCreateMode = !existing || !existing.id;
+      const initialCode = isCreateMode
+        ? (existing && existing.code ? existing.code : generateSmartOrgUnitCode(unitType, window._cachedOrgUnits || []))
+        : existing.code;
 
       container.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-slate-700 mb-1">รหัสหน่วยงาน (Code) <span class="text-rose-500">*</span></label>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-semibold text-slate-700">รหัสหน่วยงาน (Code) <span class="text-rose-500">*</span></label>
+              ${isCreateMode ? `
+                <button 
+                  type="button" 
+                  onclick="triggerSmartCodeGeneration('orgunit')" 
+                  class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 cursor-pointer inline-flex items-center space-x-1"
+                  title="คำนวณรหัสถัดไปอัตโนมัติตามประเภทหน่วยงาน"
+                >
+                  <svg class="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  <span>สร้างรหัสอัตโนมัติ</span>
+                </button>
+              ` : ''}
+            </div>
             <input 
               type="text" 
               id="f_orgunit_code" 
-              value="${existing && existing.id ? existing.code : (existing && existing.code ? existing.code : '')}" 
-              ${existing && existing.id ? 'readonly' : 'required'}
-              placeholder="เช่น DEP-ACC, DIV-FIN, BR-HQ" 
-              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${existing && existing.id ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white'}"
+              value="${initialCode}" 
+              ${!isCreateMode ? 'readonly' : 'required'}
+              placeholder="เช่น BR-03, DIV-HR, DEP-IT" 
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-mono uppercase focus:ring-1 focus:ring-slate-900 outline-none ${!isCreateMode ? 'bg-slate-100 text-slate-500 cursor-not-allowed' : 'bg-white font-bold text-slate-900'}"
             >
+            <!-- Suggestions & Helper Pills -->
+            ${isCreateMode ? `
+              <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                <span class="text-slate-400">แนะนำ:</span>
+                <div id="orgunit_code_pills" class="flex flex-wrap gap-1"></div>
+              </div>
+            ` : ''}
           </div>
           <div>
             <label class="block text-xs font-semibold text-slate-700 mb-1">ประเภทหน่วยงาน (Type) <span class="text-rose-500">*</span></label>
-            <select id="f_orgunit_type" class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold focus:ring-1 focus:ring-slate-900 outline-none bg-white">
+            <select 
+              id="f_orgunit_type" 
+              onchange="handleOrgUnitTypeChange(event)"
+              class="w-full px-3 py-1.5 rounded border border-slate-300 text-xs font-semibold focus:ring-1 focus:ring-slate-900 outline-none bg-white cursor-pointer"
+            >
               <option value="BRANCH" ${unitType === 'BRANCH' ? 'selected' : ''}>สาขา (BRANCH)</option>
               <option value="DIVISION" ${unitType === 'DIVISION' ? 'selected' : ''}>ฝ่าย (DIVISION)</option>
               <option value="DEPARTMENT" ${unitType === 'DEPARTMENT' ? 'selected' : ''}>แผนก (DEPARTMENT)</option>
@@ -1898,6 +1927,21 @@ async function renderMasterFormFields(container, table, existing) {
             </select>
           </div>
         </div>
+
+        <!-- Code Guidance Banner -->
+        ${isCreateMode ? `
+          <div id="orgunit_code_guidance_card" class="bg-blue-50/70 p-2.5 rounded-lg border border-blue-200/80 text-[11px] text-blue-950 space-y-1">
+            <div class="flex items-center space-x-1.5 font-bold">
+              <svg class="w-3.5 h-3.5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+              <span id="orgunit_guidance_title">หลักการตั้งรหัส: [คำนำหน้า]-[ตัวย่อภาษาอังกฤษ 2-4 ตัว หรือลำดับเลข]</span>
+            </div>
+            <div id="orgunit_guidance_desc" class="text-slate-600 pl-5 text-[10px] leading-relaxed">
+              • สาขา (BRANCH): ใช้รหัสขึ้นต้น <b>BR-</b> เช่น BR-HQ, BR-CNX, BR-03<br>
+              • ฝ่าย (DIVISION): ใช้รหัสขึ้นต้น <b>DIV-</b> เช่น DIV-ACC, DIV-ENG, DIV-HR<br>
+              • แผนก (DEPARTMENT): ใช้รหัสขึ้นต้น <b>DEP-</b> เช่น DEP-ACC, DEP-FIN, DEP-IT
+            </div>
+          </div>
+        ` : ''}
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div>
@@ -2018,6 +2062,10 @@ async function renderMasterFormFields(container, table, existing) {
         items: parentUnitOptions,
         selectedValue: defaultParentUnitId,
       });
+
+      if (isCreateMode) {
+        updateOrgUnitCodePills(unitType, allUnits);
+      }
       break;
     }
 
@@ -2641,5 +2689,124 @@ async function deleteMasterRecord(id, label) {
   } catch (err) {
     console.error('Delete master record failed:', err);
     showToast(err.message || 'ลบข้อมูลไม่สำเร็จ อาจมีข้อมูลอื่นอ้างอิงอยู่', 'error');
+  }
+}
+
+// --------------------------------------------------------------------------
+// Smart Code Generator & Guidance Helpers (OrgUnit & Position)
+// --------------------------------------------------------------------------
+function generateSmartOrgUnitCode(type, existingUnits = []) {
+  const prefixMap = {
+    BRANCH: 'BR',
+    DIVISION: 'DIV',
+    DEPARTMENT: 'DEP',
+    SECTION: 'SEC',
+    TEAM: 'TEAM',
+  };
+  const prefix = prefixMap[type] || 'ORG';
+
+  const matchingCodes = (existingUnits || [])
+    .map((u) => (u.code || '').toUpperCase().trim())
+    .filter((c) => c.startsWith(prefix + '-'));
+
+  let seq = 1;
+  while (matchingCodes.includes(`${prefix}-${String(seq).padStart(2, '0')}`)) {
+    seq++;
+  }
+  return `${prefix}-${String(seq).padStart(2, '0')}`;
+}
+
+function getOrgUnitCodeSuggestions(type, existingUnits = []) {
+  const nextSeq = generateSmartOrgUnitCode(type, existingUnits);
+  const presets = {
+    BRANCH: [nextSeq, 'BR-BKK', 'BR-RAYONG', 'BR-EAST', 'BR-SOUTH', 'BR-HQ2'],
+    DIVISION: [nextSeq, 'DIV-HR', 'DIV-MKT', 'DIV-OPS', 'DIV-IT', 'DIV-LEGAL'],
+    DEPARTMENT: [nextSeq, 'DEP-IT', 'DEP-QA', 'DEP-HRD', 'DEP-SALES', 'DEP-LOGIS'],
+    SECTION: [nextSeq, 'SEC-TAX', 'SEC-PAYROLL', 'SEC-MAINT', 'SEC-SUPPORT'],
+    TEAM: [nextSeq, 'TEAM-QA', 'TEAM-DEV', 'TEAM-FRONT', 'TEAM-BACK'],
+  };
+  const list = presets[type] || [nextSeq];
+  const existingCodes = (existingUnits || []).map((u) => (u.code || '').toUpperCase().trim());
+  return list.filter((c) => !existingCodes.includes(c)).slice(0, 4);
+}
+
+function updateOrgUnitCodePills(type, allUnits) {
+  const container = document.getElementById('orgunit_code_pills');
+  const titleEl = document.getElementById('orgunit_guidance_title');
+  const descEl = document.getElementById('orgunit_guidance_desc');
+  if (!container) return;
+
+  const suggestions = getOrgUnitCodeSuggestions(type, allUnits);
+  container.innerHTML = suggestions
+    .map(
+      (code) => `
+      <button 
+        type="button" 
+        onclick="selectSuggestedCode('${code}')" 
+        class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 cursor-pointer shadow-2xs hover:border-blue-400 transition-colors"
+        title="คลิกเพื่อใช้รหัส ${code}"
+      >
+        ${code}
+      </button>
+    `,
+    )
+    .join('');
+
+  if (titleEl && descEl) {
+    const rules = {
+      BRANCH: {
+        title: 'หลักการตั้งรหัสสาขา: นำหน้าด้วย BR- ตามด้วยตัวย่อพื้นที่หรือเลขลำดับ',
+        desc: 'ตัวอย่าง: <b>BR-HQ</b> (สำนักงานใหญ่), <b>BR-CNX</b> (เชียงใหม่), <b>BR-03</b>, <b>BR-RAYONG</b>',
+      },
+      DIVISION: {
+        title: 'หลักการตั้งรหัสฝ่าย: นำหน้าด้วย DIV- ตามด้วยตัวย่อสายงาน',
+        desc: 'ตัวอย่าง: <b>DIV-ACC</b> (บัญชีการเงิน), <b>DIV-ENG</b> (วิศวกรรม), <b>DIV-HR</b> (บุคคล), <b>DIV-MKT</b> (การตลาด)',
+      },
+      DEPARTMENT: {
+        title: 'หลักการตั้งรหัสแผนก: นำหน้าด้วย DEP- ตามด้วยตัวย่อแผนก',
+        desc: 'ตัวอย่าง: <b>DEP-ACC</b> (บัญชี), <b>DEP-FIN</b> (การเงิน), <b>DEP-STRUCT</b> (ฐานราก), <b>DEP-IT</b> (สารสนเทศ)',
+      },
+      SECTION: {
+        title: 'หลักการตั้งรหัสส่วนงาน: นำหน้าด้วย SEC- ตามด้วยตัวย่องาน',
+        desc: 'ตัวอย่าง: <b>SEC-TAX</b> (ภาษี), <b>SEC-PAYROLL</b> (เงินเดือน), <b>SEC-SAFETY</b> (ความปลอดภัย)',
+      },
+      TEAM: {
+        title: 'หลักการตั้งรหัสทีมงาน: นำหน้าด้วย TEAM- ตามด้วยชื่องาน',
+        desc: 'ตัวอย่าง: <b>TEAM-QA</b> (ทดสอบระบบ), <b>TEAM-DEV</b> (พัฒนาโปรแกรม), <b>TEAM-01</b>',
+      },
+    };
+    const r = rules[type] || rules.DEPARTMENT;
+    titleEl.innerHTML = r.title;
+    descEl.innerHTML = r.desc;
+  }
+}
+
+function selectSuggestedCode(code) {
+  const codeInput = document.getElementById('f_orgunit_code');
+  if (codeInput) {
+    codeInput.value = code;
+    codeInput.classList.add('ring-2', 'ring-blue-400');
+    setTimeout(() => codeInput.classList.remove('ring-2', 'ring-blue-400'), 500);
+  }
+}
+
+function handleOrgUnitTypeChange(event) {
+  const newType = event.target.value;
+  const allUnits = window._cachedOrgUnits || [];
+  updateOrgUnitCodePills(newType, allUnits);
+
+  const codeInput = document.getElementById('f_orgunit_code');
+  if (codeInput && !codeInput.readOnly) {
+    const smartCode = generateSmartOrgUnitCode(newType, allUnits);
+    codeInput.value = smartCode;
+  }
+}
+
+function triggerSmartCodeGeneration(target) {
+  if (target === 'orgunit') {
+    const type = document.getElementById('f_orgunit_type')?.value || 'DEPARTMENT';
+    const allUnits = window._cachedOrgUnits || [];
+    const smartCode = generateSmartOrgUnitCode(type, allUnits);
+    selectSuggestedCode(smartCode);
   }
 }

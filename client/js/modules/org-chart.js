@@ -530,16 +530,22 @@ async function openAddUnitFromOrgChart(parentId, type, mode, targetUnitName) {
   if (mode === 'SIBLING') {
     contextTitle = parentId
       ? `เพิ่มหน่วยงานระดับเดียวกัน (${getUnitTypeLabelTh(type)}) สังกัดเดียวกับ: ${targetUnitName}`
-      : `เพิ่มหน่วยงานระดับบนสุดขององค์กร (ระดับเดียวกันกับ: ${targetUnitName})`;
+      : `เพิ่มสาขาใหม่ (ระดับเดียวกันกับ: ${targetUnitName})`;
   } else if (mode === 'CHILD') {
     contextTitle = `เพิ่มหน่วยงานย่อย (${getUnitTypeLabelTh(type)}) ใต้สังกัด: ${targetUnitName}`;
   } else {
     contextTitle = `เพิ่มสาขา / หน่วยงานระดับบนสุดของบริษัท`;
   }
 
+  let proposedCode = '';
+  if (typeof generateSmartOrgUnitCode === 'function') {
+    proposedCode = generateSmartOrgUnitCode(type || 'BRANCH', window._cachedOrgUnits || []);
+  }
+
   await openCreateMasterRecordModal({
     parentId: parentId || '',
-    type: type || 'DEPARTMENT',
+    type: type || 'BRANCH',
+    code: proposedCode,
     _contextTitle: contextTitle,
   });
 }
