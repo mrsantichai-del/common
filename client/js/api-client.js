@@ -5,8 +5,11 @@
  */
 class ApiClient {
   constructor(config = {}) {
-    // Points explicitly to the Backend Server Port (3000)
-    this.baseUrl = config.baseUrl || 'http://localhost:3000';
+    // Dynamic Host Support: Detect current hostname for LAN/Intranet deployment
+    const defaultHost = (typeof window !== 'undefined' && window.location && window.location.hostname) 
+      ? window.location.hostname 
+      : 'localhost';
+    this.baseUrl = config.baseUrl || `http://${defaultHost}:3000`;
     this.sharedKey = config.sharedKey || 'aes-shared-payload-key-secret-2026-v1';
     this.encryptionEnabled = config.encryptionEnabled !== undefined ? config.encryptionEnabled : true;
     this.tokenKey = 'app_jwt_token';
